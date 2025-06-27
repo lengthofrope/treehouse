@@ -343,11 +343,12 @@ class TreeHouseCompiler
     /**
      * Convert dot notation to array access: user.name → $user['name']
      */
-    protected function compileDotNotation(string $expression): string 
+    protected function compileDotNotation(string $expression): string
     {
         // Convert user.name.first → $user['name']['first']
+        // Also handles $user.name.first → $user['name']['first'] (when $ prefix already exists)
         return preg_replace_callback(
-            '/\b([a-zA-Z_]\w*)\.([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)\b/',
+            '/\$?([a-zA-Z_]\w*)\.([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)\b/',
             function($matches) {
                 $var = $matches[1];
                 $path = $matches[2];
@@ -363,11 +364,58 @@ class TreeHouseCompiler
     }
 
     /**
+     * Add $ prefix to simple variable names in th: commands
+     */
+    protected function addVariablePrefix(string $expression): string
+    {
+        // Don't process if expression already contains $ (already has variables)
+        // or if it contains PHP operators/functions that indicate it's already PHP code
+        if (str_contains($expression, '$') ||
+            preg_match('/\(|\)|->|::|==|!=|&&|\|\||[\[\]]/', $expression)) {
+            return $expression;
+        }
+        
+        // Don't process quoted strings
+        if (preg_match('/^[\'"][^\'"]*[\'"]$/', trim($expression))) {
+            return $expression;
+        }
+        
+        // Don't process numeric values or boolean literals
+        if (preg_match('/^(true|false|null|\d+(\.\d+)?)$/i', trim($expression))) {
+            return $expression;
+        }
+        
+        // Don't process Support class calls (Str::something, Arr::something, etc.)
+        foreach ($this->supportClasses as $alias => $class) {
+            if (str_starts_with($expression, $alias . '::')) {
+                return $expression;
+            }
+        }
+        
+        // Handle simple variable names (just letters, numbers, underscores)
+        // Examples: "title" -> "$title", "user_name" -> "$user_name"
+        if (preg_match('/^[a-zA-Z_]\w*$/', trim($expression))) {
+            return '$' . trim($expression);
+        }
+        
+        // Handle simple dot notation without $ prefix
+        // Examples: "user.name" -> "$user.name" (will be further processed by compileDotNotation)
+        if (preg_match('/^[a-zA-Z_]\w*\.[a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*$/', trim($expression))) {
+            return '$' . trim($expression);
+        }
+        
+        return $expression;
+    }
+
+    /**
      * Compile expression with Support class integration
      */
     protected function compileExpression(string $expression): string
     {
-        // First, handle dot notation conversion
+        // First, handle automatic $ prefixing for simple variable names
+        $expression = $this->addVariablePrefix($expression);
+        
+        // Then, handle dot notation conversion
         $expression = $this->compileDotNotation($expression);
         
         // Handle Support class static calls
@@ -717,7 +765,7 @@ class TreeHouseCompiler
     protected function processTextContent(DOMDocument $dom, DOMXPath $xpath): void
     {
         // Find all text nodes that contain brace expressions, but exclude those inside code/pre tags
-        $textNodes = $xpath->query('//text()[contains(., "{") and not(ancestor::code) and not(ancestor::pre)]');
+        $textNodes = $xpath->query('//text()[contains(., "{") and not(ancestor::code) and not(ancestor::pre) and not(ancestor::style) and not(ancestor::script)]');
         
         foreach ($textNodes as $textNode) {
             $content = $textNode->textContent;

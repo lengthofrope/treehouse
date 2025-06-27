@@ -1,0 +1,41 @@
+<div th:extend="layouts.app">
+    <div th:section="content">
+        <h2 th:text="$title"></h2>
+        <p th:text="$message"></p>
+        
+        <h3>Getting Started</h3>
+        <ul>
+            <li>Edit your routes in <code>config/routes/web.php</code></li>
+            <li>Create controllers in <code>src/App/Controllers/</code></li>
+            <li>Add views in <code>resources/views/</code></li>
+            <li>Configure your app in <code>config/</code></li>
+        </ul>
+        
+        <h3>Framework Features</h3>
+        <ul>
+            <li>Automatic route loading from <code>config/routes/</code></li>
+            <li>Framework default routes at <code>/</code>, <code>/api/status</code></li>
+            <li>TreeHouse template engine with <code>th:</code> attributes</li>
+            <li>Built-in cache, views, and database support</li>
+            <li>Support classes: Collection, Arr, Str, Carbon, Uuid</li>
+        </ul>
+        
+        <h3>TreeHouse Template Features</h3>
+        <ul>
+            <li><code>th:text="variable"</code> - Safe text output</li>
+            <li><code>th:html="variable"</code> - Raw HTML output</li>
+            <li><code>th:if="condition"</code> - Conditional rendering</li>
+            <li><code>th:repeat="item items"</code> - Loop through arrays</li>
+            <li><code>th:class="expression"</code> - Dynamic classes</li>
+            <li><code>{variable}</code> - Inline expressions</li>
+        </ul>
+        
+        <h3>Available Commands</h3>
+        <ul>
+            <li><code>./bin/th serve</code> - Start development server</li>
+            <li><code>./bin/th cache:clear</code> - Clear cache</li>
+            <li><code>./bin/th test:run</code> - Run tests</li>
+            <li><code>./bin/th --help</code> - Show all commands</li>
+        </ul>
+    </div>
+</div>

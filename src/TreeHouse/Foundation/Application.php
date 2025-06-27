@@ -112,7 +112,7 @@ class Application
     private function autoLoadRoutes(): void
     {
         // Load framework default routes first
-        $frameworkRoutesPath = __DIR__ . '/config/routes';
+        $frameworkRoutesPath = $this->basePath . '/config/routes';
         if (is_dir($frameworkRoutesPath)) {
             $frameworkRoutes = glob($frameworkRoutesPath . '/*.php');
             foreach ($frameworkRoutes as $file) {

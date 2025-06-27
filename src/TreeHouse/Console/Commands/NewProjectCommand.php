@@ -372,8 +372,8 @@ class HomeController
     public function __construct()
     {
         \$this->view = new ViewFactory([
-            'paths' => [__DIR__ . '/../../resources/views'],
-            'cache_path' => __DIR__ . '/../../storage/views',
+            'paths' => [__DIR__ . '/../../../resources/views'],
+            'cache_path' => __DIR__ . '/../../../storage/views',
             'cache_enabled' => true,
         ]);
     }
