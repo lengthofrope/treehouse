@@ -137,6 +137,8 @@ class NewProjectCommand extends Command
         $this->copyStubFile('config/app.php', $basePath . '/config/app.php', $projectName, $output);
         $this->copyStubFile('config/database.php', $basePath . '/config/database.php', $projectName, $output);
         $this->copyStubFile('config/cache.php', $basePath . '/config/cache.php', $projectName, $output);
+        $this->copyStubFile('config/view.php', $basePath . '/config/view.php', $projectName, $output);
+        $this->copyStubFile('config/auth.php', $basePath . '/config/auth.php', $projectName, $output);
         $this->copyStubFile('config/routes/web.php', $basePath . '/config/routes/web.php', $projectName, $output);
     }
 
@@ -148,9 +150,21 @@ class NewProjectCommand extends Command
         $this->copyStubFile('public/index.php', $basePath . '/public/index.php', $projectName, $output);
         $this->copyStubFile('public/.htaccess', $basePath . '/public/.htaccess', $projectName, $output);
         $this->copyStubFile('src/App/Controllers/HomeController.php', $basePath . '/src/App/Controllers/HomeController.php', $projectName, $output);
+        
+        // Models
+        $this->copyStubFile('src/App/Models/User.php', $basePath . '/src/App/Models/User.php', $projectName, $output);
+        
+        // Views
         $this->copyStubFile('resources/views/layouts/app.th.html', $basePath . '/resources/views/layouts/app.th.html', $projectName, $output);
         $this->copyStubFile('resources/views/home.th.html', $basePath . '/resources/views/home.th.html', $projectName, $output);
         $this->copyStubFile('resources/views/about.th.html', $basePath . '/resources/views/about.th.html', $projectName, $output);
+        
+        // Database migrations
+        $this->copyStubFile('database/migrations/001_create_users_table.php', $basePath . '/database/migrations/001_create_users_table.php', $projectName, $output);
+        $this->copyStubFile('database/migrations/002_create_password_resets_table.php', $basePath . '/database/migrations/002_create_password_resets_table.php', $projectName, $output);
+        
+        // Environment file
+        $this->copyStubFile('.env.example', $basePath . '/.env.example', $projectName, $output);
         
         $this->copyStubFile('bin/th', $basePath . '/bin/th', $projectName, $output);
         chmod($basePath . '/bin/th', 0755);

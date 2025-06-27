@@ -125,6 +125,38 @@ class Application
             return new ViewFactory($config);
         });
 
+        // Register authentication manager
+        $this->container->singleton('auth', function () {
+            $config = $this->config['auth'] ?? [
+                'default' => 'web',
+                'guards' => [
+                    'web' => [
+                        'driver' => 'session',
+                        'provider' => 'users',
+                    ],
+                ],
+                'providers' => [
+                    'users' => [
+                        'driver' => 'database',
+                        'table' => 'users',
+                    ],
+                ],
+            ];
+            
+            // Create required dependencies
+            $session = new \LengthOfRope\TreeHouse\Http\Session();
+            // Cookie needs a name, so we'll create a dummy one for the manager
+            $cookie = new \LengthOfRope\TreeHouse\Http\Cookie('auth_cookie');
+            $hash = new \LengthOfRope\TreeHouse\Security\Hash();
+            
+            return new \LengthOfRope\TreeHouse\Auth\AuthManager(
+                $config,
+                $session,
+                $cookie,
+                $hash
+            );
+        });
+
     }
 
     /**
