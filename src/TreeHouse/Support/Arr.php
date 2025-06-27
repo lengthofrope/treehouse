@@ -469,7 +469,7 @@ class Arr
      * @param string|array|null $key
      * @return array
      */
-    public static function pluck(iterable $array, string|array|int|null $value, string|array|null $key = null): array
+    public static function pluck(iterable $array, string|array|int|null $value, string|array|int|null $key = null): array
     {
         $results = [];
 
@@ -504,11 +504,11 @@ class Arr
      * @param string|array|null $key
      * @return array
      */
-    protected static function explodePluckParameters(string|array|int|null $value, string|array|null $key): array
+    protected static function explodePluckParameters(string|array|int|null $value, string|array|int|null $key): array
     {
         $value = is_string($value) ? explode('.', $value) : $value;
 
-        $key = is_null($key) || is_array($key) ? $key : explode('.', $key);
+        $key = is_null($key) || is_array($key) ? $key : explode('.', (string) $key);
 
         return [$value, $key];
     }
