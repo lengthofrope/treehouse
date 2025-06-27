@@ -288,7 +288,3 @@ GitHub: [@lengthofrope](https://github.com/lengthofrope)
 - Documentation: [https://treehouse-framework.dev](https://treehouse-framework.dev)
 - Issues: [GitHub Issues](https://github.com/lengthofrope/treehouse/issues)
 - Discussions: [GitHub Discussions](https://github.com/lengthofrope/treehouse/discussions)
-
----
-
-Built with ❤️ by Bas de Kort
