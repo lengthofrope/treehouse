@@ -1,0 +1,22 @@
+# Dependencies
+/vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+/coverage-html/
+/.phpunit.result.cache
+
+# Runtime
+/storage/logs/*
+/storage/cache/*
+/storage/views/*
+!.gitkeep

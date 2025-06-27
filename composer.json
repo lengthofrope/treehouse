@@ -1,0 +1,65 @@
+{
+    "name": "lengthofrope/treehouse",
+    "description": "TreeHouse - Modern PHP Framework with Zero Dependencies",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Bas de Kort",
+            "email": "bdekort@proton.me"
+        }
+    ],
+    "keywords": [
+        "framework",
+        "php",
+        "treehouse",
+        "web",
+        "mvc",
+        "zero-dependencies"
+    ],
+    "homepage": "https://github.com/lengthofrope/treehouse",
+    "require": {
+        "php": "^8.4",
+        "ext-pdo": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-openssl": "*",
+        "ext-fileinfo": "*",
+        "ext-filter": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "LengthOfRope\\TreeHouse\\": "src/TreeHouse/"
+        },
+        "files": [
+            "src/TreeHouse/Support/helpers.php",
+            "src/TreeHouse/View/helpers.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "bin": ["bin/treehouse"],
+    "scripts": {
+        "test": "phpunit",
+        "test-coverage": "phpunit --coverage-html coverage-html",
+        "test-unit": "phpunit --testsuite=Unit"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "preferred-install": "dist"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0-dev"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

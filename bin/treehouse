@@ -1,0 +1,72 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * TreeHouse Framework CLI Tool
+ * 
+ * A comprehensive command-line interface for the TreeHouse PHP framework.
+ * Provides essential development and maintenance operations including project scaffolding.
+ * 
+ * @author Bas de Kort <bdekort@proton.me>
+ * @since 1.0.0
+ */
+
+// Ensure we're running from the command line
+if (php_sapi_name() !== 'cli') {
+    echo "This script can only be run from the command line.\n";
+    exit(1);
+}
+
+// Find the autoloader
+$autoloadPaths = [
+    __DIR__ . '/../vendor/autoload.php',    // When installed as dependency
+    __DIR__ . '/../../../autoload.php',     // When in vendor/bin
+    __DIR__ . '/vendor/autoload.php',       // When in project root (development)
+    __DIR__ . '/../autoload.php',           // Alternative project structure
+];
+
+$autoloadFound = false;
+foreach ($autoloadPaths as $path) {
+    if (file_exists($path)) {
+        require_once $path;
+        $autoloadFound = true;
+        break;
+    }
+}
+
+if (!$autoloadFound) {
+    echo "Error: Could not find Composer autoloader.\n";
+    echo "Please run 'composer install' first.\n";
+    exit(1);
+}
+
+// Load TreeHouse helpers
+$helpersPaths = [
+    __DIR__ . '/../src/TreeHouse/Support/helpers.php',
+    __DIR__ . '/src/TreeHouse/Support/helpers.php',
+    __DIR__ . '/../../../lengthofrope/treehouse/src/TreeHouse/Support/helpers.php',
+];
+
+foreach ($helpersPaths as $path) {
+    if (file_exists($path)) {
+        require_once $path;
+        break;
+    }
+}
+
+use LengthOfRope\TreeHouse\Console\Application;
+
+try {
+    // Create and run the CLI application
+    $app = new Application();
+    $exitCode = $app->run($argv);
+    exit($exitCode);
+} catch (Throwable $e) {
+    echo "Fatal error: " . $e->getMessage() . "\n";
+    if (isset($_ENV['TH_DEBUG']) && $_ENV['TH_DEBUG'] === 'true') {
+        echo "Stack trace:\n" . $e->getTraceAsString() . "\n";
+    }
+    exit(1);
+}
