@@ -146,6 +146,21 @@ class Application
                 ],
             ];
             
+            // Merge global database configuration into auth providers
+            if (isset($this->config['database'])) {
+                $dbConfig = $this->config['database'];
+                $defaultConnection = $dbConfig['default'] ?? 'mysql';
+                $connectionConfig = $dbConfig['connections'][$defaultConnection] ?? [];
+                
+                // Add global database connection config to all database providers
+                foreach ($config['providers'] as &$provider) {
+                    if (($provider['driver'] ?? 'database') === 'database' && !isset($provider['connection'])) {
+                        $provider['connection'] = $connectionConfig;
+                    }
+                }
+                unset($provider);
+            }
+            
             // Create required dependencies
             $session = new \LengthOfRope\TreeHouse\Http\Session();
             // Cookie needs a name, so we'll create a dummy one for the manager
