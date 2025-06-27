@@ -59,7 +59,10 @@ class MigrateRunCommand extends Command
                 return 1;
             }
             
-            $migrations = $this->getPendingMigrations($migrationsPath);
+            // Get database connection once and reuse it
+            $connection = $this->getDatabaseConnection();
+            
+            $migrations = $this->getPendingMigrations($migrationsPath, $connection);
             
             if (empty($migrations)) {
                 $this->info($output, 'No pending migrations found.');
@@ -70,7 +73,7 @@ class MigrateRunCommand extends Command
                 $migrations = array_slice($migrations, 0, $step);
             }
             
-            $this->runMigrations($migrations, $output);
+            $this->runMigrations($migrations, $output, $connection);
             
             $count = count($migrations);
             $this->success($output, "Successfully ran {$count} migration(s)!");
@@ -95,7 +98,7 @@ class MigrateRunCommand extends Command
     /**
      * Get pending migrations
      */
-    private function getPendingMigrations(string $migrationsPath): array
+    private function getPendingMigrations(string $migrationsPath, Connection $connection): array
     {
         $files = glob($migrationsPath . '/*.php');
         $migrations = [];
@@ -111,7 +114,6 @@ class MigrateRunCommand extends Command
         sort($migrations);
         
         // Filter out already run migrations
-        $connection = $this->getDatabaseConnection();
         $this->ensureMigrationsTableExists($connection);
         
         $runMigrations = $this->getRunMigrations($connection);
@@ -125,10 +127,8 @@ class MigrateRunCommand extends Command
     /**
      * Run migrations
      */
-    private function runMigrations(array $migrations, OutputInterface $output): void
+    private function runMigrations(array $migrations, OutputInterface $output, Connection $connection): void
     {
-        $connection = $this->getDatabaseConnection();
-        
         foreach ($migrations as $migrationFile) {
             $filename = basename($migrationFile);
             $migrationName = basename($migrationFile, '.php');
