@@ -75,6 +75,9 @@ class Application
         // Register core services
         $this->registerCoreServices();
 
+        // Load routes automatically
+        $this->autoLoadRoutes();
+
         $this->bootstrapped = true;
     }
 
@@ -101,6 +104,21 @@ class Application
             ];
             return new ViewFactory($config);
         });
+    }
+
+    /**
+     * Automatically load routes from framework defaults and application routes
+     */
+    private function autoLoadRoutes(): void
+    {
+        // Load framework default routes first
+        $frameworkRoutesPath = __DIR__ . '/config/routes';
+        if (is_dir($frameworkRoutesPath)) {
+            $frameworkRoutes = glob($frameworkRoutesPath . '/*.php');
+            foreach ($frameworkRoutes as $file) {
+                $this->loadRoutes($file);
+            }
+        }
     }
 
     /**

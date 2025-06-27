@@ -108,7 +108,7 @@ class NewProjectCommand extends Command
             'src/App/Models',
             'src/App/Services',
             'src/App/Middleware',
-            'config',
+            'config/routes',
             'public/assets',
             'resources/views/layouts',
             'storage/cache',
@@ -151,7 +151,7 @@ class NewProjectCommand extends Command
 
         // routes.php
         $routes = $this->getRoutesContent();
-        file_put_contents($basePath . '/config/routes.php', $routes);
+        file_put_contents($basePath . '/config/routes/web.php', $routes);
         $output->writeln("  <info>Created:</info> config/routes.php");
     }
 
