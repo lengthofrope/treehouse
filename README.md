@@ -2,6 +2,10 @@
 
 A modern, lightweight PHP framework built from scratch with zero external dependencies.
 
+## WORK IN PROGRESS
+
+Please note that this framework is in WIP state. It is nowhere near production ready.
+
 ## Features
 
 - **Zero Dependencies**: Pure PHP implementation with no external libraries
