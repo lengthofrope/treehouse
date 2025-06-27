@@ -273,6 +273,12 @@ class MigrateRunCommand extends Command
         
         // Remove leading numbers and underscores, convert to PascalCase
         $className = preg_replace('/^\d+_/', '', $filename);
+        
+        // Ensure $className is a string and not null
+        if ($className === null || $className === '') {
+            $className = $filename;
+        }
+        
         $parts = explode('_', $className);
         
         return implode('', array_map('ucfirst', $parts));
