@@ -74,7 +74,7 @@ abstract class Migration
         $callback($blueprint);
         
         $sql = $blueprint->toSql();
-        $this->connection->query($sql);
+        $this->connection->statement($sql);
         
         // For SQLite, create indexes separately
         $driver = $this->getDriver();
@@ -211,7 +211,7 @@ abstract class Migration
             }
             
             $sql = $this->buildSqliteIndexSql($table, $index);
-            $this->connection->query($sql);
+            $this->connection->statement($sql);
         }
     }
 

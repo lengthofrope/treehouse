@@ -155,17 +155,14 @@ class MigrateRunCommand extends Command
                     throw new \Exception("Migration {$className} must extend Migration class");
                 }
                 
-                // Execute migration in transaction
-                $connection->beginTransaction();
-                
+                // Execute migration - DDL operations may not support transactions in all databases
                 try {
                     $migrationInstance->up();
                     $this->recordMigration($connection, $migrationName);
-                    $connection->commit();
                     
                     $this->info($output, "✓ Migrated: {$filename}");
                 } catch (\Exception $e) {
-                    $connection->rollback();
+                    // Note: Rollback of DDL operations is not always possible
                     throw $e;
                 }
                 
@@ -279,6 +276,8 @@ class MigrateRunCommand extends Command
             $className = $filename;
         }
         
+        // Ensure $className is a string before exploding
+        $className = (string) $className;
         $parts = explode('_', $className);
         
         return implode('', array_map('ucfirst', $parts));

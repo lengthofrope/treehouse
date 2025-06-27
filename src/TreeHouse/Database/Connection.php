@@ -383,7 +383,7 @@ class Connection
             case 'mysql':
                 $query = 'SHOW TABLES';
                 $results = $this->select($query);
-                return Arr::pluck($results, 0);
+                return Arr::pluck($results, '0');
             case 'sqlite':
                 $query = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'";
                 $results = $this->select($query);

@@ -508,7 +508,15 @@ class Arr
     {
         $value = is_string($value) ? explode('.', $value) : $value;
 
-        $key = is_null($key) || is_array($key) ? $key : explode('.', (string) $key);
+        // Handle the key parameter safely - only explode if it's a string
+        if (is_null($key) || is_array($key)) {
+            // Keep as-is
+        } elseif (is_string($key)) {
+            $key = explode('.', $key);
+        } else {
+            // For integer keys, convert to array directly
+            $key = [$key];
+        }
 
         return [$value, $key];
     }
