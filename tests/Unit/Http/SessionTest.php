@@ -33,11 +33,30 @@ class SessionTest extends TestCase
         ]);
     }
 
-    protected function tearDown(): void
+    /**
+     * Clean up any active session before test
+     */
+    private function cleanupSession(): void
     {
-        // Clean up session if it was started
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_destroy();
+        }
+        $_SESSION = [];
+    }
+
+    protected function tearDown(): void
+    {
+        // Clean up session more thoroughly
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
+        
+        // Reset session data
+        $_SESSION = [];
+        
+        // Clear any session cookies if they exist
+        if (isset($_COOKIE[session_name()])) {
+            unset($_COOKIE[session_name()]);
         }
         
         parent::tearDown();
@@ -45,10 +64,7 @@ class SessionTest extends TestCase
 
     public function testSessionConfiguration(): void
     {
-        // Ensure no session is active before setting name
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            session_destroy();
-        }
+        $this->cleanupSession();
         
         // Test session name setting
         $this->session->setName('custom_session');
@@ -57,6 +73,8 @@ class SessionTest extends TestCase
 
     public function testSessionIdManipulation(): void
     {
+        $this->cleanupSession();
+        
         // Set session ID before starting
         $testId = 'test_session_id_123';
         $result = $this->session->setId($testId);
@@ -73,6 +91,7 @@ class SessionTest extends TestCase
 
     public function testBasicSessionOperations(): void
     {
+        $this->cleanupSession();
         $this->session->start();
         
         // Test set and get
@@ -93,6 +112,7 @@ class SessionTest extends TestCase
 
     public function testNestedSessionData(): void
     {
+        $this->cleanupSession();
         $this->session->start();
         
         // Test nested data
@@ -108,6 +128,7 @@ class SessionTest extends TestCase
 
     public function testSessionClear(): void
     {
+        $this->cleanupSession();
         $this->session->start();
         
         $this->session->set('key1', 'value1');
@@ -124,6 +145,7 @@ class SessionTest extends TestCase
 
     public function testPullOperation(): void
     {
+        $this->cleanupSession();
         $this->session->start();
         
         $this->session->set('pull_test', 'pull_value');
@@ -140,6 +162,7 @@ class SessionTest extends TestCase
 
     public function testIncrementDecrement(): void
     {
+        $this->cleanupSession();
         $this->session->start();
         
         // Test increment
@@ -159,6 +182,7 @@ class SessionTest extends TestCase
 
     public function testFlashData(): void
     {
+        $this->cleanupSession();
         $this->session->start();
         
         // Set flash data
@@ -187,6 +211,7 @@ class SessionTest extends TestCase
 
     public function testKeepFlash(): void
     {
+        $this->cleanupSession();
         $this->session->start();
         
         // Set up flash data
@@ -208,6 +233,7 @@ class SessionTest extends TestCase
 
     public function testReflash(): void
     {
+        $this->cleanupSession();
         $this->session->start();
         
         // Set up flash data
@@ -234,6 +260,7 @@ class SessionTest extends TestCase
 
     public function testCsrfToken(): void
     {
+        $this->cleanupSession();
         $this->session->start();
         
         // Get token (should generate one)
@@ -258,6 +285,7 @@ class SessionTest extends TestCase
 
     public function testSessionRegeneration(): void
     {
+        $this->cleanupSession();
         $this->session->start();
         
         $originalId = $this->session->getId();
@@ -272,6 +300,7 @@ class SessionTest extends TestCase
 
     public function testSessionDestroy(): void
     {
+        $this->cleanupSession();
         $this->session->start();
         
         // Set some data
@@ -286,6 +315,7 @@ class SessionTest extends TestCase
 
     public function testOperationsWithoutStarting(): void
     {
+        $this->cleanupSession();
         // Operations should automatically start session
         $this->session->set('auto_start', 'test');
         $this->assertTrue($this->session->isStarted());
@@ -294,6 +324,7 @@ class SessionTest extends TestCase
 
     public function testAllSessionData(): void
     {
+        $this->cleanupSession();
         $this->session->start();
         
         $this->session->set('key1', 'value1');

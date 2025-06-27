@@ -252,7 +252,7 @@ abstract class Command
     /**
      * Write a line to output with formatting
      */
-    protected function line(OutputInterface $output, string $message, string $style = null): void
+    protected function line(OutputInterface $output, string $message, ?string $style = null): void
     {
         if ($style) {
             $message = "<{$style}>{$message}</{$style}>";

@@ -392,27 +392,65 @@ class EnhancedInput implements InputInterface
     private InputInterface $input;
     private Command $command;
     private array $optionDefaults = [];
+    private array $argumentMapping = [];
+    private array $optionShortcuts = [];
 
     public function __construct(InputInterface $input, Command $command)
     {
         $this->input = $input;
         $this->command = $command;
         
-        // Extract default values from command options
+        // Extract default values and shortcuts from command options
         foreach ($command->getOptions() as $name => $config) {
             if (isset($config['default'])) {
                 $this->optionDefaults[$name] = $config['default'];
+            }
+            if (!empty($config['shortcut'])) {
+                $this->optionShortcuts[$config['shortcut']] = $name;
+            }
+        }
+        
+        // Map command arguments to parsed arguments
+        $argumentNames = array_keys($command->getArguments());
+        foreach ($argumentNames as $index => $argumentName) {
+            if ($index === 0) {
+                // First argument after command
+                $this->argumentMapping[$argumentName] = 'arg1';
+            } else {
+                $this->argumentMapping[$argumentName] = "arg" . ($index + 1);
             }
         }
     }
 
     public function getArgument(string $name): mixed
     {
+        // Check if this is a mapped argument
+        if (isset($this->argumentMapping[$name])) {
+            $parsedName = $this->argumentMapping[$name];
+            $value = $this->input->getArgument($parsedName);
+            
+            // If not found, try to get default value
+            if ($value === null) {
+                $arguments = $this->command->getArguments();
+                if (isset($arguments[$name]['default'])) {
+                    return $arguments[$name]['default'];
+                }
+            }
+            
+            return $value;
+        }
+        
         return $this->input->getArgument($name);
     }
 
     public function hasArgument(string $name): bool
     {
+        // Check if this is a mapped argument
+        if (isset($this->argumentMapping[$name])) {
+            $parsedName = $this->argumentMapping[$name];
+            return $this->input->hasArgument($parsedName);
+        }
+        
         return $this->input->hasArgument($name);
     }
 
@@ -423,9 +461,21 @@ class EnhancedInput implements InputInterface
 
     public function getOption(string $name): mixed
     {
+        // First try to get the option directly
         $value = $this->input->getOption($name);
         
-        // If option is not set but has a default, return the default
+        // If not found, try to get it via shortcut
+        if ($value === null) {
+            $shortcuts = array_keys($this->optionShortcuts, $name);
+            foreach ($shortcuts as $shortcut) {
+                $value = $this->input->getOption($shortcut);
+                if ($value !== null) {
+                    break;
+                }
+            }
+        }
+        
+        // Only use default if the option is completely absent
         if ($value === null && isset($this->optionDefaults[$name])) {
             return $this->optionDefaults[$name];
         }
@@ -435,7 +485,21 @@ class EnhancedInput implements InputInterface
 
     public function hasOption(string $name): bool
     {
-        return $this->input->hasOption($name) || isset($this->optionDefaults[$name]);
+        // Check if option exists directly
+        if ($this->input->hasOption($name)) {
+            return true;
+        }
+        
+        // Check if it exists via shortcut
+        $shortcuts = array_keys($this->optionShortcuts, $name);
+        foreach ($shortcuts as $shortcut) {
+            if ($this->input->hasOption($shortcut)) {
+                return true;
+            }
+        }
+        
+        // Check if it has a default value
+        return array_key_exists($name, $this->optionDefaults);
     }
 
     public function getOptions(): array
@@ -444,7 +508,7 @@ class EnhancedInput implements InputInterface
         
         // Merge in defaults for options that weren't provided
         foreach ($this->optionDefaults as $name => $default) {
-            if (!isset($options[$name])) {
+            if (!array_key_exists($name, $options)) {
                 $options[$name] = $default;
             }
         }

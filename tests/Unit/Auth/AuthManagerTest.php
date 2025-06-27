@@ -27,6 +27,9 @@ class AuthManagerTest extends TestCase
     {
         parent::setUp();
         
+        // Clean up any existing session
+        $this->cleanupSession();
+        
         $this->config = [
             'default' => 'web',
             'guards' => [
@@ -57,6 +60,23 @@ class AuthManagerTest extends TestCase
         
         // Create users table for testing
         $this->createUsersTable();
+    }
+    
+    /**
+     * Clean up any active session before test
+     */
+    private function cleanupSession(): void
+    {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
+        $_SESSION = [];
+    }
+    
+    protected function tearDown(): void
+    {
+        $this->cleanupSession();
+        parent::tearDown();
     }
     
     protected function createUsersTable(): void

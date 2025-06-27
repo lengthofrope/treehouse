@@ -30,6 +30,9 @@ class GuardTest extends TestCase
     {
         parent::setUp();
         
+        // Clean up any existing session
+        $this->cleanupSession();
+        
         $this->session = new Session();
         $this->cookie = new Cookie('test', '');
         $this->hash = new Hash();
@@ -47,6 +50,23 @@ class GuardTest extends TestCase
             $this->provider,
             $this->hash
         );
+    }
+
+    /**
+     * Clean up any active session before test
+     */
+    private function cleanupSession(): void
+    {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
+        $_SESSION = [];
+    }
+    
+    protected function tearDown(): void
+    {
+        $this->cleanupSession();
+        parent::tearDown();
     }
 
     public function testGuardImplementsInterface(): void
