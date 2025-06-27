@@ -100,13 +100,24 @@ class Application
 
         // Register cache manager
         $this->container->singleton('cache', function () {
-            $config = $this->config['cache'] ?? ['default' => 'file'];
+            $config = $this->config['cache'] ?? [
+                'enabled' => true,
+                'default' => 'file',
+                'stores' => [
+                    'file' => [
+                        'driver' => 'file',
+                        'path' => $this->basePath . '/storage/cache',
+                        'default_ttl' => 3600,
+                    ],
+                ],
+            ];
             return new CacheManager($config, $config['default'] ?? 'file');
         });
 
         // Register view factory
         $this->container->singleton('view', function () {
             $config = $this->config['view'] ?? [
+                'enabled' => true,
                 'paths' => [$this->basePath . '/resources/views'],
                 'cache_path' => $this->basePath . '/storage/views',
                 'cache_enabled' => true,
