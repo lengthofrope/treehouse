@@ -9,6 +9,8 @@ use LengthOfRope\TreeHouse\Console\Input\InputInterface;
 use LengthOfRope\TreeHouse\Console\Output\OutputInterface;
 use LengthOfRope\TreeHouse\Console\InputOption;
 use LengthOfRope\TreeHouse\Database\Connection;
+use LengthOfRope\TreeHouse\Database\Migration;
+use LengthOfRope\TreeHouse\Support\Env;
 
 /**
  * Database Migration Run Command
@@ -86,7 +88,7 @@ class MigrateRunCommand extends Command
      */
     private function isProduction(): bool
     {
-        $env = $_ENV['APP_ENV'] ?? $_SERVER['APP_ENV'] ?? 'development';
+        $env = Env::get('APP_ENV', 'development');
         return in_array(strtolower($env), ['production', 'prod']);
     }
 
@@ -100,16 +102,24 @@ class MigrateRunCommand extends Command
         
         foreach ($files as $file) {
             $filename = basename($file);
-            if (preg_match('/^\d{4}_\d{2}_\d{2}_\d{6}_(.+)\.php$/', $filename)) {
+            // Support both timestamp format and simple numbering
+            if (preg_match('/^\d{3,4}_/', $filename) || preg_match('/^\d{4}_\d{2}_\d{2}_\d{6}_/', $filename)) {
                 $migrations[] = $file;
             }
         }
         
         sort($migrations);
         
-        // Filter out already run migrations (simplified - in real implementation, 
-        // you'd check against a migrations table)
-        return $migrations;
+        // Filter out already run migrations
+        $connection = $this->getDatabaseConnection();
+        $this->ensureMigrationsTableExists($connection);
+        
+        $runMigrations = $this->getRunMigrations($connection);
+        
+        return array_filter($migrations, function($migrationFile) use ($runMigrations) {
+            $filename = basename($migrationFile, '.php');
+            return !in_array($filename, $runMigrations);
+        });
     }
 
     /**
@@ -117,19 +127,154 @@ class MigrateRunCommand extends Command
      */
     private function runMigrations(array $migrations, OutputInterface $output): void
     {
-        foreach ($migrations as $migration) {
-            $filename = basename($migration);
+        $connection = $this->getDatabaseConnection();
+        
+        foreach ($migrations as $migrationFile) {
+            $filename = basename($migrationFile);
+            $migrationName = basename($migrationFile, '.php');
             
             if ($output->isVerbose()) {
                 $output->writeln("  Running: {$filename}");
             }
             
-            // In a real implementation, you would:
-            // 1. Include the migration file
-            // 2. Execute the up() method
-            // 3. Record the migration in the migrations table
-            
-            $this->info($output, "✓ Migrated: {$filename}");
+            try {
+                // Include the migration file
+                require_once $migrationFile;
+                
+                // Extract class name from filename
+                $className = $this->getClassNameFromFile($migrationFile);
+                
+                if (!class_exists($className)) {
+                    throw new \Exception("Migration class {$className} not found in {$filename}");
+                }
+                
+                // Instantiate and run the migration
+                $migrationInstance = new $className($connection, $migrationName);
+                
+                if (!$migrationInstance instanceof Migration) {
+                    throw new \Exception("Migration {$className} must extend Migration class");
+                }
+                
+                // Execute migration in transaction
+                $connection->beginTransaction();
+                
+                try {
+                    $migrationInstance->up();
+                    $this->recordMigration($connection, $migrationName);
+                    $connection->commit();
+                    
+                    $this->info($output, "✓ Migrated: {$filename}");
+                } catch (\Exception $e) {
+                    $connection->rollback();
+                    throw $e;
+                }
+                
+            } catch (\Exception $e) {
+                $this->error($output, "✗ Failed to migrate {$filename}: " . $e->getMessage());
+                throw $e;
+            }
         }
+    }
+
+    /**
+     * Get database connection
+     */
+    private function getDatabaseConnection(): Connection
+    {
+        // Load environment variables
+        Env::loadIfNeeded();
+        
+        $config = [
+            'driver' => Env::get('DB_CONNECTION', Env::get('DB_DRIVER', 'mysql')),
+            'host' => Env::get('DB_HOST', 'localhost'),
+            'port' => (int) Env::get('DB_PORT', 3306),
+            'database' => Env::get('DB_DATABASE', ''),
+            'username' => Env::get('DB_USERNAME', ''),
+            'password' => Env::get('DB_PASSWORD', ''),
+            'charset' => Env::get('DB_CHARSET', 'utf8mb4'),
+        ];
+        
+        return new Connection($config);
+    }
+    
+    /**
+     * Ensure migrations table exists
+     */
+    private function ensureMigrationsTableExists(Connection $connection): void
+    {
+        if ($connection->tableExists('migrations')) {
+            return;
+        }
+        
+        $driver = $connection->getPdo()->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        
+        if ($driver === 'sqlite') {
+            $sql = "CREATE TABLE migrations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                migration TEXT NOT NULL,
+                batch INTEGER NOT NULL,
+                executed_at TEXT NOT NULL
+            )";
+        } else {
+            $sql = "CREATE TABLE migrations (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                migration VARCHAR(255) NOT NULL,
+                batch INT NOT NULL,
+                executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+        }
+        
+        $connection->statement($sql);
+    }
+    
+    /**
+     * Get list of already run migrations
+     */
+    private function getRunMigrations(Connection $connection): array
+    {
+        $results = $connection->select('SELECT migration FROM migrations ORDER BY id');
+        return array_column($results, 'migration');
+    }
+    
+    /**
+     * Record migration as run
+     */
+    private function recordMigration(Connection $connection, string $migrationName): void
+    {
+        // Get next batch number
+        $result = $connection->selectOne('SELECT MAX(batch) as max_batch FROM migrations');
+        $batch = ($result['max_batch'] ?? 0) + 1;
+        
+        $driver = $connection->getPdo()->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        
+        if ($driver === 'sqlite') {
+            $sql = "INSERT INTO migrations (migration, batch, executed_at) VALUES (?, ?, datetime('now'))";
+        } else {
+            $sql = "INSERT INTO migrations (migration, batch, executed_at) VALUES (?, ?, NOW())";
+        }
+        
+        $connection->statement($sql, [$migrationName, $batch]);
+    }
+    
+    /**
+     * Extract class name from migration file
+     */
+    private function getClassNameFromFile(string $file): string
+    {
+        $content = file_get_contents($file);
+        
+        // Look for class declaration
+        if (preg_match('/class\s+([A-Za-z_][A-Za-z0-9_]*)/i', $content, $matches)) {
+            return $matches[1];
+        }
+        
+        // Fallback: derive from filename
+        $filename = basename($file, '.php');
+        
+        // Remove leading numbers and underscores, convert to PascalCase
+        $className = preg_replace('/^\d+_/', '', $filename);
+        $parts = explode('_', $className);
+        
+        return implode('', array_map('ucfirst', $parts));
     }
 }
