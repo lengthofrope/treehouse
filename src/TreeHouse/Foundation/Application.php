@@ -120,6 +120,7 @@ class Application
             $key = basename($file, '.php');
             $config = require $file;
             
+            // Only treat files that return arrays as configuration
             if (is_array($config)) {
                 $this->config[$key] = $config;
             }
