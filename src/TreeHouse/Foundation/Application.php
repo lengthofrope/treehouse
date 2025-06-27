@@ -161,9 +161,8 @@ class Application
                 unset($provider);
             }
             
-            // Create required dependencies
-            $session = new \LengthOfRope\TreeHouse\Http\Session();
-            // Cookie needs a name, so we'll create a dummy one for the manager
+            // Create required dependencies using services
+            $session = $this->make('session');
             $cookie = new \LengthOfRope\TreeHouse\Http\Cookie('auth_cookie');
             $hash = new \LengthOfRope\TreeHouse\Security\Hash();
             
@@ -173,6 +172,22 @@ class Application
                 $cookie,
                 $hash
             );
+        });
+
+        // Register session service
+        $this->container->singleton('session', function () {
+            $config = $this->config['session'] ?? [
+                'name' => 'treehouse_session',
+                'lifetime' => 7200, // 2 hours
+                'path' => '/',
+                'domain' => '',
+                'secure' => false,
+                'httponly' => true,
+                'samesite' => 'Lax',
+                'save_path' => '',
+            ];
+            
+            return new \LengthOfRope\TreeHouse\Http\Session($config);
         });
 
     }

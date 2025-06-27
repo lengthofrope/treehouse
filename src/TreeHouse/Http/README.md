@@ -4,6 +4,7 @@ The TreeHouse Http library provides a comprehensive set of classes for handling 
 
 ## Table of Contents
 
+- [Helper Function](#helper-function)
 - [Classes Overview](#classes-overview)
   - [Request - HTTP Request Handler](#request---http-request-handler)
   - [Response - HTTP Response Builder](#response---http-response-builder)
@@ -11,6 +12,64 @@ The TreeHouse Http library provides a comprehensive set of classes for handling 
   - [Cookie - Cookie Handler](#cookie---cookie-handler)
   - [UploadedFile - File Upload Handler](#uploadedfile---file-upload-handler)
 - [Usage Examples](#usage-examples)
+
+## Helper Function
+
+TreeHouse provides a convenient global helper function for accessing the session:
+
+### Using the session() Helper
+
+```php
+// Get the session instance
+$sessionInstance = session();
+
+// Use session operations directly
+session()->set('user_id', 123);
+$userId = session()->get('user_id');
+
+if (session()->has('cart')) {
+    $cart = session()->get('cart');
+}
+
+// Flash messages
+session()->flash('success', 'Operation completed!');
+$message = session()->getFlash('success');
+
+// CSRF protection
+$token = session()->token();
+$isValid = session()->validateToken($userToken);
+
+// Session management
+session()->regenerate();
+session()->clear();
+```
+
+### Helper Usage Examples
+
+```php
+// Simple session operations
+session()->set('preferences.theme', 'dark');
+$theme = session()->get('preferences.theme', 'light');
+
+// Flash messages for user feedback
+if ($user->save()) {
+    session()->flash('success', 'Profile updated successfully!');
+    return Response::redirect('/profile');
+}
+
+// Shopping cart example
+$cart = session()->get('cart', []);
+$cart[] = $product;
+session()->set('cart', $cart);
+
+// Counter example
+$views = session()->increment('page_views');
+echo "You have viewed {$views} pages this session";
+
+// CSRF protection in forms
+$csrfToken = session()->token();
+echo '<input type="hidden" name="_token" value="' . $csrfToken . '">';
+```
 
 ## Classes Overview
 

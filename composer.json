@@ -38,7 +38,8 @@
             "src/TreeHouse/Support/helpers.php",
             "src/TreeHouse/View/helpers.php",
             "src/TreeHouse/Auth/helpers.php",
-            "src/TreeHouse/Cache/helpers.php"
+            "src/TreeHouse/Cache/helpers.php",
+            "src/TreeHouse/Http/helpers.php"
         ]
     },
     "autoload-dev": {
