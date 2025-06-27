@@ -8,9 +8,7 @@ use LengthOfRope\TreeHouse\Foundation\Application;
 use LengthOfRope\TreeHouse\Http\Request;
 
 $app = new Application(__DIR__ . '/../');
-
-$app->loadConfiguration(__DIR__ . '/../config');
-// Routes are loaded automatically during bootstrap
+// Configuration and routes are loaded automatically during bootstrap
 
 $request = Request::createFromGlobals();
 $response = $app->handle($request);

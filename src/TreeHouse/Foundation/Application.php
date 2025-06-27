@@ -13,6 +13,7 @@ use LengthOfRope\TreeHouse\Cache\CacheManager;
 use LengthOfRope\TreeHouse\View\ViewFactory;
 use LengthOfRope\TreeHouse\Database\Connection;
 use LengthOfRope\TreeHouse\Database\ActiveRecord;
+use LengthOfRope\TreeHouse\Support\Env;
 
 /**
  * TreeHouse Foundation Application
@@ -73,6 +74,12 @@ class Application
         if ($this->bootstrapped) {
             return;
         }
+
+        // Load environment variables first
+        $this->loadEnvironment();
+
+        // Auto-load configuration from standard location
+        $this->autoLoadConfiguration();
 
         // Register core services
         $this->registerCoreServices();
@@ -149,6 +156,32 @@ class Application
             foreach ($frameworkRoutes as $file) {
                 $this->loadRoutes($file);
             }
+        }
+    }
+
+    /**
+     * Load environment variables
+     */
+    private function loadEnvironment(): void
+    {
+        // Load .env file from the base path
+        $envPath = $this->basePath . '/.env';
+        if (file_exists($envPath)) {
+            Env::load($envPath);
+        } else {
+            // Fallback to automatic loading
+            Env::loadIfNeeded();
+        }
+    }
+
+    /**
+     * Auto-load configuration from standard location
+     */
+    private function autoLoadConfiguration(): void
+    {
+        $configPath = $this->basePath . '/config';
+        if (is_dir($configPath)) {
+            $this->loadConfiguration($configPath);
         }
     }
 
