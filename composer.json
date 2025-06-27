@@ -32,8 +32,7 @@
     },
     "autoload": {
         "psr-4": {
-            "LengthOfRope\\TreeHouse\\": "src/TreeHouse/",
-            "App\\": "src/App/"
+            "LengthOfRope\\TreeHouse\\": "src/TreeHouse/"
         },
         "files": [
             "src/TreeHouse/Support/helpers.php",
@@ -42,7 +41,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\": "tests/"
+            "Tests\\": "tests/",
+            "App\\": "src/App/"
         }
     },
     "bin": ["bin/treehouse"],
