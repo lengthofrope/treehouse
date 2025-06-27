@@ -31,11 +31,6 @@ abstract class ActiveRecord
     protected static ?Connection $connection = null;
 
     /**
-     * Application instance for resolving database connection
-     */
-    protected static $app = null;
-
-    /**
      * Table name
      */
     protected string $table = '';
@@ -157,16 +152,6 @@ abstract class ActiveRecord
     }
 
     /**
-     * Set application instance for database connection resolution
-     *
-     * @param mixed $app Application instance
-     */
-    public static function setApplication($app): void
-    {
-        static::$app = $app;
-    }
-
-    /**
      * Get database connection
      *
      * @return Connection
@@ -175,97 +160,10 @@ abstract class ActiveRecord
     public static function getConnection(): Connection
     {
         if (static::$connection === null) {
-            static::resolveConnection();
-        }
-
-        if (static::$connection === null) {
             throw new RuntimeException('Database connection not set');
         }
 
         return static::$connection;
-    }
-
-    /**
-     * Resolve database connection from application container
-     *
-     * @throws RuntimeException
-     */
-    protected static function resolveConnection(): void
-    {
-        // Try to resolve from application container if available
-        if (static::$app !== null && method_exists(static::$app, 'make')) {
-            try {
-                static::$connection = static::$app->make('db');
-                return;
-            } catch (\Exception $e) {
-                // Continue to other resolution methods
-            }
-        }
-
-
-        // Try to resolve from config directly if no application available
-        if (static::$connection === null) {
-            static::resolveFromConfig();
-        }
-    }
-
-    /**
-     * Resolve connection directly from configuration
-     */
-    protected static function resolveFromConfig(): void
-    {
-        // Look for database config file
-        $configPath = getcwd() . '/config/database.php';
-        
-        if (file_exists($configPath)) {
-            // Load environment variables for config resolution
-            static::loadEnvironment();
-            
-            $config = require $configPath;
-            
-            if (is_array($config) && isset($config['connections'])) {
-                $defaultConnection = $config['default'] ?? 'mysql';
-                $connectionConfig = $config['connections'][$defaultConnection] ?? [];
-                
-                if (!empty($connectionConfig)) {
-                    static::$connection = new Connection($connectionConfig);
-                }
-            }
-        }
-    }
-
-    /**
-     * Load environment variables if .env file exists
-     */
-    protected static function loadEnvironment(): void
-    {
-        $envPath = getcwd() . '/.env';
-        
-        if (file_exists($envPath)) {
-            $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            
-            foreach ($lines as $line) {
-                if (strpos(trim($line), '#') === 0) {
-                    continue; // Skip comments
-                }
-                
-                if (strpos($line, '=') !== false) {
-                    [$key, $value] = explode('=', $line, 2);
-                    $key = trim($key);
-                    $value = trim($value);
-                    
-                    // Remove quotes if present
-                    if (($value[0] ?? '') === '"' && ($value[-1] ?? '') === '"') {
-                        $value = substr($value, 1, -1);
-                    }
-                    
-                    if (!isset($_ENV[$key])) {
-                        $_ENV[$key] = $value;
-                        putenv("$key=$value");
-                    }
-                }
-            }
-        }
     }
 
     /**

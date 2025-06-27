@@ -37,77 +37,47 @@ class ActiveRecordConnectionTest extends TestCase
         // Load configuration into the application
         $this->app->loadConfiguration(__DIR__ . '/../../..');
         
-        // Force initialization of database service
-        $dbConnection = $this->app->make('db');
+        // Create a test model class
+        $model = new class extends ActiveRecord {
+            protected string $table = 'test_table';
+        };
+
+        // The connection should be automatically set by the application
+        $connection = $model::getConnection();
+        
+        $this->assertInstanceOf(Connection::class, $connection);
+    }
+
+    public function testActiveRecordConnectionCanBeSetManually(): void
+    {
+        // Reset static connection to null
+        ActiveRecord::setConnection(null);
+        
+        // Create a manual connection
+        $connection = new Connection([
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+        ]);
+        
+        // Set the connection manually
+        ActiveRecord::setConnection($connection);
         
         // Create a test model class
         $model = new class extends ActiveRecord {
             protected string $table = 'test_table';
         };
 
-        // The connection should be automatically resolved
-        $connection = $model::getConnection();
+        // The connection should be available
+        $retrievedConnection = $model::getConnection();
         
-        $this->assertInstanceOf(Connection::class, $connection);
-        $this->assertEquals($dbConnection, $connection);
-    }
-
-    public function testActiveRecordCanResolveConnectionFromConfig(): void
-    {
-        // Reset static connection to null
-        ActiveRecord::setConnection(null);
-        ActiveRecord::setApplication(null);
-        
-        // Create a temporary working directory with config subdirectory
-        $tempDir = sys_get_temp_dir() . '/treehouse_test_' . uniqid();
-        $configDir = $tempDir . '/config';
-        
-        if (!is_dir($configDir)) {
-            mkdir($configDir, 0777, true);
-        }
-        
-        $configContent = '<?php return [
-            "default" => "sqlite",
-            "connections" => [
-                "sqlite" => [
-                    "driver" => "sqlite",
-                    "database" => ":memory:",
-                ],
-            ],
-        ];';
-        
-        file_put_contents($configDir . '/database.php', $configContent);
-        
-        // Change working directory temporarily
-        $originalCwd = getcwd();
-        chdir($tempDir);
-        
-        try {
-            // Create a test model class
-            $model = new class extends ActiveRecord {
-                protected string $table = 'test_table';
-            };
-
-            // The connection should be automatically resolved from config
-            $connection = $model::getConnection();
-            
-            $this->assertInstanceOf(Connection::class, $connection);
-        } finally {
-            // Restore original working directory
-            chdir($originalCwd);
-            
-            // Clean up
-            unlink($configDir . '/database.php');
-            rmdir($configDir);
-            rmdir($tempDir);
-        }
+        $this->assertInstanceOf(Connection::class, $retrievedConnection);
+        $this->assertSame($connection, $retrievedConnection);
     }
 
     protected function tearDown(): void
     {
         // Reset static state
         ActiveRecord::setConnection(null);
-        ActiveRecord::setApplication(null);
         
         parent::tearDown();
     }

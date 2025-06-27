@@ -77,9 +77,6 @@ class Application
         // Register core services
         $this->registerCoreServices();
 
-        // Initialize database connection if configuration is available
-        $this->initializeDatabase();
-
         // Load routes automatically
         $this->autoLoadRoutes();
 
@@ -110,20 +107,6 @@ class Application
             return new ViewFactory($config);
         });
 
-        // Register database connection
-        $this->container->singleton('db', function () {
-            $dbConfig = $this->config['database'] ?? [];
-            $defaultConnection = $dbConfig['default'] ?? 'mysql';
-            $connectionConfig = $dbConfig['connections'][$defaultConnection] ?? [];
-            
-            $connection = new Connection($connectionConfig);
-            
-            // Set the application instance and connection on ActiveRecord so all models can use it
-            ActiveRecord::setApplication($this);
-            ActiveRecord::setConnection($connection);
-            
-            return $connection;
-        });
     }
 
     /**
@@ -134,8 +117,19 @@ class Application
         // Only initialize if database configuration exists
         if (isset($this->config['database'])) {
             try {
-                // This will trigger the database service registration and setup
-                $this->container->make('db');
+                $dbConfig = $this->config['database'];
+                $defaultConnection = $dbConfig['default'] ?? 'mysql';
+                $connectionConfig = $dbConfig['connections'][$defaultConnection] ?? [];
+                
+                if (!empty($connectionConfig)) {
+                    $connection = new Connection($connectionConfig);
+                    
+                    // Set the connection directly on ActiveRecord
+                    ActiveRecord::setConnection($connection);
+                    
+                    // Also register in container for dependency injection
+                    $this->container->singleton('db', fn() => $connection);
+                }
             } catch (\Exception $e) {
                 // Silently fail if database cannot be initialized
                 // This allows the application to work without a database
@@ -180,6 +174,9 @@ class Application
                 $this->config[$key] = $config;
             }
         }
+        
+        // Initialize database connection now that configuration is loaded
+        $this->initializeDatabase();
     }
 
     /**
