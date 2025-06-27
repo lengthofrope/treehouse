@@ -11,6 +11,8 @@ use LengthOfRope\TreeHouse\Http\Request;
 use LengthOfRope\TreeHouse\Http\Response;
 use LengthOfRope\TreeHouse\Cache\CacheManager;
 use LengthOfRope\TreeHouse\View\ViewFactory;
+use LengthOfRope\TreeHouse\Database\Connection;
+use LengthOfRope\TreeHouse\Database\ActiveRecord;
 
 /**
  * TreeHouse Foundation Application
@@ -75,6 +77,9 @@ class Application
         // Register core services
         $this->registerCoreServices();
 
+        // Initialize database connection if configuration is available
+        $this->initializeDatabase();
+
         // Load routes automatically
         $this->autoLoadRoutes();
 
@@ -104,6 +109,38 @@ class Application
             ];
             return new ViewFactory($config);
         });
+
+        // Register database connection
+        $this->container->singleton('db', function () {
+            $dbConfig = $this->config['database'] ?? [];
+            $defaultConnection = $dbConfig['default'] ?? 'mysql';
+            $connectionConfig = $dbConfig['connections'][$defaultConnection] ?? [];
+            
+            $connection = new Connection($connectionConfig);
+            
+            // Set the application instance and connection on ActiveRecord so all models can use it
+            ActiveRecord::setApplication($this);
+            ActiveRecord::setConnection($connection);
+            
+            return $connection;
+        });
+    }
+
+    /**
+     * Initialize database connection
+     */
+    private function initializeDatabase(): void
+    {
+        // Only initialize if database configuration exists
+        if (isset($this->config['database'])) {
+            try {
+                // This will trigger the database service registration and setup
+                $this->container->make('db');
+            } catch (\Exception $e) {
+                // Silently fail if database cannot be initialized
+                // This allows the application to work without a database
+            }
+        }
     }
 
     /**
