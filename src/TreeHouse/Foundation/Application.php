@@ -22,7 +22,7 @@ use LengthOfRope\TreeHouse\Support\Env;
  * Handles configuration loading, service registration, and request handling.
  * 
  * @package LengthOfRope\TreeHouse\Foundation
- * @author  TreeHouse Framework Team
+ * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 class Application
@@ -62,6 +62,9 @@ class Application
         $this->basePath = $basePath ?: getcwd() ?: __DIR__;
         $this->container = new Container();
         $this->router = new Router(new RouteCollection());
+
+        // Set global app instance for helper functions
+        $GLOBALS['app'] = $this;
 
         $this->bootstrap();
     }

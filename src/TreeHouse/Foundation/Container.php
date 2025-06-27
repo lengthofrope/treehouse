@@ -16,7 +16,7 @@ use ReflectionParameter;
  * Supports binding, singleton registration, and automatic dependency resolution.
  * 
  * @package LengthOfRope\TreeHouse\Foundation
- * @author  TreeHouse Framework Team
+ * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 class Container

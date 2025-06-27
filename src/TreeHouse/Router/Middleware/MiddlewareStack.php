@@ -287,6 +287,9 @@ class MiddlewareStack
             if ($middleware instanceof MiddlewareInterface) {
                 return get_class($middleware);
             }
+            if (is_string($middleware)) {
+                return $middleware;
+            }
             if (is_callable($middleware)) {
                 return 'callable';
             }

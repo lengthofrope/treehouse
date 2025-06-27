@@ -15,7 +15,7 @@ use LengthOfRope\TreeHouse\Console\InputOption;
  * Display cache statistics and information.
  * 
  * @package LengthOfRope\TreeHouse\Console\Commands\CacheCommands
- * @author  TreeHouse Framework Team
+ * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 class CacheStatsCommand extends Command

@@ -18,7 +18,7 @@ use LengthOfRope\TreeHouse\View\ViewEngine;
  * Pre-populate cache with commonly used data.
  * 
  * @package LengthOfRope\TreeHouse\Console\Commands\CacheCommands
- * @author  TreeHouse Framework Team
+ * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 class CacheWarmCommand extends Command

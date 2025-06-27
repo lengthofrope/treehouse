@@ -12,7 +12,7 @@ use Exception;
  * Thrown when a route cannot be found for the given request.
  * 
  * @package LengthOfRope\TreeHouse\Router
- * @author  TreeHouse Framework Team
+ * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 class RouteNotFoundException extends Exception

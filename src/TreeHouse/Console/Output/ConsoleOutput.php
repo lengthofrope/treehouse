@@ -11,7 +11,7 @@ namespace LengthOfRope\TreeHouse\Console\Output;
  * Handles ANSI color codes and verbosity levels.
  * 
  * @package LengthOfRope\TreeHouse\Console\Output
- * @author  TreeHouse Framework Team
+ * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 class ConsoleOutput implements OutputInterface

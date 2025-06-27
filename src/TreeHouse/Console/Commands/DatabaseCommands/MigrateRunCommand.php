@@ -18,7 +18,7 @@ use LengthOfRope\TreeHouse\Support\Env;
  * Run pending database migrations.
  * 
  * @package LengthOfRope\TreeHouse\Console\Commands\DatabaseCommands
- * @author  TreeHouse Framework Team
+ * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 class MigrateRunCommand extends Command

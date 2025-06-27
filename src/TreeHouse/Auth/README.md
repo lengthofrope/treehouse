@@ -148,6 +148,72 @@ $password = $user->getAuthPassword(); // 'hashed_password'
 $name = $user->name; // 'John Doe' (magic getter)
 ```
 
+## Helper Functions
+
+TreeHouse provides convenient global helper functions for common authentication operations:
+
+### Available Helpers
+
+```php
+// Get the auth manager or a specific guard
+$authManager = auth();           // Get default AuthManager
+$guard = auth('web');            // Get specific guard
+
+// Check authentication status
+$isLoggedIn = check();           // Check if authenticated
+$isGuest = guest();              // Check if guest (not authenticated)
+
+// Get current user
+$user = user();                  // Get current authenticated user
+$user = user('api');             // Get user from specific guard
+
+// Authentication operations
+$success = attempt([             // Attempt login
+    'email' => 'user@example.com',
+    'password' => 'secret'
+], $remember = false);
+
+login($user, $remember = false); // Log in a user instance
+logout();                       // Log out current user
+```
+
+### Helper Usage Examples
+
+```php
+// Simple authentication check
+if (check()) {
+    echo "Welcome back, " . user()->name;
+} else {
+    echo "Please log in";
+}
+
+// Login form processing
+if ($_POST['login']) {
+    if (attempt($_POST['credentials'])) {
+        header('Location: /dashboard');
+    } else {
+        $error = 'Invalid credentials';
+    }
+}
+
+// Conditional content
+if (guest()) {
+    // Show login form
+    include 'login-form.php';
+} else {
+    // Show user content
+    include 'user-dashboard.php';
+}
+
+// Multiple guards
+$webUser = user('web');
+$apiUser = user('api');
+
+// Manual login
+$user = User::find(1);
+login($user, true); // Login with remember me
+```
+
 ## Usage Examples
 
 ### Basic Authentication

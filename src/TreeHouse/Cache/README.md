@@ -12,6 +12,60 @@ The TreeHouse Cache System provides a flexible and extensible caching solution w
 - **Increment/Decrement**: Atomic counter operations
 - **Remember Pattern**: Cache-or-execute pattern for expensive operations
 
+## Helper Function
+
+TreeHouse provides a convenient global helper function for accessing the cache:
+
+### Using the cache() Helper
+
+```php
+// Get the cache manager instance
+$cacheManager = cache();
+
+// Get a specific driver
+$fileCache = cache('file');
+
+// Use cache operations directly
+cache()->put('key', 'value', 3600);
+$value = cache()->get('key', 'default');
+
+if (cache()->has('key')) {
+    echo "Key exists!";
+}
+
+// Remember pattern with helper
+$expensiveData = cache()->remember('expensive_key', 300, function() {
+    return performExpensiveOperation();
+});
+
+// Flush all cache
+cache()->flush();
+```
+
+### Helper Usage Examples
+
+```php
+// Simple caching
+cache()->put('user:123', $userData, 3600);
+$user = cache()->get('user:123');
+
+// Cache with specific driver
+cache('file')->put('config', $settings);
+
+// Remember pattern
+$posts = cache()->remember('latest_posts', 1800, function() {
+    return Post::latest()->limit(10)->get();
+});
+
+// Batch operations
+cache()->putMany([
+    'key1' => 'value1',
+    'key2' => 'value2'
+], 3600);
+
+$values = cache()->many(['key1', 'key2']);
+```
+
 ## Basic Usage
 
 ### Setting Up the Cache Manager

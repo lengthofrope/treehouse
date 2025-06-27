@@ -11,7 +11,7 @@ namespace LengthOfRope\TreeHouse\Support;
  * and fallback support. Handles .env file loading and parsing.
  * 
  * @package LengthOfRope\TreeHouse\Support
- * @author  TreeHouse Framework Team
+ * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 class Env

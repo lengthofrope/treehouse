@@ -14,7 +14,7 @@ use LengthOfRope\TreeHouse\Console\Output\OutputInterface;
  * Provides common functionality and structure for command implementation.
  * 
  * @package LengthOfRope\TreeHouse\Console
- * @author  TreeHouse Framework Team
+ * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 abstract class Command

@@ -36,7 +36,9 @@
         },
         "files": [
             "src/TreeHouse/Support/helpers.php",
-            "src/TreeHouse/View/helpers.php"
+            "src/TreeHouse/View/helpers.php",
+            "src/TreeHouse/Auth/helpers.php",
+            "src/TreeHouse/Cache/helpers.php"
         ]
     },
     "autoload-dev": {

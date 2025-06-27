@@ -15,7 +15,7 @@ use LengthOfRope\TreeHouse\Console\InputOption;
  * Start a local development server for testing.
  * 
  * @package LengthOfRope\TreeHouse\Console\Commands\DevelopmentCommands
- * @author  TreeHouse Framework Team
+ * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 class ServeCommand extends Command

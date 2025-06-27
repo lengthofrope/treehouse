@@ -18,7 +18,7 @@ use LengthOfRope\TreeHouse\Cache\FileCache;
  * Supports clearing all cache or specific cache drivers.
  * 
  * @package LengthOfRope\TreeHouse\Console\Commands\CacheCommands
- * @author  TreeHouse Framework Team
+ * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 class CacheClearCommand extends Command

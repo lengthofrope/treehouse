@@ -11,7 +11,7 @@ namespace LengthOfRope\TreeHouse\Console\Helpers;
  * Supports .env files, PHP config files, and environment variables.
  * 
  * @package LengthOfRope\TreeHouse\Console\Helpers
- * @author  TreeHouse Framework Team
+ * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 class ConfigLoader

@@ -11,7 +11,7 @@ namespace LengthOfRope\TreeHouse\Console\Input;
  * Handles both short and long options, arguments, and flags.
  * 
  * @package LengthOfRope\TreeHouse\Console\Input
- * @author  TreeHouse Framework Team
+ * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 class InputParser

@@ -10,7 +10,7 @@ namespace LengthOfRope\TreeHouse\Console\Input;
  * Defines the contract for handling command line input in the TreeHouse CLI.
  * 
  * @package LengthOfRope\TreeHouse\Console\Input
- * @author  TreeHouse Framework Team
+ * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 interface InputInterface

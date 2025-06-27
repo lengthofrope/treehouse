@@ -25,7 +25,7 @@ use Throwable;
  * Handles command registration, routing, and execution.
  * 
  * @package LengthOfRope\TreeHouse\Console
- * @author  TreeHouse Framework Team
+ * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 class Application
