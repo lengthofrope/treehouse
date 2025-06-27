@@ -1,24 +1,22 @@
 <?php
 
 return [
-    'name' => '{{PROJECT_NAME}}',
+    'name' => env('APP_NAME', '{{PROJECT_NAME}}'),
     'debug' => env('APP_DEBUG', false),
     'url' => env('APP_URL', 'http://localhost:8000'),
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'UTC'),
+    'key' => env('APP_KEY'),
+    'encryption_key' => env('ENCRYPTION_KEY'),
+    
+    'session' => [
+        'driver' => env('SESSION_DRIVER', 'file'),
+        'lifetime' => env('SESSION_LIFETIME', 120),
+        'path' => __DIR__ . '/../storage/sessions',
+    ],
+    
+    'logging' => [
+        'channel' => env('LOG_CHANNEL', 'single'),
+        'level' => env('LOG_LEVEL', 'error'),
+        'path' => __DIR__ . '/../storage/logs/app.log',
+    ],
 ];
-
-function env(string $key, mixed $default = null): mixed
-{
-    $value = $_ENV[$key] ?? getenv($key);
-    
-    if ($value === false) {
-        return $default;
-    }
-    
-    // Convert string booleans
-    if (strtolower($value) === 'true') return true;
-    if (strtolower($value) === 'false') return false;
-    if (strtolower($value) === 'null') return null;
-    
-    return $value;
-}

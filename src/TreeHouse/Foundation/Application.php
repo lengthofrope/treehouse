@@ -220,8 +220,21 @@ class Application
      */
     private function isDebugMode(): bool
     {
-        return ($this->config['app']['debug'] ?? false) || 
-               (isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true');
+        // Check configuration first - if explicitly set, use that
+        if (isset($this->config['app']['debug'])) {
+            return (bool) $this->config['app']['debug'];
+        }
+        
+        // Fall back to environment variable (handle both boolean and string values)
+        if (isset($_ENV['APP_DEBUG'])) {
+            $envDebug = $_ENV['APP_DEBUG'];
+            if (is_bool($envDebug)) {
+                return $envDebug;
+            }
+            return in_array(strtolower((string)$envDebug), ['true', '1', 'yes', 'on']);
+        }
+        
+        return false;
     }
 
     /**

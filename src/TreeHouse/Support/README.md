@@ -10,6 +10,7 @@ The TreeHouse Support library provides a comprehensive set of utility classes an
   - [Str - String Utilities](#str---string-utilities)
   - [Carbon - Date/Time Utilities](#carbon---datetime-utilities)
   - [Uuid - UUID Generation](#uuid---uuid-generation)
+  - [Env - Environment Configuration](#env---environment-configuration)
 - [Helper Functions](#helper-functions)
 - [Usage Examples](#usage-examples)
 
@@ -177,6 +178,122 @@ Uuid::fromBinary($binary);                  // Convert back to string
 Uuid::compare($uuid1, $uuid2);              // Compare UUIDs
 ```
 
+### Env - Environment Configuration
+
+The `Env` class provides robust support for environment-specific configuration through `.env` files. This allows you to keep sensitive information like database passwords and API keys out of your version control while maintaining different configurations for development, staging, and production environments.
+
+#### Key Features:
+- **Automatic Loading**: Loads `.env` files from multiple possible locations
+- **Type Conversion**: Automatic conversion of string values to appropriate PHP types
+- **Secure Parsing**: Handles quotes, escape sequences, and comments safely
+- **Caching**: Memory cache for environment variables to avoid re-parsing
+- **Global Access**: Available through global `env()` helper function
+
+#### Core Methods:
+```php
+// Basic usage
+$dbHost = Env::get('DB_HOST', 'localhost');
+$isDebug = Env::get('APP_DEBUG', false);
+$apiKey = Env::get('API_KEY');
+
+// Environment management
+Env::load('/path/to/.env');                // Load specific .env file
+Env::loadIfNeeded();                       // Load if not already loaded
+Env::reload();                             // Force reload
+Env::set('RUNTIME_VAR', 'value');          // Set programmatically
+
+// Inspection
+Env::has('API_KEY');                       // Check if variable exists
+Env::all();                                // Get all environment variables
+Env::clearCache();                         // Clear internal cache
+```
+
+#### Environment File Format:
+```env
+# Application settings
+APP_NAME="My TreeHouse App"
+APP_DEBUG=true
+APP_URL=http://localhost:8000
+
+# Database configuration
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=my_database
+DB_USERNAME=root
+DB_PASSWORD=secret_password
+
+# Type conversion examples
+CACHE_ENABLED=true                         # boolean true
+DEBUG_MODE=false                           # boolean false
+MAX_SIZE=2048                              # integer 2048
+TIMEOUT=30.5                               # float 30.5
+OPTIONAL_KEY=null                          # null value
+EMPTY_VALUE=empty                          # empty string ""
+```
+
+#### Quoted Values and Escaping:
+```php
+// .env file:
+// MESSAGE="Hello\nWorld\ttab"
+// PATH='/path/with spaces/file'
+// URL="https://example.com?param=value"
+
+$message = Env::get('MESSAGE');            // "Hello\nWorld\ttab" with actual newlines
+$path = Env::get('PATH');                  // "/path/with spaces/file"
+$url = Env::get('URL');                    // "https://example.com?param=value"
+```
+
+#### Global Helper Function:
+```php
+// Using the global env() helper (recommended)
+$dbPassword = env('DB_PASSWORD');
+$maxUpload = env('MAX_UPLOAD_SIZE', 1024);
+$features = env('FEATURE_FLAGS', []);
+
+// In configuration files
+return [
+    'name' => env('APP_NAME', 'TreeHouse App'),
+    'debug' => env('APP_DEBUG', false),
+    'database' => [
+        'host' => env('DB_HOST', 'localhost'),
+        'port' => env('DB_PORT', 3306),
+    ],
+];
+```
+
+#### Security Best Practices:
+```php
+// 1. Never commit .env files (automatically in .gitignore)
+// 2. Use .env.example for sharing configuration structure
+// 3. Generate secure keys:
+//    APP_KEY=base64:dGVzdGluZy0zMi1jaGFyLXNlY3JldC1rZXktaGVyZQ==
+//    ENCRYPTION_KEY=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+
+// 4. Environment-specific configurations
+if (env('APP_ENV') === 'production') {
+    // Production-specific settings
+}
+```
+
+#### Advanced Usage:
+```php
+// Custom loading for testing
+if (defined('PHPUNIT_COMPOSER_INSTALL')) {
+    Env::load(__DIR__ . '/.env.testing');
+}
+
+// Runtime configuration
+Env::set('DYNAMIC_CONFIG', $computedValue);
+
+// Bulk inspection
+$allVars = Env::all();
+$hasRequired = Env::has('REQUIRED_API_KEY');
+
+// Cache management in long-running processes
+Env::clearCache();  // Clear before reload
+Env::reload();       // Reload from file
+```
+
 ## Helper Functions
 
 The library includes global helper functions for common operations:
@@ -188,6 +305,14 @@ $value = dataGet($array, 'user.profile.name', 'default');
 
 // Set nested data with dot notation
 dataSet($array, 'user.profile.name', 'John Doe');
+```
+
+### env()
+```php
+// Get environment variables with defaults
+$dbHost = env('DB_HOST', 'localhost');
+$isDebug = env('APP_DEBUG', false);
+$apiKey = env('API_KEY');
 ```
 
 ### value() and with()
@@ -260,6 +385,56 @@ $apiKey = Uuid::short();                    // Compact API key
 
 // Namespace-based UUIDs for consistent generation
 $configId = Uuid::uuid5(Uuid::NAMESPACE_DNS, 'config.example.com');
+```
+
+### Environment-Based Configuration
+```php
+// .env file:
+// APP_ENV=production
+// DB_HOST=prod-server.example.com
+// CACHE_TTL=3600
+// FEATURE_BETA=true
+
+// Application configuration with environment fallbacks
+$config = [
+    'app' => [
+        'name' => env('APP_NAME', 'TreeHouse App'),
+        'env' => env('APP_ENV', 'development'),
+        'debug' => env('APP_DEBUG', false),
+        'url' => env('APP_URL', 'http://localhost:8000'),
+    ],
+    'database' => [
+        'host' => env('DB_HOST', 'localhost'),
+        'port' => env('DB_PORT', 3306),
+        'database' => env('DB_DATABASE', 'treehouse'),
+        'username' => env('DB_USERNAME', 'root'),
+        'password' => env('DB_PASSWORD', ''),
+    ],
+    'cache' => [
+        'driver' => env('CACHE_DRIVER', 'file'),
+        'ttl' => env('CACHE_TTL', 3600),
+    ],
+    'features' => [
+        'beta' => env('FEATURE_BETA', false),
+        'analytics' => env('FEATURE_ANALYTICS', true),
+    ],
+];
+
+// Environment-specific logic
+if (env('APP_ENV') === 'production') {
+    // Production-specific configuration
+    $config['app']['debug'] = false;
+    $config['cache']['ttl'] = env('CACHE_TTL', 86400); // 24 hours
+} elseif (env('APP_ENV') === 'testing') {
+    // Testing-specific configuration
+    $config['database']['database'] = env('DB_DATABASE', 'treehouse_test');
+}
+
+// Feature flags based on environment
+$features = Collection::make($config['features'])
+    ->filter(fn($enabled) => $enabled)
+    ->keys()
+    ->all();
 ```
 
 ## Performance Considerations

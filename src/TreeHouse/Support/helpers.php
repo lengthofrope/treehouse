@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use LengthOfRope\TreeHouse\Support\Arr;
+use LengthOfRope\TreeHouse\Support\Env;
 
 if (!function_exists('dataGet')) {
     /**
@@ -134,7 +135,7 @@ if (!function_exists('value')) {
 if (!function_exists('with')) {
     /**
      * Return the given value, optionally passed through the given callback
-     * 
+     *
      * @param mixed $value
      * @param callable|null $callback
      * @return mixed
@@ -142,5 +143,19 @@ if (!function_exists('with')) {
     function with(mixed $value, ?callable $callback = null): mixed
     {
         return is_null($callback) ? $value : $callback($value);
+    }
+}
+
+if (!function_exists('env')) {
+    /**
+     * Get environment variable with type conversion
+     *
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
+     */
+    function env(string $key, mixed $default = null): mixed
+    {
+        return Env::get($key, $default);
     }
 }

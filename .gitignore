@@ -1,6 +1,9 @@
 # Dependencies
 /vendor/
 
+# Environment
+.env
+
 # IDE
 .vscode/
 .idea/

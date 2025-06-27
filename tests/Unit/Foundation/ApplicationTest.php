@@ -179,6 +179,9 @@ class ApplicationTest extends TestCase
 
     public function testHandleRouteNotFoundException()
     {
+        // Disable debug mode for this test
+        $this->app->setConfig('app.debug', false);
+        
         // Create a mock router that throws RouteNotFoundException
         $mockRouter = $this->createMock(Router::class);
         $mockRouter->expects($this->once())
@@ -224,6 +227,9 @@ class ApplicationTest extends TestCase
 
     public function testHandleGenericException()
     {
+        // Disable debug mode for this test
+        $this->app->setConfig('app.debug', false);
+        
         $mockRouter = $this->createMock(Router::class);
         $mockRouter->expects($this->once())
                    ->method('dispatch')
@@ -244,6 +250,9 @@ class ApplicationTest extends TestCase
 
     public function testHandleExceptionWithStatusCode()
     {
+        // Disable debug mode for this test
+        $this->app->setConfig('app.debug', false);
+        
         $mockRouter = $this->createMock(Router::class);
         $exception = new class extends \Exception {
             public function getStatusCode(): int
