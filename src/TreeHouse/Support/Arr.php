@@ -499,12 +499,12 @@ class Arr
 
     /**
      * Explode the "value" and "key" arguments passed to "pluck"
-     * 
-     * @param string|array $value
+     *
+     * @param string|array|int|null $value
      * @param string|array|null $key
      * @return array
      */
-    protected static function explodePluckParameters(string|array $value, string|array|null $key): array
+    protected static function explodePluckParameters(string|array|int|null $value, string|array|null $key): array
     {
         $value = is_string($value) ? explode('.', $value) : $value;
 
