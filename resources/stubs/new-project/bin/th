@@ -1,0 +1,18 @@
+#!/usr/bin/env php
+<?php
+
+// TreeHouse CLI - Application Entry Point
+// This script creates a symlink to the framework CLI when composer installs
+
+$frameworkCli = __DIR__ . '/../vendor/bin/treehouse';
+
+if (file_exists($frameworkCli)) {
+    // Framework is installed, proxy to framework CLI
+    $args = array_slice($argv, 1);
+    $command = escapeshellcmd($frameworkCli) . ' ' . implode(' ', array_map('escapeshellarg', $args));
+    passthru($command, $exitCode);
+    exit($exitCode);
+} else {
+    echo "TreeHouse framework not found. Please run 'composer install' first.\n";
+    exit(1);
+}

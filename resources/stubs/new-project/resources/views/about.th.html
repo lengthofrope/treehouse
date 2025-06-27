@@ -1,0 +1,33 @@
+<div th:extend="layouts.app">
+    <div th:section="content">
+        <h2 th:text="title"></h2>
+        <p th:text="message"></p>
+        
+        <h3>TreeHouse Framework</h3>
+        <p>TreeHouse is a modern PHP framework designed for rapid web development. Built from scratch with zero external dependencies, it provides all the essential features you need to build robust web applications.</p>
+        
+        <h3>Key Features</h3>
+        <ul>
+            <li><strong>Zero Dependencies</strong> - Pure PHP implementation</li>
+            <li><strong>Automatic Route Discovery</strong> - Routes load automatically from config/routes/</li>
+            <li><strong>TreeHouse Template Engine</strong> - HTML-valid th: attributes</li>
+            <li><strong>Built-in Cache System</strong> - File-based caching out of the box</li>
+            <li><strong>Database Abstraction</strong> - ActiveRecord pattern with relations</li>
+            <li><strong>Service Container</strong> - Dependency injection container</li>
+            <li><strong>Console Commands</strong> - CLI tools for development</li>
+            <li><strong>Support Classes</strong> - Collection, Arr, Str, Carbon, Uuid utilities</li>
+        </ul>
+        
+        <h3>Template Syntax Examples</h3>
+        <div>
+            <p><code>th:text="user.name"</code> - Dot notation support</p>
+            <p><code>th:if="user.active"</code> - Conditionals</p>
+            <p><code>th:repeat="item items"</code> - Loops</p>
+            <p><code>th:class="user.status"</code> - Dynamic attributes</p>
+            <p><code>{user.name}</code> - Inline expressions</p>
+        </div>
+        
+        <h3>Learn More</h3>
+        <p>Visit the <a href="/">homepage</a> to explore framework features, or check out the API at <a href="/api/status">/api/status</a>.</p>
+    </div>
+</div>
