@@ -150,6 +150,7 @@ The `ActiveRecord` class provides an Active Record implementation with support f
 
 #### Key Features:
 - **Active Record Pattern**: Database records as objects with behavior
+- **Automatic Connection Setup**: Database connections are automatically configured when using TreeHouse Application
 - **Collection Results**: Query methods return Collection instances instead of arrays
 - **Enhanced Date Handling**: Carbon integration for superior date/time operations
 - **UUID Support**: Built-in UUID generation and handling for primary keys
@@ -160,7 +161,17 @@ The `ActiveRecord` class provides an Active Record implementation with support f
 - **Helper Functions**: Integration with collect(), data_get(), data_set() helpers
 
 #### Core Methods:
+
+**Automatic Database Setup with TreeHouse Application:**
+
 ```php
+// With TreeHouse Application - NO manual setup needed!
+use LengthOfRope\TreeHouse\Foundation\Application;
+
+$app = new Application(__DIR__);
+// Database connection is automatically configured from config/database.php
+// ActiveRecord models are ready to use immediately!
+
 // Model definition
 class User extends ActiveRecord
 {
@@ -191,7 +202,7 @@ class User extends ActiveRecord
     }
 }
 
-// Basic operations
+// Basic operations - work immediately with auto-configured connection!
 $user = new User(['name' => 'John', 'email' => 'john@example.com']);
 $user->save();                            // Save to database
 
@@ -204,6 +215,22 @@ $user = User::find(123);                  // Find by primary key
 $user = User::findOrFail(123);           // Find or throw exception
 $users = User::where('active', true);    // Returns Collection
 $users = User::all();                    // Returns Collection
+```
+
+**Manual Database Setup (Advanced):**
+
+```php
+// Only needed if not using TreeHouse Application
+$connection = new Connection([
+    'driver' => 'mysql',
+    'host' => 'localhost',
+    'database' => 'myapp',
+    'username' => 'user',
+    'password' => 'pass'
+]);
+
+// Set connection for models
+ActiveRecord::setConnection($connection);
 
 // Collection methods available on results
 $activeUsers = $users->filter(fn($user) => $user->active);
@@ -443,8 +470,48 @@ foreach ($user->roles as $role) {
 ## Usage Examples
 
 ### Complete Database Setup and Usage
+
+**With TreeHouse Application (Recommended):**
+
 ```php
-// Database connection setup
+// Create TreeHouse Application - automatically handles everything!
+use LengthOfRope\TreeHouse\Foundation\Application;
+
+$app = new Application(__DIR__);
+// Database connection automatically configured from config/database.php
+// Environment variables automatically loaded from .env
+// ActiveRecord models ready to use immediately!
+
+// config/database.php is automatically loaded:
+/*
+return [
+    'default' => env('DB_CONNECTION', 'mysql'),
+    'connections' => [
+        'mysql' => [
+            'driver' => 'mysql',
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'database' => env('DB_DATABASE', 'blog'),
+            'username' => env('DB_USERNAME', 'user'),
+            'password' => env('DB_PASSWORD', 'password'),
+        ],
+    ],
+];
+*/
+
+// .env file automatically loaded:
+/*
+DB_CONNECTION=mysql
+DB_HOST=localhost
+DB_DATABASE=blog
+DB_USERNAME=user
+DB_PASSWORD=password
+*/
+```
+
+**Manual Database Setup (Advanced):**
+
+```php
+// Only needed if not using TreeHouse Application
 $connection = new Connection([
     'driver' => 'mysql',
     'host' => 'localhost',

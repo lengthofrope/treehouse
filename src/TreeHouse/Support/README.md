@@ -182,20 +182,37 @@ Uuid::compare($uuid1, $uuid2);              // Compare UUIDs
 
 The `Env` class provides robust support for environment-specific configuration through `.env` files. This allows you to keep sensitive information like database passwords and API keys out of your version control while maintaining different configurations for development, staging, and production environments.
 
+**🚀 Automatically Integrated with TreeHouse Application**: When using TreeHouse Foundation Application, `.env` files are automatically loaded during bootstrap, making environment variables immediately available throughout your application.
+
 #### Key Features:
 - **Automatic Loading**: Loads `.env` files from multiple possible locations
+- **TreeHouse Integration**: Automatically loaded by TreeHouse Application during bootstrap
 - **Type Conversion**: Automatic conversion of string values to appropriate PHP types
 - **Secure Parsing**: Handles quotes, escape sequences, and comments safely
 - **Caching**: Memory cache for environment variables to avoid re-parsing
 - **Global Access**: Available through global `env()` helper function
 
 #### Core Methods:
+
+**With TreeHouse Application (Automatic):**
 ```php
-// Basic usage
+use LengthOfRope\TreeHouse\Foundation\Application;
+
+// Create application - .env is automatically loaded!
+$app = new Application(__DIR__);
+
+// Environment variables are immediately available
+$dbHost = env('DB_HOST', 'localhost');     // Using global helper
+$isDebug = env('APP_DEBUG', false);
+$apiKey = env('API_KEY');
+
+// Or access directly
 $dbHost = Env::get('DB_HOST', 'localhost');
 $isDebug = Env::get('APP_DEBUG', false);
-$apiKey = Env::get('API_KEY');
+```
 
+**Manual Usage (Advanced):**
+```php
 // Environment management
 Env::load('/path/to/.env');                // Load specific .env file
 Env::loadIfNeeded();                       // Load if not already loaded
@@ -250,14 +267,26 @@ $dbPassword = env('DB_PASSWORD');
 $maxUpload = env('MAX_UPLOAD_SIZE', 1024);
 $features = env('FEATURE_FLAGS', []);
 
-// In configuration files
+// In configuration files (automatically loaded by TreeHouse Application)
+// config/database.php
+return [
+    'default' => env('DB_CONNECTION', 'mysql'),
+    'connections' => [
+        'mysql' => [
+            'host' => env('DB_HOST', 'localhost'),
+            'port' => env('DB_PORT', 3306),
+            'database' => env('DB_DATABASE', 'treehouse'),
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => env('DB_PASSWORD', ''),
+        ],
+    ],
+];
+
+// config/app.php
 return [
     'name' => env('APP_NAME', 'TreeHouse App'),
     'debug' => env('APP_DEBUG', false),
-    'database' => [
-        'host' => env('DB_HOST', 'localhost'),
-        'port' => env('DB_PORT', 3306),
-    ],
+    'url' => env('APP_URL', 'http://localhost:8000'),
 ];
 ```
 

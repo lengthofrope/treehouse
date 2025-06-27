@@ -17,12 +17,31 @@ The `Application` class serves as the main entry point and bootstrap for TreeHou
 #### Key Features
 
 - **Service Container Integration**: Built-in dependency injection container
-- **Configuration Management**: Load and manage application configuration
+- **Automatic Configuration Loading**: Auto-loads configuration from `config/` directory
+- **Environment Variable Support**: Automatic `.env` file loading and processing
+- **Database Auto-Setup**: Automatic database connection initialization
 - **Route Handling**: Integrate with the router for HTTP request processing
 - **Exception Handling**: Centralized error handling with debug support
 - **Core Services**: Automatic registration of framework services
 
 #### Usage
+
+**Simple Auto-Loading (Recommended):**
+
+```php
+use LengthOfRope\TreeHouse\Foundation\Application;
+
+// Create application instance - everything is auto-loaded
+$app = new Application('/path/to/app');
+// Configuration, environment variables, database, and routes are loaded automatically
+
+// Handle incoming request
+$request = Request::createFromGlobals();
+$response = $app->handle($request);
+$response->send();
+```
+
+**Manual Configuration (Advanced):**
 
 ```php
 use LengthOfRope\TreeHouse\Foundation\Application;
@@ -30,10 +49,10 @@ use LengthOfRope\TreeHouse\Foundation\Application;
 // Create application instance
 $app = new Application('/path/to/app');
 
-// Load configuration
+// Manual configuration loading (optional - auto-loaded by default)
 $app->loadConfiguration('/path/to/config');
 
-// Load routes
+// Load additional routes (optional - auto-loaded from config/routes/)
 $app->loadRoutes('/path/to/routes.php');
 
 // Handle incoming request
@@ -44,11 +63,15 @@ $response->send();
 
 #### Configuration
 
-The application automatically loads configuration files from a directory:
+The application automatically loads configuration files from the `config/` directory during bootstrap. Environment variables from `.env` files are also automatically loaded.
+
+**Automatic Configuration Loading:**
 
 ```php
-// Load all .php files from config directory
-$app->loadConfiguration('./config');
+// Configuration is automatically loaded from:
+// - .env file (environment variables)
+// - config/ directory (all .php files)
+// - Database connections are automatically initialized
 
 // Access configuration values
 $debugMode = $app->config('app.debug', false);
@@ -58,6 +81,26 @@ $cacheDriver = $app->config('cache.default', 'file');
 $app->setConfig('app.timezone', 'UTC');
 ```
 
+**Environment Variables:**
+
+```php
+// .env file is automatically loaded
+// Use env() helper in configuration files:
+
+// config/database.php
+return [
+    'default' => env('DB_CONNECTION', 'mysql'),
+    'connections' => [
+        'mysql' => [
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'database' => env('DB_DATABASE', 'app'),
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => env('DB_PASSWORD', ''),
+        ],
+    ],
+];
+```
+
 #### Core Services
 
 The application automatically registers these core services:
@@ -65,6 +108,7 @@ The application automatically registers these core services:
 - **router**: Router instance for handling HTTP requests
 - **cache**: Cache manager for application caching
 - **view**: View factory for template rendering
+- **db**: Database connection (auto-configured from config/database.php)
 
 ### Container
 
@@ -127,10 +171,12 @@ $userService = $container->make(UserService::class);
 ## Application Bootstrap Process
 
 1. **Initialization**: Create container and router instances
-2. **Service Registration**: Register core framework services
-3. **Configuration Loading**: Load application configuration files
-4. **Route Registration**: Register application routes
-5. **Request Handling**: Process incoming HTTP requests
+2. **Environment Loading**: Automatically load `.env` file from application root
+3. **Configuration Loading**: Automatically load all `.php` files from `config/` directory
+4. **Service Registration**: Register core framework services (router, cache, view, database)
+5. **Database Initialization**: Automatically set up database connections for ActiveRecord models
+6. **Route Registration**: Automatically load routes from `config/routes/` directory
+7. **Request Handling**: Process incoming HTTP requests
 
 ## Core Services
 
@@ -154,6 +200,17 @@ $value = $cache->get('key');
 ```php
 $view = $app->make('view');
 $content = $view->make('welcome', ['name' => 'John']);
+```
+
+### Database Service
+
+```php
+$database = $app->make('db');
+// Or use ActiveRecord models directly (connection auto-configured):
+
+use App\Models\User;
+$users = User::all();
+$user = User::find(1);
 ```
 
 ## Error Handling
@@ -197,14 +254,37 @@ return [
 
 ## Environment Integration
 
-The Foundation layer integrates with environment variables:
+The Foundation layer automatically integrates with environment variables through `.env` file loading:
+
+**Automatic .env Loading:**
 
 ```php
-// Debug mode from environment
-$debug = $app->config('app.debug') || $_ENV['APP_DEBUG'] === 'true';
+// .env file is automatically loaded during bootstrap
+// APP_DEBUG=true
+// DB_HOST=localhost
+// DB_DATABASE=myapp
 
-// Other environment variables
-$databaseUrl = $_ENV['DATABASE_URL'] ?? 'sqlite:memory:';
+// Access via env() helper in config files
+$debug = env('APP_DEBUG', false);
+$host = env('DB_HOST', '127.0.0.1');
+
+// Or access configuration that uses env() values
+$debug = $app->config('app.debug');
+$database = $app->config('database.connections.mysql.database');
+```
+
+**Manual Environment Loading:**
+
+```php
+use LengthOfRope\TreeHouse\Support\Env;
+
+// Force reload environment
+Env::reload('/path/to/.env');
+
+// Check if variable exists
+if (Env::has('APP_KEY')) {
+    $key = Env::get('APP_KEY');
+}
 ```
 
 ## Best Practices
