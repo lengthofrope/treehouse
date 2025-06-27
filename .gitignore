@@ -14,9 +14,14 @@ Thumbs.db
 # Testing
 /coverage-html/
 /.phpunit.result.cache
+/.phpunit.cache
 
 # Runtime
 /storage/logs/*
 /storage/cache/*
 /storage/views/*
 !.gitkeep
+
+# AI
+/.kilocode
+/.memory-bank

@@ -42,10 +42,10 @@ Create a new project:
 composer global require lengthofrope/treehouse
 
 # Create new project
-treehouse new my-app
+./bin/treehouse new my-app
 cd my-app
 composer install
-./bin/th serve
+./bin/treehouse serve
 ```
 
 ## Quick Start
@@ -167,7 +167,7 @@ TreeHouse includes a comprehensive CLI tool:
 ./bin/th test:run
 
 # Create new project
-treehouse new my-app
+./bin/treehouse new my-app
 ```
 
 ## Configuration
