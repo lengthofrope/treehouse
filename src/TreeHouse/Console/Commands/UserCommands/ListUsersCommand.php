@@ -31,7 +31,7 @@ class ListUsersCommand extends Command
         $this->setName('user:list')
             ->setDescription('List all user accounts')
             ->setHelp('This command lists all user accounts with optional filtering by role.')
-            ->addOption('role', 'r', InputOption::VALUE_OPTIONAL, 'Filter by role (admin, editor, viewer)')
+            ->addOption('role', 'r', InputOption::VALUE_OPTIONAL, 'Filter by role (admin, editor, author, member)')
             ->addOption('verified', null, InputOption::VALUE_NONE, 'Show only verified users')
             ->addOption('unverified', null, InputOption::VALUE_NONE, 'Show only unverified users')
             ->addOption('format', 'f', InputOption::VALUE_OPTIONAL, 'Output format (table, json, csv)', 'table')
@@ -85,13 +85,19 @@ class ListUsersCommand extends Command
     {
         $connection = db();
         
-        $sql = 'SELECT id, name, email, role, email_verified, email_verified_at, created_at FROM users';
+        $sql = '
+            SELECT u.id, u.name, u.email, u.email_verified, u.email_verified_at, u.created_at,
+                   GROUP_CONCAT(r.slug ORDER BY r.slug SEPARATOR ", ") as roles
+            FROM users u
+            LEFT JOIN user_roles ur ON u.id = ur.user_id
+            LEFT JOIN roles r ON ur.role_id = r.id
+        ';
         $params = [];
         $conditions = [];
         
         // Apply role filter
         if ($role = $input->getOption('role')) {
-            $conditions[] = 'role = ?';
+            $conditions[] = 'r.slug = ?';
             $params[] = $role;
         }
         
@@ -106,7 +112,8 @@ class ListUsersCommand extends Command
             $sql .= ' WHERE ' . implode(' AND ', $conditions);
         }
         
-        $sql .= ' ORDER BY created_at DESC';
+        $sql .= ' GROUP BY u.id, u.name, u.email, u.email_verified, u.email_verified_at, u.created_at';
+        $sql .= ' ORDER BY u.created_at DESC';
         
         // Apply limit
         $limit = (int) $input->getOption('limit');
@@ -127,18 +134,19 @@ class ListUsersCommand extends Command
         
         // Header
         $this->outputTableRow($output, [
-            'ID', 'Name', 'Email', 'Role', 'Verified', 'Created'
+            'ID', 'Name', 'Email', 'Roles', 'Verified', 'Created'
         ], true);
         
         $output->writeln(str_repeat('-', 90));
         
         // Rows
         foreach ($users as $user) {
+            $roles = $user['roles'] ?: 'none';
             $this->outputTableRow($output, [
                 $user['id'],
                 $this->truncate($user['name'], 15),
                 $this->truncate($user['email'], 25),
-                $user['role'],
+                $this->truncate($roles, 15),
                 $user['email_verified'] ? 'Yes' : 'No',
                 date('Y-m-d', strtotime($user['created_at']))
             ]);
@@ -153,7 +161,7 @@ class ListUsersCommand extends Command
      */
     private function outputTableRow(OutputInterface $output, array $columns, bool $isHeader = false): void
     {
-        $widths = [5, 17, 27, 10, 10, 12];
+        $widths = [5, 17, 27, 17, 10, 12];
         $row = '';
         
         foreach ($columns as $index => $column) {
@@ -184,15 +192,16 @@ class ListUsersCommand extends Command
     private function outputCsv(array $users, OutputInterface $output): void
     {
         // Header
-        $output->writeln('ID,Name,Email,Role,Verified,Created');
+        $output->writeln('ID,Name,Email,Roles,Verified,Created');
         
         // Rows
         foreach ($users as $user) {
+            $roles = $user['roles'] ?: 'none';
             $row = [
                 $user['id'],
                 '"' . str_replace('"', '""', $user['name']) . '"',
                 '"' . str_replace('"', '""', $user['email']) . '"',
-                $user['role'],
+                '"' . str_replace('"', '""', $roles) . '"',
                 $user['email_verified'] ? 'Yes' : 'No',
                 $user['created_at']
             ];

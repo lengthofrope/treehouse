@@ -102,12 +102,12 @@ class DeleteUserCommand extends Command
         // Try by ID first (if numeric)
         if (is_numeric($identifier)) {
             $result = $connection->select(
-                'SELECT id, name, email, role, email_verified, created_at FROM users WHERE id = ?',
+                'SELECT id, name, email, email_verified, created_at FROM users WHERE id = ?',
                 [(int) $identifier]
             );
         } else {
             $result = $connection->select(
-                'SELECT id, name, email, role, email_verified, created_at FROM users WHERE email = ?',
+                'SELECT id, name, email, email_verified, created_at FROM users WHERE email = ?',
                 [$identifier]
             );
         }
@@ -124,9 +124,13 @@ class DeleteUserCommand extends Command
         $output->writeln("  ID: {$user['id']}");
         $output->writeln("  Name: {$user['name']}");
         $output->writeln("  Email: {$user['email']}");
-        $output->writeln("  Role: {$user['role']}");
         $output->writeln("  Verified: " . ($user['email_verified'] ? 'Yes' : 'No'));
         $output->writeln("  Created: {$user['created_at']}");
+        
+        // Show current roles
+        $roles = $this->getUserRoles($user['id']);
+        $rolesList = empty($roles) ? 'none' : implode(', ', $roles);
+        $output->writeln("  Roles: {$rolesList}");
         $output->writeln('');
     }
 
@@ -203,6 +207,10 @@ class DeleteUserCommand extends Command
         try {
             $connection = db();
             
+            // First, remove user role assignments
+            $connection->delete('DELETE FROM user_roles WHERE user_id = ?', [$userId]);
+            
+            // Then delete the user
             $affectedRows = $connection->delete(
                 'DELETE FROM users WHERE id = ?',
                 [$userId]
@@ -218,6 +226,27 @@ class DeleteUserCommand extends Command
         } catch (\Exception $e) {
             $this->error($output, "Database error: {$e->getMessage()}");
             return false;
+        }
+    }
+
+    /**
+     * Get user's roles
+     */
+    private function getUserRoles(int $userId): array
+    {
+        try {
+            $connection = db();
+            $roles = $connection->select('
+                SELECT r.slug
+                FROM user_roles ur
+                INNER JOIN roles r ON ur.role_id = r.id
+                WHERE ur.user_id = ?
+                ORDER BY r.slug
+            ', [$userId]);
+            
+            return array_column($roles, 'slug');
+        } catch (\Exception $e) {
+            return [];
         }
     }
 }

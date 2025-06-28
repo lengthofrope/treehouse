@@ -59,7 +59,6 @@ class UpdateUserCommandTest extends TestCase
         $this->assertArrayHasKey('name', $options);
         $this->assertArrayHasKey('email', $options);
         $this->assertArrayHasKey('password', $options);
-        $this->assertArrayHasKey('role', $options);
         $this->assertArrayHasKey('verify', $options);
         $this->assertArrayHasKey('unverify', $options);
         $this->assertArrayHasKey('interactive', $options);
@@ -114,19 +113,7 @@ class UpdateUserCommandTest extends TestCase
         $this->assertEquals(1, $result);
     }
 
-    public function testRoleValidation(): void
-    {
-        $input = $this->createMockInput(
-            ['identifier' => 'test@example.com'],
-            ['role' => 'invalid-role']
-        );
-        $output = $this->createMockOutput();
-
-        $result = $this->command->execute($input, $output);
-
-        // Should fail with invalid role
-        $this->assertEquals(1, $result);
-    }
+    // Role validation test removed - role functionality moved to user:role command
 
     public function testPasswordLengthValidation(): void
     {

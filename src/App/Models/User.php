@@ -16,7 +16,6 @@ class User extends ActiveRecord implements Authorizable
         'name',
         'email',
         'password',
-        'role', // Keep for backward compatibility
     ];
     
     protected array $hidden = [
@@ -66,8 +65,8 @@ class User extends ActiveRecord implements Authorizable
             return true;
         }
 
-        // Fallback to legacy role column for backward compatibility
-        return $this->getAttribute('role') === $role;
+        // No fallback needed - all users should use the new role system
+        return false;
     }
 
     /**
@@ -228,8 +227,8 @@ class User extends ActiveRecord implements Authorizable
         $roles = $this->roles();
         
         if ($roles->isEmpty()) {
-            // Fallback to legacy role column
-            return $this->getAttribute('role') ?: 'member';
+            // Default to member role if no roles assigned
+            return 'member';
         }
 
         if ($roles->count() === 1) {

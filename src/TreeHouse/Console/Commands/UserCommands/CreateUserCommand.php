@@ -35,7 +35,7 @@ class CreateUserCommand extends Command
             ->setHelp('This command allows you to create a new user account with name, email, password and role.')
             ->addArgument('name', InputArgument::OPTIONAL, 'The user\'s full name')
             ->addArgument('email', InputArgument::OPTIONAL, 'The user\'s email address')
-            ->addOption('role', 'r', InputOption::VALUE_OPTIONAL, 'User role (admin, editor, viewer)', 'viewer')
+            ->addOption('role', 'r', InputOption::VALUE_OPTIONAL, 'User role (admin, editor, author, member)', 'member')
             ->addOption('password', 'p', InputOption::VALUE_OPTIONAL, 'User password (will prompt if not provided)')
             ->addOption('interactive', 'i', InputOption::VALUE_NONE, 'Use interactive mode')
             ->addOption('verified', null, InputOption::VALUE_NONE, 'Mark email as verified');
@@ -67,7 +67,7 @@ class CreateUserCommand extends Command
 
             $this->success($output, "User '{$user['name']}' created successfully!");
             $this->info($output, "Email: {$user['email']}");
-            $this->info($output, "Role: {$user['role']}");
+            $this->info($output, "Role: {$userData['role']}");
             $this->info($output, "ID: {$user['id']}");
             
             return 0;
@@ -113,7 +113,7 @@ class CreateUserCommand extends Command
         
         // Validate role
         $role = $input->getOption('role');
-        $availableRoles = ['admin', 'editor', 'viewer'];
+        $availableRoles = ['admin', 'editor', 'author', 'member'];
         if (!in_array($role, $availableRoles)) {
             $this->error($output, "Invalid role '{$role}'. Available roles: " . implode(', ', $availableRoles));
             return null;
@@ -157,14 +157,14 @@ class CreateUserCommand extends Command
         }
 
         // Get role
-        $availableRoles = ['admin', 'editor', 'viewer'];
+        $availableRoles = ['admin', 'editor', 'author', 'member'];
         $defaultRole = $input->getOption('role');
         $this->comment($output, 'Available roles: ' . implode(', ', $availableRoles));
         $role = $this->ask($output, 'User role', $defaultRole);
         
         if (!in_array($role, $availableRoles)) {
-            $this->warn($output, "Invalid role '{$role}', using 'viewer'");
-            $role = 'viewer';
+            $this->warn($output, "Invalid role '{$role}', using 'member'");
+            $role = 'member';
         }
 
         // Get password
@@ -254,13 +254,12 @@ class CreateUserCommand extends Command
             
             // Insert user
             $connection->insert(
-                'INSERT INTO users (name, email, password, role, email_verified, email_verified_at, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                'INSERT INTO users (name, email, password, email_verified, email_verified_at, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)',
                 [
                     $userData['name'],
                     $userData['email'],
                     $hashedPassword,
-                    $userData['role'],
                     $userData['email_verified'] ? 1 : 0,
                     $emailVerifiedAt,
                     $now,
@@ -270,15 +269,62 @@ class CreateUserCommand extends Command
             
             // Get the created user
             $user = $connection->select(
-                'SELECT id, name, email, role, email_verified, created_at FROM users WHERE email = ?',
+                'SELECT id, name, email, email_verified, created_at FROM users WHERE email = ?',
                 [$userData['email']]
             );
             
-            return $user[0] ?? null;
+            $createdUser = $user[0] ?? null;
+            
+            if ($createdUser) {
+                // Assign role using the new role system
+                $this->assignRoleToUser($createdUser['id'], $userData['role'], $output);
+            }
+            
+            return $createdUser;
             
         } catch (\Exception $e) {
             $this->error($output, "Database error: {$e->getMessage()}");
             return null;
+        }
+    }
+
+    /**
+     * Assign role to user using the new role system
+     */
+    private function assignRoleToUser(int $userId, string $roleSlug, OutputInterface $output): void
+    {
+        try {
+            $connection = db();
+            
+            // Find the role by slug
+            $role = $connection->selectOne(
+                'SELECT id FROM roles WHERE slug = ?',
+                [$roleSlug]
+            );
+            
+            if (!$role) {
+                $this->warn($output, "Role '{$roleSlug}' not found. User created without role assignment.");
+                return;
+            }
+            
+            // Check if role is already assigned
+            $existingAssignment = $connection->selectOne(
+                'SELECT id FROM user_roles WHERE user_id = ? AND role_id = ?',
+                [$userId, $role['id']]
+            );
+            
+            if ($existingAssignment) {
+                return; // Role already assigned
+            }
+            
+            // Assign the role
+            $connection->insert(
+                'INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)',
+                [$userId, $role['id']]
+            );
+            
+        } catch (\Exception $e) {
+            $this->warn($output, "Failed to assign role '{$roleSlug}': {$e->getMessage()}");
         }
     }
 }

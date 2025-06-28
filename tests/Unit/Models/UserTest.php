@@ -407,18 +407,7 @@ class UserTest extends DatabaseTestCase
         $this->assertArrayHasKey('email', $userArray);
     }
 
-    public function testUserBackwardCompatibilityWithLegacyRole(): void
-    {
-        $user = new User();
-        $user->name = 'Test User';
-        $user->email = 'test@example.com';
-        $user->password = password_hash('password', PASSWORD_DEFAULT);
-        $user->role = 'legacy-admin'; // Legacy role column
-        $user->save();
-
-        // Should work with legacy role column
-        $this->assertTrue($user->hasRole('legacy-admin'));
-        $this->assertEquals('legacy-admin', $user->getRole());
-    }
+    // Legacy role compatibility test removed - role column has been removed from users table
+    // All role functionality now uses the RBAC system with user_roles table
 
 }

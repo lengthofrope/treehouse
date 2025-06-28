@@ -27,7 +27,7 @@ class UserRoleCommand extends Command
     /**
      * Available roles
      */
-    private const AVAILABLE_ROLES = ['admin', 'editor', 'viewer'];
+    private const AVAILABLE_ROLES = ['admin', 'editor', 'author', 'member'];
 
     /**
      * Configure the command
@@ -39,7 +39,7 @@ class UserRoleCommand extends Command
             ->setHelp('This command allows you to assign, change, or list user roles.')
             ->addArgument('action', InputArgument::REQUIRED, 'Action: assign, list, bulk, or stats')
             ->addArgument('identifier', InputArgument::OPTIONAL, 'User ID or email (required for assign action)')
-            ->addArgument('role', InputArgument::OPTIONAL, 'Role to assign (admin, editor, viewer)')
+            ->addArgument('role', InputArgument::OPTIONAL, 'Role to assign (admin, editor, author, member)')
             ->addOption('from-role', null, InputOption::VALUE_OPTIONAL, 'Source role for bulk operations')
             ->addOption('to-role', null, InputOption::VALUE_OPTIONAL, 'Target role for bulk operations')
             ->addOption('force', 'f', InputOption::VALUE_NONE, 'Skip confirmation prompts')
@@ -109,13 +109,16 @@ class UserRoleCommand extends Command
         }
         
         // Check if role is already assigned
-        if ($user['role'] === $role) {
+        if ($this->userHasRole($user['id'], $role)) {
             $this->info($output, "User '{$user['name']}' already has role '{$role}'.");
             return 0;
         }
         
+        $currentRoles = $this->getUserRoles($user['id']);
+        $currentRolesList = empty($currentRoles) ? 'none' : implode(', ', $currentRoles);
+        
         $this->info($output, "Assigning role '{$role}' to user '{$user['name']}'");
-        $this->comment($output, "Current role: {$user['role']} → New role: {$role}");
+        $this->comment($output, "Current roles: {$currentRolesList} → Adding role: {$role}");
         $output->writeln('');
         
         // Confirm if not forced
@@ -126,8 +129,8 @@ class UserRoleCommand extends Command
             }
         }
         
-        // Update role
-        if ($this->updateUserRole($user['id'], $role, $output)) {
+        // Assign role
+        if ($this->assignUserRole($user['id'], $role, $output)) {
             $this->success($output, "Role '{$role}' assigned to user '{$user['name']}' successfully.");
             return 0;
         }
@@ -143,9 +146,15 @@ class UserRoleCommand extends Command
         $connection = db();
         $format = $input->getOption('format');
         
-        $users = $connection->select(
-            'SELECT id, name, email, role, created_at FROM users ORDER BY role, name'
-        );
+        $users = $connection->select('
+            SELECT u.id, u.name, u.email, u.created_at,
+                   GROUP_CONCAT(r.slug ORDER BY r.slug SEPARATOR ", ") as roles
+            FROM users u
+            LEFT JOIN user_roles ur ON u.id = ur.user_id
+            LEFT JOIN roles r ON ur.role_id = r.id
+            GROUP BY u.id, u.name, u.email, u.created_at
+            ORDER BY u.name
+        ');
         
         if (empty($users)) {
             $this->info($output, 'No users found.');
@@ -192,10 +201,13 @@ class UserRoleCommand extends Command
         
         // Find affected users
         $connection = db();
-        $affectedUsers = $connection->select(
-            'SELECT id, name, email FROM users WHERE role = ?',
-            [$fromRole]
-        );
+        $affectedUsers = $connection->select('
+            SELECT DISTINCT u.id, u.name, u.email
+            FROM users u
+            INNER JOIN user_roles ur ON u.id = ur.user_id
+            INNER JOIN roles r ON ur.role_id = r.id
+            WHERE r.slug = ?
+        ', [$fromRole]);
         
         if (empty($affectedUsers)) {
             $this->info($output, "No users found with role '{$fromRole}'.");
@@ -220,10 +232,7 @@ class UserRoleCommand extends Command
         }
         
         // Perform bulk update
-        $affectedRows = $connection->update(
-            'UPDATE users SET role = ?, updated_at = ? WHERE role = ?',
-            [$toRole, date('Y-m-d H:i:s'), $fromRole]
-        );
+        $affectedRows = $this->bulkUpdateUserRoles($fromRole, $toRole, $output);
         
         $this->success($output, "Successfully updated {$affectedRows} users from '{$fromRole}' to '{$toRole}'.");
         return 0;
@@ -236,9 +245,13 @@ class UserRoleCommand extends Command
     {
         $connection = db();
         
-        $stats = $connection->select(
-            'SELECT role, COUNT(*) as count FROM users GROUP BY role ORDER BY count DESC'
-        );
+        $stats = $connection->select('
+            SELECT r.slug as role, COUNT(DISTINCT ur.user_id) as count
+            FROM roles r
+            LEFT JOIN user_roles ur ON r.id = ur.role_id
+            GROUP BY r.id, r.slug
+            ORDER BY count DESC
+        ');
         
         $total = $connection->select('SELECT COUNT(*) as total FROM users')[0]['total'];
         
@@ -274,12 +287,12 @@ class UserRoleCommand extends Command
         
         if (is_numeric($identifier)) {
             $result = $connection->select(
-                'SELECT id, name, email, role FROM users WHERE id = ?',
+                'SELECT id, name, email FROM users WHERE id = ?',
                 [(int) $identifier]
             );
         } else {
             $result = $connection->select(
-                'SELECT id, name, email, role FROM users WHERE email = ?',
+                'SELECT id, name, email FROM users WHERE email = ?',
                 [$identifier]
             );
         }
@@ -288,23 +301,118 @@ class UserRoleCommand extends Command
     }
 
     /**
-     * Update user role
+     * Assign role to user
      */
-    private function updateUserRole(int $userId, string $role, OutputInterface $output): bool
+    private function assignUserRole(int $userId, string $roleSlug, OutputInterface $output): bool
     {
         try {
             $connection = db();
             
-            $affectedRows = $connection->update(
-                'UPDATE users SET role = ?, updated_at = ? WHERE id = ?',
-                [$role, date('Y-m-d H:i:s'), $userId]
+            // Find the role by slug
+            $role = $connection->selectOne(
+                'SELECT id FROM roles WHERE slug = ?',
+                [$roleSlug]
             );
             
-            return $affectedRows > 0;
+            if (!$role) {
+                $this->error($output, "Role '{$roleSlug}' not found.");
+                return false;
+            }
+            
+            // Check if role is already assigned
+            $existingAssignment = $connection->selectOne(
+                'SELECT id FROM user_roles WHERE user_id = ? AND role_id = ?',
+                [$userId, $role['id']]
+            );
+            
+            if ($existingAssignment) {
+                return true; // Role already assigned
+            }
+            
+            // Assign the role
+            $connection->insert(
+                'INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)',
+                [$userId, $role['id']]
+            );
+            
+            return true;
             
         } catch (\Exception $e) {
             $this->error($output, "Database error: {$e->getMessage()}");
             return false;
+        }
+    }
+
+    /**
+     * Check if user has a specific role
+     */
+    private function userHasRole(int $userId, string $roleSlug): bool
+    {
+        try {
+            $connection = db();
+            $result = $connection->selectOne('
+                SELECT COUNT(*) as count
+                FROM user_roles ur
+                INNER JOIN roles r ON ur.role_id = r.id
+                WHERE ur.user_id = ? AND r.slug = ?
+            ', [$userId, $roleSlug]);
+            
+            return (int) $result['count'] > 0;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get user's roles
+     */
+    private function getUserRoles(int $userId): array
+    {
+        try {
+            $connection = db();
+            $roles = $connection->select('
+                SELECT r.slug
+                FROM user_roles ur
+                INNER JOIN roles r ON ur.role_id = r.id
+                WHERE ur.user_id = ?
+                ORDER BY r.slug
+            ', [$userId]);
+            
+            return array_column($roles, 'slug');
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Bulk update user roles
+     */
+    private function bulkUpdateUserRoles(string $fromRole, string $toRole, OutputInterface $output): int
+    {
+        try {
+            $connection = db();
+            
+            // Get role IDs
+            $fromRoleData = $connection->selectOne('SELECT id FROM roles WHERE slug = ?', [$fromRole]);
+            $toRoleData = $connection->selectOne('SELECT id FROM roles WHERE slug = ?', [$toRole]);
+            
+            if (!$fromRoleData || !$toRoleData) {
+                $this->error($output, "One or both roles not found in database.");
+                return 0;
+            }
+            
+            // Update user_roles table
+            $affectedRows = $connection->update('
+                UPDATE user_roles
+                SET role_id = ?
+                WHERE role_id = ?
+            ', [$toRoleData['id'], $fromRoleData['id']]);
+            
+            return $affectedRows;
+            
+        } catch (\Exception $e) {
+            $this->error($output, "Database error: {$e->getMessage()}");
+            return 0;
         }
     }
 
@@ -317,29 +425,18 @@ class UserRoleCommand extends Command
         $output->writeln('');
         
         // Header
-        $this->outputTableRow($output, ['ID', 'Name', 'Email', 'Role', 'Created'], true);
+        $this->outputTableRow($output, ['ID', 'Name', 'Email', 'Roles', 'Created'], true);
         $output->writeln(str_repeat('-', 80));
         
-        // Group by role
-        $grouped = [];
         foreach ($users as $user) {
-            $grouped[$user['role']][] = $user;
-        }
-        
-        foreach ($grouped as $role => $roleUsers) {
-            $this->comment($output, strtoupper($role) . " (" . count($roleUsers) . " users)");
-            
-            foreach ($roleUsers as $user) {
-                $this->outputTableRow($output, [
-                    $user['id'],
-                    $this->truncate($user['name'], 15),
-                    $this->truncate($user['email'], 25),
-                    $user['role'],
-                    date('Y-m-d', strtotime($user['created_at']))
-                ]);
-            }
-            
-            $output->writeln('');
+            $roles = $user['roles'] ?: 'none';
+            $this->outputTableRow($output, [
+                $user['id'],
+                $this->truncate($user['name'], 15),
+                $this->truncate($user['email'], 25),
+                $this->truncate($roles, 15),
+                date('Y-m-d', strtotime($user['created_at']))
+            ]);
         }
     }
 
@@ -348,14 +445,15 @@ class UserRoleCommand extends Command
      */
     private function outputUserRolesCsv(array $users, OutputInterface $output): void
     {
-        $output->writeln('ID,Name,Email,Role,Created');
+        $output->writeln('ID,Name,Email,Roles,Created');
         
         foreach ($users as $user) {
+            $roles = $user['roles'] ?: 'none';
             $row = [
                 $user['id'],
                 '"' . str_replace('"', '""', $user['name']) . '"',
                 '"' . str_replace('"', '""', $user['email']) . '"',
-                $user['role'],
+                '"' . str_replace('"', '""', $roles) . '"',
                 $user['created_at']
             ];
             

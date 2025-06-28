@@ -32,12 +32,11 @@ class UpdateUserCommand extends Command
     {
         $this->setName('user:update')
             ->setDescription('Update an existing user account')
-            ->setHelp('This command allows you to update user account information including name, email, password and role.')
+            ->setHelp('This command allows you to update user account information including name, email, and password. Use user:role command to manage roles.')
             ->addArgument('identifier', InputArgument::REQUIRED, 'User ID or email address')
             ->addOption('name', null, InputOption::VALUE_OPTIONAL, 'Update user name')
             ->addOption('email', null, InputOption::VALUE_OPTIONAL, 'Update email address')
             ->addOption('password', 'p', InputOption::VALUE_OPTIONAL, 'Update password')
-            ->addOption('role', 'r', InputOption::VALUE_OPTIONAL, 'Update user role (admin, editor, viewer)')
             ->addOption('verify', null, InputOption::VALUE_NONE, 'Mark email as verified')
             ->addOption('unverify', null, InputOption::VALUE_NONE, 'Mark email as unverified')
             ->addOption('interactive', 'i', InputOption::VALUE_NONE, 'Use interactive mode');
@@ -111,12 +110,12 @@ class UpdateUserCommand extends Command
         // Try by ID first (if numeric)
         if (is_numeric($identifier)) {
             $result = $connection->select(
-                'SELECT id, name, email, role, email_verified, email_verified_at, created_at FROM users WHERE id = ?',
+                'SELECT id, name, email, email_verified, email_verified_at, created_at FROM users WHERE id = ?',
                 [(int) $identifier]
             );
         } else {
             $result = $connection->select(
-                'SELECT id, name, email, role, email_verified, email_verified_at, created_at FROM users WHERE email = ?',
+                'SELECT id, name, email, email_verified, email_verified_at, created_at FROM users WHERE email = ?',
                 [$identifier]
             );
         }
@@ -162,14 +161,7 @@ class UpdateUserCommand extends Command
             $updates['password'] = $password;
         }
 
-        if ($role = $input->getOption('role')) {
-            $availableRoles = ['admin', 'editor', 'viewer'];
-            if (!in_array($role, $availableRoles)) {
-                $this->error($output, "Invalid role '{$role}'. Available roles: " . implode(', ', $availableRoles));
-                return [];
-            }
-            $updates['role'] = $role;
-        }
+        // Role updates are now handled by the user:role command
 
         if ($input->getOption('verify')) {
             $updates['email_verified'] = true;
@@ -220,17 +212,8 @@ class UpdateUserCommand extends Command
             }
         }
 
-        // Role
-        $availableRoles = ['admin', 'editor', 'viewer'];
-        $this->comment($output, 'Available roles: ' . implode(', ', $availableRoles));
-        $newRole = $this->ask($output, 'New role (leave empty to keep current)', $user['role']);
-        if ($newRole !== $user['role']) {
-            if (!in_array($newRole, $availableRoles)) {
-                $this->warn($output, "Invalid role '{$newRole}', keeping current role.");
-            } else {
-                $updates['role'] = $newRole;
-            }
-        }
+        // Role updates are now handled by the user:role command
+        $this->comment($output, 'Note: Use "user:role assign" command to manage user roles.');
 
         // Email verification
         $currentVerified = $user['email_verified'] ? 'verified' : 'unverified';
@@ -302,10 +285,35 @@ class UpdateUserCommand extends Command
         $output->writeln("  ID: {$user['id']}");
         $output->writeln("  Name: {$user['name']}");
         $output->writeln("  Email: {$user['email']}");
-        $output->writeln("  Role: {$user['role']}");
         $output->writeln("  Verified: " . ($user['email_verified'] ? 'Yes' : 'No'));
         $output->writeln("  Created: {$user['created_at']}");
+        
+        // Show current roles
+        $roles = $this->getUserRoles($user['id']);
+        $rolesList = empty($roles) ? 'none' : implode(', ', $roles);
+        $output->writeln("  Roles: {$rolesList}");
         $output->writeln('');
+    }
+
+    /**
+     * Get user's roles
+     */
+    private function getUserRoles(int $userId): array
+    {
+        try {
+            $connection = db();
+            $roles = $connection->select('
+                SELECT r.slug
+                FROM user_roles ur
+                INNER JOIN roles r ON ur.role_id = r.id
+                WHERE ur.user_id = ?
+                ORDER BY r.slug
+            ', [$userId]);
+            
+            return array_column($roles, 'slug');
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     /**

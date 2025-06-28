@@ -164,7 +164,7 @@ class CreateUserCommandTest extends TestCase
     public function testDefaultRoleAssignment(): void
     {
         $options = $this->command->getOptions();
-        $this->assertEquals('viewer', $options['role']['default']);
+        $this->assertEquals('member', $options['role']['default']);
     }
 
     public function testDatabaseConnectionViaGlobalHelper(): void
