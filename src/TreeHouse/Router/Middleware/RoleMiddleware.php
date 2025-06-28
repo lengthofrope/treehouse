@@ -176,8 +176,22 @@ class RoleMiddleware implements MiddlewareInterface
      */
     private function findUserById(mixed $userId): ?Authorizable
     {
-        // Try to use User model if available
-        if (class_exists('\LengthOfRope\TreeHouse\Models\User')) {
+        // Try to get user provider from auth config
+        $userProvider = $this->config['user_provider'] ?? null;
+        
+        if ($userProvider && class_exists($userProvider)) {
+            try {
+                $user = $userProvider::find($userId);
+                if ($user instanceof Authorizable) {
+                    return $user;
+                }
+            } catch (\Exception $e) {
+                // Ignore errors and continue to fallback
+            }
+        }
+        
+        // Fallback: Try to use User model if available and no provider configured
+        if (!$userProvider && class_exists('\LengthOfRope\TreeHouse\Models\User')) {
             try {
                 $userClass = '\LengthOfRope\TreeHouse\Models\User';
                 $user = $userClass::find($userId);
