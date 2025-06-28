@@ -60,7 +60,7 @@ class RoleCommand extends Command
      */
     private function listRoles(InputInterface $input, OutputInterface $output): int
     {
-        $connection = $this->getDatabaseConnection();
+        $connection = db();
         $roles = $connection->select('SELECT * FROM roles ORDER BY name');
 
         if (empty($roles)) {
@@ -93,7 +93,7 @@ class RoleCommand extends Command
      */
     private function createRole(InputInterface $input, OutputInterface $output): int
     {
-        $connection = $this->getDatabaseConnection();
+        $connection = db();
         $name = $input->getArgument('name');
         if (!$name) {
             $name = $this->ask($output, 'Role name');
@@ -133,54 +133,13 @@ class RoleCommand extends Command
         return 0;
     }
 
-    /**
-     * Get database connection from application container
-     */
-    private function getDatabaseConnection(): Connection
-    {
-        return $this->db();
-    }
-
-    /**
-     * Get database connection using the db() helper pattern
-     */
-    private function db(): Connection
-    {
-        // In testing environment, fall back to manual connection creation
-        if (!isset($GLOBALS['app'])) {
-            return $this->createTestDatabaseConnection();
-        }
-        
-        $app = $GLOBALS['app'];
-        return $app->make('db');
-    }
-
-    /**
-     * Create database connection for testing environment
-     */
-    private function createTestDatabaseConnection(): Connection
-    {
-        Env::loadIfNeeded();
-        
-        $config = [
-            'driver' => Env::get('DB_CONNECTION', Env::get('DB_DRIVER', 'mysql')),
-            'host' => Env::get('DB_HOST', 'localhost'),
-            'port' => (int) Env::get('DB_PORT', 3306),
-            'database' => Env::get('DB_DATABASE', ''),
-            'username' => Env::get('DB_USERNAME', ''),
-            'password' => Env::get('DB_PASSWORD', ''),
-            'charset' => Env::get('DB_CHARSET', 'utf8mb4'),
-        ];
-        
-        return new Connection($config);
-    }
 
     /**
      * Delete a role
      */
     private function deleteRole(InputInterface $input, OutputInterface $output): int
     {
-        $connection = $this->getDatabaseConnection();
+        $connection = db();
         $name = $input->getArgument('name');
         if (!$name) {
             $name = $this->ask($output, 'Role name to delete');
@@ -242,7 +201,7 @@ class RoleCommand extends Command
      */
     private function showRole(InputInterface $input, OutputInterface $output): int
     {
-        $connection = $this->getDatabaseConnection();
+        $connection = db();
         $name = $input->getArgument('name');
         if (!$name) {
             $name = $this->ask($output, 'Role name');
@@ -324,7 +283,7 @@ class RoleCommand extends Command
      */
     private function assignPermissionsToRole(string $roleName, InputInterface $input, OutputInterface $output): int
     {
-        $connection = $this->getDatabaseConnection();
+        $connection = db();
         
         // Get role
         $role = $connection->selectOne(
@@ -407,7 +366,7 @@ class RoleCommand extends Command
      */
     private function revokePermissions(InputInterface $input, OutputInterface $output): int
     {
-        $connection = $this->getDatabaseConnection();
+        $connection = db();
         $name = $input->getArgument('name');
         if (!$name) {
             $name = $this->ask($output, 'Role name');

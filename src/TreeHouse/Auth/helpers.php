@@ -8,18 +8,69 @@ use LengthOfRope\TreeHouse\Database\Connection;
 if (!function_exists('db')) {
     /**
      * Get database connection from application container
-     * 
+     *
      * @return Connection Database connection instance
-     * @throws RuntimeException If application instance is not available
+     * @throws RuntimeException If database connection cannot be established
      */
     function db(): Connection
     {
-        if (!isset($GLOBALS['app'])) {
-            throw new \RuntimeException('Application instance not available');
+        // Try to get from web application container first
+        if (isset($GLOBALS['app']) && method_exists($GLOBALS['app'], 'make')) {
+            return $GLOBALS['app']->make('db');
         }
         
-        $app = $GLOBALS['app'];
-        return $app->make('db');
+        // Fallback for console environment - create connection directly
+        return createDatabaseConnection();
+    }
+}
+
+if (!function_exists('createDatabaseConnection')) {
+    /**
+     * Create database connection directly from configuration
+     *
+     * @return Connection Database connection instance
+     * @throws RuntimeException If configuration is invalid
+     */
+    function createDatabaseConnection(): Connection
+    {
+        // Load environment if needed
+        if (class_exists('\LengthOfRope\TreeHouse\Support\Env')) {
+            \LengthOfRope\TreeHouse\Support\Env::loadIfNeeded();
+        }
+        
+        // Try to load from config file first
+        $configPath = getcwd() . '/config/database.php';
+        if (file_exists($configPath)) {
+            $config = require $configPath;
+            $dbConfig = $config['connections'][$config['default']];
+            
+            return new Connection([
+                'driver' => $dbConfig['driver'],
+                'host' => $dbConfig['host'],
+                'port' => $dbConfig['port'],
+                'database' => $dbConfig['database'],
+                'username' => $dbConfig['username'],
+                'password' => $dbConfig['password'],
+                'charset' => $dbConfig['charset'] ?? 'utf8mb4',
+            ]);
+        }
+        
+        // Fallback to environment variables
+        $config = [
+            'driver' => $_ENV['DB_CONNECTION'] ?? $_ENV['DB_DRIVER'] ?? 'mysql',
+            'host' => $_ENV['DB_HOST'] ?? 'localhost',
+            'port' => (int) ($_ENV['DB_PORT'] ?? 3306),
+            'database' => $_ENV['DB_DATABASE'] ?? '',
+            'username' => $_ENV['DB_USERNAME'] ?? '',
+            'password' => $_ENV['DB_PASSWORD'] ?? '',
+            'charset' => $_ENV['DB_CHARSET'] ?? 'utf8mb4',
+        ];
+        
+        if (empty($config['database'])) {
+            throw new \RuntimeException('Database configuration not found. Please check your .env file or config/database.php');
+        }
+        
+        return new Connection($config);
     }
 }
 
