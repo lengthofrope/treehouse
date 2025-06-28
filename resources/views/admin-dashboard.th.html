@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .card { border: 1px solid #ddd; padding: 20px; margin: 10px 0; border-radius: 5px; }
+        .user-info { background-color: #f0f8ff; }
+        .admin-section { background-color: #fff5f5; }
+        .editor-section { background-color: #f0fff0; }
+        .viewer-section { background-color: #fffacd; }
+        .unauthorized { background-color: #ffe4e1; }
+    </style>
+</head>
+<body>
+    <h1>TreeHouse Authorization Demo</h1>
+
+    <!-- Authentication Check -->
+    <div th:auth class="card user-info">
+        <h2>Welcome, {user.name}!</h2>
+        <p>Your role: <strong>{user.role}</strong></p>
+        <p>You are authenticated and can see this content.</p>
+    </div>
+
+    <div th:guest class="card unauthorized">
+        <h2>Guest User</h2>
+        <p>You are not authenticated. Please log in to access protected content.</p>
+    </div>
+
+    <!-- Role-based Content -->
+    <div th:role="admin" class="card admin-section">
+        <h2>🔧 Administrator Panel</h2>
+        <p>Only administrators can see this section.</p>
+        <ul>
+            <li><a href="/admin/users">Manage Users</a></li>
+            <li><a href="/admin/settings">System Settings</a></li>
+            <li><a href="/admin/logs">View Logs</a></li>
+        </ul>
+    </div>
+
+    <div th:role="editor,admin" class="card editor-section">
+        <h2>✏️ Content Editor</h2>
+        <p>Editors and administrators can manage content here.</p>
+        <ul>
+            <li><a href="/posts/create">Create New Post</a></li>
+            <li><a href="/posts/manage">Manage Posts</a></li>
+            <li><a href="/media/upload">Upload Media</a></li>
+        </ul>
+    </div>
+
+    <div th:role="viewer,editor,admin" class="card viewer-section">
+        <h2>👁️ Content Viewer</h2>
+        <p>All authenticated users can view content here.</p>
+        <ul>
+            <li><a href="/posts">View All Posts</a></li>
+            <li><a href="/dashboard">Dashboard</a></li>
+        </ul>
+    </div>
+
+    <!-- Permission-based Content -->
+    <div th:permission="manage-users" class="card admin-section">
+        <h2>👥 User Management</h2>
+        <p>Users with 'manage-users' permission can access this.</p>
+        <button>Add New User</button>
+        <button>Edit User Roles</button>
+    </div>
+
+    <div th:permission="edit-posts,delete-posts" class="card editor-section">
+        <h2>📝 Post Management</h2>
+        <p>Users with post editing permissions can access this.</p>
+        <button>Edit Posts</button>
+        <button>Delete Posts</button>
+    </div>
+
+    <div th:permission="view-analytics" class="card">
+        <h2>📊 Analytics</h2>
+        <p>Users with analytics permission can view statistics.</p>
+        <div>
+            <p>Page Views: 1,234</p>
+            <p>Unique Visitors: 567</p>
+            <p>Bounce Rate: 45%</p>
+        </div>
+    </div>
+
+    <!-- Mixed Conditions -->
+    <div th:auth class="card">
+        <h2>🛡️ Security Information</h2>
+        
+        <div th:role="admin">
+            <h3>Admin Security Panel</h3>
+            <p>Last login: {user.last_login_at}</p>
+            <p>Login attempts: {user.login_attempts}</p>
+        </div>
+        
+        <div th:permission="view-users">
+            <h3>User Directory</h3>
+            <p>You can view the user directory.</p>
+        </div>
+        
+        <div th:unless="user.hasRole('admin')">
+            <p><em>Some security information is restricted to administrators.</em></p>
+        </div>
+    </div>
+
+    <!-- Inline Auth Checks -->
+    <div class="card">
+        <h2>📋 Quick Actions</h2>
+        <p>Available actions based on your permissions:</p>
+        <ul>
+            <li th:permission="manage-users">
+                <a href="/admin/users/create">Create User</a>
+            </li>
+            <li th:permission="edit-posts">
+                <a href="/posts/new">New Post</a>
+            </li>
+            <li th:role="admin">
+                <a href="/admin/backup">System Backup</a>
+            </li>
+            <li th:auth>
+                <a href="/profile">Edit Profile</a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Dynamic Content based on Role -->
+    <div th:auth class="card">
+        <h2>Navigation Menu</h2>
+        <nav>
+            <a href="/">Home</a>
+            <span th:role="admin"> | <a href="/admin">Admin</a></span>
+            <span th:role="editor,admin"> | <a href="/editor">Editor</a></span>
+            <span th:permission="view-analytics"> | <a href="/analytics">Analytics</a></span>
+            | <a href="/logout">Logout</a>
+        </nav>
+    </div>
+</body>
+</html>
