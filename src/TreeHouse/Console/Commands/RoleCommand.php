@@ -117,10 +117,13 @@ class RoleCommand extends Command
 
         $description = $this->ask($output, 'Role description (optional)');
 
+        // Generate slug from name
+        $slug = strtolower(str_replace(' ', '-', preg_replace('/[^A-Za-z0-9 ]/', '', $name)));
+
         // Create the role
         $connection->insert(
-            'INSERT INTO roles (name, description, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
-            [$name, $description]
+            'INSERT INTO roles (name, slug, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+            [$name, $slug, $description, date('Y-m-d H:i:s'), date('Y-m-d H:i:s')]
         );
 
         $this->info($output, "Role '{$name}' created successfully.");
@@ -339,7 +342,7 @@ class RoleCommand extends Command
 
             // Check if already assigned
             $existing = $connection->selectOne(
-                'SELECT id FROM role_permissions WHERE role_id = ? AND permission_id = ?',
+                'SELECT role_id FROM role_permissions WHERE role_id = ? AND permission_id = ?',
                 [$role['id'], $permission['id']]
             );
 
@@ -350,7 +353,7 @@ class RoleCommand extends Command
 
             // Assign permission
             $connection->insert(
-                'INSERT INTO role_permissions (role_id, permission_id, created_at) VALUES (?, ?, NOW())',
+                'INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)',
                 [$role['id'], $permission['id']]
             );
 
