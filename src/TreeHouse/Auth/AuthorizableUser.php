@@ -1,0 +1,325 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LengthOfRope\TreeHouse\Auth;
+
+use LengthOfRope\TreeHouse\Auth\Contracts\Authorizable;
+
+/**
+ * Authorizable User Trait
+ *
+ * Provides role and permission functionality for user models.
+ * This trait implements the Authorizable contract and can be used
+ * by any user model to add authorization capabilities.
+ *
+ * Usage:
+ * ```php
+ * class User extends ActiveRecord implements Authorizable
+ * {
+ *     use AuthorizableUser;
+ *     
+ *     // Your model implementation...
+ * }
+ * ```
+ *
+ * @package LengthOfRope\TreeHouse\Auth
+ * @author  Bas de Kort <bdekort@proton.me>
+ * @since   1.0.0
+ */
+trait AuthorizableUser
+{
+    /**
+     * Check if the user has a specific role
+     *
+     * @param string $role Role name to check
+     * @return bool
+     */
+    public function hasRole(string $role): bool
+    {
+        $userRole = $this->getRole();
+        
+        if (is_array($userRole)) {
+            return in_array($role, $userRole);
+        }
+        
+        return $userRole === $role;
+    }
+
+    /**
+     * Check if the user has any of the given roles
+     *
+     * @param array $roles Array of role names to check
+     * @return bool
+     */
+    public function hasAnyRole(array $roles): bool
+    {
+        foreach ($roles as $role) {
+            if ($this->hasRole($role)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if the user can perform a specific permission
+     *
+     * This method checks permissions based on the configuration in config/auth.php
+     *
+     * @param string $permission Permission name to check
+     * @return bool
+     */
+    public function can(string $permission): bool
+    {
+        // Get permission configuration
+        $permissions = $this->getPermissionConfig();
+        
+        if (!isset($permissions[$permission])) {
+            return false;
+        }
+        
+        $allowedRoles = $permissions[$permission];
+        
+        // Handle wildcard permission (everyone can access)
+        if (in_array('*', $allowedRoles)) {
+            return true;
+        }
+        
+        // Check if user's role is in the allowed roles
+        $userRole = $this->getRole();
+        
+        if (is_array($userRole)) {
+            return !empty(array_intersect($userRole, $allowedRoles));
+        }
+        
+        return in_array($userRole, $allowedRoles);
+    }
+
+    /**
+     * Check if the user cannot perform a specific permission
+     *
+     * @param string $permission Permission name to check
+     * @return bool
+     */
+    public function cannot(string $permission): bool
+    {
+        return !$this->can($permission);
+    }
+
+    /**
+     * Assign a role to the user
+     *
+     * @param string $role Role name to assign
+     * @return void
+     */
+    public function assignRole(string $role): void
+    {
+        $currentRole = $this->getRole();
+        
+        if (is_array($currentRole)) {
+            if (!in_array($role, $currentRole)) {
+                $currentRole[] = $role;
+                $this->setRole($currentRole);
+            }
+        } else {
+            // For single role systems, replace the current role
+            $this->setRole($role);
+        }
+        
+        // Save the changes if the model supports it
+        if (method_exists($this, 'save')) {
+            $this->save();
+        }
+    }
+
+    /**
+     * Remove a role from the user
+     *
+     * @param string $role Role name to remove
+     * @return void
+     */
+    public function removeRole(string $role): void
+    {
+        $currentRole = $this->getRole();
+        
+        if (is_array($currentRole)) {
+            $newRoles = array_filter($currentRole, fn($r) => $r !== $role);
+            $this->setRole(array_values($newRoles));
+        } else {
+            // For single role systems, set to default role
+            $defaultRole = $this->getDefaultRole();
+            $this->setRole($defaultRole);
+        }
+        
+        // Save the changes if the model supports it
+        if (method_exists($this, 'save')) {
+            $this->save();
+        }
+    }
+
+    /**
+     * Get the user's current role(s)
+     *
+     * @return string|array
+     */
+    public function getRole(): string|array
+    {
+        // Default implementation assumes a 'role' attribute
+        return $this->role ?? $this->getDefaultRole();
+    }
+
+    /**
+     * Get the unique identifier for the user
+     *
+     * @return mixed
+     */
+    public function getAuthIdentifier(): mixed
+    {
+        // Default implementation assumes an 'id' attribute
+        return $this->id ?? null;
+    }
+
+    /**
+     * Set the user's role(s)
+     *
+     * @param string|array $role Role(s) to set
+     * @return void
+     */
+    protected function setRole(string|array $role): void
+    {
+        $this->role = $role;
+    }
+
+    /**
+     * Get the default role for users
+     *
+     * @return string
+     */
+    protected function getDefaultRole(): string
+    {
+        $config = $this->getAuthConfig();
+        return $config['default_role'] ?? 'viewer';
+    }
+
+    /**
+     * Get the permission configuration
+     *
+     * @return array
+     */
+    protected function getPermissionConfig(): array
+    {
+        $config = $this->getAuthConfig();
+        return $config['permissions'] ?? [];
+    }
+
+    /**
+     * Get the role configuration
+     *
+     * @return array
+     */
+    protected function getRoleConfig(): array
+    {
+        $config = $this->getAuthConfig();
+        return $config['roles'] ?? [];
+    }
+
+    /**
+     * Get the auth configuration
+     *
+     * This method attempts to get configuration using various methods
+     * depending on the framework setup.
+     *
+     * @return array
+     */
+    protected function getAuthConfig(): array
+    {
+        // Try to get config through static file inclusion
+        $configPath = getcwd() . '/config/auth.php';
+        if (file_exists($configPath)) {
+            $config = include $configPath;
+            return is_array($config) ? $config : [];
+        }
+        
+        // Try alternative config path (relative to framework)
+        $altConfigPath = __DIR__ . '/../../../config/auth.php';
+        if (file_exists($altConfigPath)) {
+            $config = include $altConfigPath;
+            return is_array($config) ? $config : [];
+        }
+        
+        // Fallback to empty config
+        return [];
+    }
+
+    /**
+     * Check if the user has all the given roles
+     *
+     * @param array $roles Array of role names to check
+     * @return bool
+     */
+    public function hasAllRoles(array $roles): bool
+    {
+        foreach ($roles as $role) {
+            if (!$this->hasRole($role)) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    /**
+     * Get all roles assigned to the user
+     *
+     * @return array
+     */
+    public function getRoles(): array
+    {
+        $role = $this->getRole();
+        
+        if (is_array($role)) {
+            return $role;
+        }
+        
+        return [$role];
+    }
+
+    /**
+     * Check if the user has a role that inherits from the given role
+     *
+     * This method checks role hierarchy if configured.
+     *
+     * @param string $role Role name to check
+     * @return bool
+     */
+    public function hasRoleOrHigher(string $role): bool
+    {
+        if ($this->hasRole($role)) {
+            return true;
+        }
+        
+        $hierarchy = $this->getRoleHierarchy();
+        $userRoles = $this->getRoles();
+        
+        foreach ($userRoles as $userRole) {
+            if (isset($hierarchy[$userRole]) && in_array($role, $hierarchy[$userRole])) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Get the role hierarchy configuration
+     *
+     * @return array
+     */
+    protected function getRoleHierarchy(): array
+    {
+        $config = $this->getAuthConfig();
+        return $config['role_hierarchy'] ?? [];
+    }
+}

@@ -74,6 +74,9 @@ class ViewEngine
             $this->addPath(getcwd() . '/resources/views');
             $this->addPath(getcwd() . '/templates');
         }
+        
+        // Auto-inject auth context into all templates
+        $this->shareAuthContext();
     }
 
     /**
@@ -309,5 +312,49 @@ class ViewEngine
         }
         
         return $data;
+    }
+
+    /**
+     * Share authentication context with all templates
+     */
+    protected function shareAuthContext(): void
+    {
+        // Share auth manager instance
+        if (function_exists('auth')) {
+            $this->share('auth', auth());
+            
+            // Share current user (evaluated lazily)
+            $this->share('user', function() {
+                return auth() ? auth()->user() : null;
+            });
+        }
+
+        // Share Gate instance for permission checking
+        if (class_exists('\LengthOfRope\TreeHouse\Auth\Gate')) {
+            $this->share('gate', new \LengthOfRope\TreeHouse\Auth\Gate());
+        }
+
+        // Share helper functions for templates
+        $this->share('can', function(string $ability, mixed $arguments = []) {
+            if (function_exists('can')) {
+                return can($ability, $arguments);
+            }
+            return false;
+        });
+
+        $this->share('cannot', function(string $ability, mixed $arguments = []) {
+            if (function_exists('cannot')) {
+                return cannot($ability, $arguments);
+            }
+            return true;
+        });
+    }
+
+    /**
+     * Refresh auth context (call this when user state changes)
+     */
+    public function refreshAuthContext(): void
+    {
+        $this->shareAuthContext();
     }
 }

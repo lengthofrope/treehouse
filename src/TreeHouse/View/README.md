@@ -143,6 +143,58 @@ Clean object property access:
 <div th:if="{user.role == 'admin'}">Admin content</div>
 ```
 
+### Authorization Directives
+
+TreeHouse includes built-in authorization directives for controlling content based on user authentication and permissions:
+
+```html
+<!-- Authentication-based content -->
+<div th:auth>
+    Welcome back, {user.name}!
+</div>
+
+<div th:guest>
+    Please <a href="/login">log in</a> to continue.
+</div>
+
+<!-- Role-based content -->
+<div th:role="admin">
+    <a href="/admin">Administrator Panel</a>
+</div>
+
+<div th:role="admin,editor">
+    <a href="/posts/manage">Manage Posts</a>
+</div>
+
+<!-- Permission-based content -->
+<div th:permission="manage-users">
+    <button>Add User</button>
+</div>
+
+<div th:permission="edit-posts,delete-posts">
+    <button>Manage Posts</button>
+</div>
+
+<!-- Mixed authorization -->
+<div th:auth>
+    <h2>User Panel</h2>
+    
+    <div th:role="admin">
+        <h3>Admin Tools</h3>
+        <a href="/admin/settings">Settings</a>
+    </div>
+    
+    <div th:permission="view-analytics">
+        <h3>Analytics</h3>
+        <a href="/analytics">View Stats</a>
+    </div>
+    
+    <div th:unless="user.hasRole('admin')">
+        <p>Some features require administrator privileges.</p>
+    </div>
+</div>
+```
+
 ### Loops
 
 ```html

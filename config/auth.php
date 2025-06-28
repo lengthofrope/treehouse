@@ -73,4 +73,67 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Role Definitions
+    |--------------------------------------------------------------------------
+    |
+    | Here you may define all the roles for your application and their
+    | corresponding permissions. Roles with ['*'] have all permissions.
+    |
+    */
+
+    'roles' => [
+        'admin' => ['*'], // All permissions
+        'editor' => ['edit-posts', 'delete-posts', 'view-posts', 'view-users'],
+        'auditor' => ['view-posts', 'view-users', 'view-analytics'],
+        'viewer' => ['view-posts'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Permission Definitions
+    |--------------------------------------------------------------------------
+    |
+    | Here you may define all the permissions for your application and which
+    | roles are allowed to perform them.
+    |
+    */
+
+    'permissions' => [
+        'manage-users' => ['admin'],
+        'edit-posts' => ['admin', 'editor'],
+        'delete-posts' => ['admin', 'editor'],
+        'view-posts' => ['admin', 'editor', 'auditor', 'viewer'],
+        'view-users' => ['admin', 'auditor'],
+        'view-analytics' => ['admin', 'auditor'],
+        'manage-settings' => ['admin'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Role
+    |--------------------------------------------------------------------------
+    |
+    | This option controls the default role assigned to new users.
+    |
+    */
+
+    'default_role' => env('AUTH_DEFAULT_ROLE', 'viewer'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Role Hierarchy (Optional)
+    |--------------------------------------------------------------------------
+    |
+    | Define role inheritance. Higher roles inherit permissions from lower roles.
+    |
+    */
+
+    'role_hierarchy' => [
+        'admin' => ['editor', 'auditor', 'viewer'],
+        'editor' => ['viewer'],
+        'auditor' => ['viewer'],
+    ],
+
 ];

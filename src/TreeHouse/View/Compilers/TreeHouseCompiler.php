@@ -38,6 +38,8 @@ class TreeHouseCompiler
      */
     protected array $attributeProcessingOrder = [
         'th:if', 'th:unless',                    // Conditionals first
+        'th:auth', 'th:guest',                   // Auth conditionals
+        'th:role', 'th:permission',              // Authorization conditionals
         'th:repeat',                             // Loops next
         'th:text', 'th:html',                   // Content modifications
         'th:attr', 'th:class', 'th:style',      // Attribute modifications
@@ -204,6 +206,22 @@ class TreeHouseCompiler
                 
             case 'th:unless':
                 $this->wrapWithCondition($node, "if (!({$this->compileExpression($expression)}))");
+                break;
+                
+            case 'th:auth':
+                $this->wrapWithAuthCondition($node, true);
+                break;
+                
+            case 'th:guest':
+                $this->wrapWithAuthCondition($node, false);
+                break;
+                
+            case 'th:role':
+                $this->wrapWithRoleCondition($node, $expression);
+                break;
+                
+            case 'th:permission':
+                $this->wrapWithPermissionCondition($node, $expression);
                 break;
                 
             case 'th:repeat':
@@ -686,6 +704,73 @@ class TreeHouseCompiler
         if ($node->parentNode) {
             $node->parentNode->removeChild($node);
         }
+    }
+
+    /**
+     * Wrap node with authentication condition
+     */
+    protected function wrapWithAuthCondition(DOMElement $node, bool $authenticated): void
+    {
+        $condition = $authenticated ? 'auth()->check()' : 'auth()->guest()';
+        $php = $node->ownerDocument->createTextNode("<?php if ({$condition}): ?>");
+        $endPhp = $node->ownerDocument->createTextNode("<?php endif; ?>");
+        
+        $node->parentNode->insertBefore($php, $node);
+        $node->parentNode->insertBefore($endPhp, $node->nextSibling);
+    }
+
+    /**
+     * Wrap node with role condition
+     */
+    protected function wrapWithRoleCondition(DOMElement $node, string $expression): void
+    {
+        // Parse role expression - supports single role or multiple roles
+        $roles = array_map('trim', explode(',', $expression));
+        
+        if (count($roles) === 1) {
+            // Single role: user.hasRole('admin')
+            $role = trim($roles[0], '\'"');
+            $condition = "auth()->user() && auth()->user()->hasRole('{$role}')";
+        } else {
+            // Multiple roles: user.hasAnyRole(['admin', 'editor'])
+            $roleList = "'" . implode("', '", array_map(fn($r) => trim($r, '\'"'), $roles)) . "'";
+            $condition = "auth()->user() && auth()->user()->hasAnyRole([{$roleList}])";
+        }
+        
+        $php = $node->ownerDocument->createTextNode("<?php if ({$condition}): ?>");
+        $endPhp = $node->ownerDocument->createTextNode("<?php endif; ?>");
+        
+        $node->parentNode->insertBefore($php, $node);
+        $node->parentNode->insertBefore($endPhp, $node->nextSibling);
+    }
+
+    /**
+     * Wrap node with permission condition
+     */
+    protected function wrapWithPermissionCondition(DOMElement $node, string $expression): void
+    {
+        // Parse permission expression - supports single permission or multiple permissions
+        $permissions = array_map('trim', explode(',', $expression));
+        
+        if (count($permissions) === 1) {
+            // Single permission: user.can('manage-users')
+            $permission = trim($permissions[0], '\'"');
+            $condition = "auth()->user() && auth()->user()->can('{$permission}')";
+        } else {
+            // Multiple permissions: check if user has any of them
+            $conditions = [];
+            foreach ($permissions as $permission) {
+                $permission = trim($permission, '\'"');
+                $conditions[] = "auth()->user()->can('{$permission}')";
+            }
+            $condition = "auth()->user() && (" . implode(' || ', $conditions) . ")";
+        }
+        
+        $php = $node->ownerDocument->createTextNode("<?php if ({$condition}): ?>");
+        $endPhp = $node->ownerDocument->createTextNode("<?php endif; ?>");
+        
+        $node->parentNode->insertBefore($php, $node);
+        $node->parentNode->insertBefore($endPhp, $node->nextSibling);
     }
 
     /**

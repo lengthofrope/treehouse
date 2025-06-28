@@ -2,112 +2,80 @@
 
 declare(strict_types=1);
 
-use LengthOfRope\TreeHouse\Auth\AuthManager;
+/**
+ * TreeHouse Auth Helper Functions
+ *
+ * Global helper functions for the authentication and authorization system.
+ *
+ * @package LengthOfRope\TreeHouse\Auth
+ * @author  Bas de Kort <bdekort@proton.me>
+ * @since   1.0.0
+ */
+
+use LengthOfRope\TreeHouse\Auth\Gate;
 
 if (!function_exists('auth')) {
     /**
-     * Get the auth manager instance or a specific guard
-     * 
+     * Get the authentication manager instance
+     *
      * @param string|null $guard Guard name
-     * @return AuthManager|\LengthOfRope\TreeHouse\Auth\Guard
+     * @return \LengthOfRope\TreeHouse\Auth\AuthManager|\LengthOfRope\TreeHouse\Auth\Guard|null
      */
-    function auth(?string $guard = null): mixed
+    function auth(?string $guard = null)
     {
-        // Get the global application instance
-        global $app;
+        static $authManager = null;
         
-        if (!$app) {
-            throw new RuntimeException('Application instance not available. Make sure to set global $app variable.');
+        if ($authManager === null) {
+            // Try to get from global variable or registry if available
+            if (isset($GLOBALS['auth_manager'])) {
+                $authManager = $GLOBALS['auth_manager'];
+            }
         }
         
-        $authManager = $app->make('auth');
-        
-        if ($guard !== null) {
-            return $authManager->guard($guard);
+        if ($authManager === null) {
+            return null;
         }
         
-        return $authManager;
+        return $guard ? $authManager->guard($guard) : $authManager;
     }
 }
 
-if (!function_exists('user')) {
+if (!function_exists('gate')) {
     /**
-     * Get the currently authenticated user
-     * 
-     * @param string|null $guard Guard name
-     * @return mixed
+     * Get the Gate instance
+     *
+     * @return \LengthOfRope\TreeHouse\Auth\Gate
      */
-    function user(?string $guard = null): mixed
+    function gate(): Gate
     {
-        return auth($guard)->user();
+        return new Gate();
     }
 }
 
-if (!function_exists('check')) {
+if (!function_exists('can')) {
     /**
-     * Determine if the current user is authenticated
-     * 
-     * @param string|null $guard Guard name
+     * Check if the current user can perform an ability
+     *
+     * @param string $ability The permission to check
+     * @param mixed $arguments Additional arguments for the callback
      * @return bool
      */
-    function check(?string $guard = null): bool
+    function can(string $ability, mixed $arguments = []): bool
     {
-        return auth($guard)->check();
+        return Gate::allows($ability, $arguments);
     }
 }
 
-if (!function_exists('guest')) {
+if (!function_exists('cannot')) {
     /**
-     * Determine if the current user is a guest (not authenticated)
-     * 
-     * @param string|null $guard Guard name
+     * Check if the current user cannot perform an ability
+     *
+     * @param string $ability The permission to check
+     * @param mixed $arguments Additional arguments for the callback
      * @return bool
      */
-    function guest(?string $guard = null): bool
+    function cannot(string $ability, mixed $arguments = []): bool
     {
-        return auth($guard)->guest();
-    }
-}
-
-if (!function_exists('login')) {
-    /**
-     * Log a user into the application
-     * 
-     * @param mixed $user User instance or identifier
-     * @param bool $remember Whether to remember the user
-     * @param string|null $guard Guard name
-     * @return void
-     */
-    function login(mixed $user, bool $remember = false, ?string $guard = null): void
-    {
-        auth($guard)->login($user, $remember);
-    }
-}
-
-if (!function_exists('logout')) {
-    /**
-     * Log the user out of the application
-     * 
-     * @param string|null $guard Guard name
-     * @return void
-     */
-    function logout(?string $guard = null): void
-    {
-        auth($guard)->logout();
-    }
-}
-
-if (!function_exists('attempt')) {
-    /**
-     * Attempt to authenticate a user using the given credentials
-     * 
-     * @param array $credentials User credentials
-     * @param bool $remember Whether to remember the user
-     * @param string|null $guard Guard name
-     * @return bool
-     */
-    function attempt(array $credentials, bool $remember = false, ?string $guard = null): bool
-    {
-        return auth($guard)->attempt($credentials, $remember);
+        return Gate::denies($ability, $arguments);
     }
 }

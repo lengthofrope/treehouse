@@ -460,4 +460,237 @@ class AuthMiddleware implements MiddlewareInterface
 }
 ```
 
-This authentication system provides a solid foundation for secure user authentication in TreeHouse applications.
+## Authorization System
+
+TreeHouse includes a comprehensive role-based authorization system built on top of the authentication foundation.
+
+### Role-Based Access Control (RBAC)
+
+The authorization system provides:
+
+- **Role Management** - Users have roles with specific permissions
+- **Permission System** - Fine-grained permission checking
+- **Gate Pattern** - Laravel-inspired authorization gates
+- **Policy Support** - Resource-specific authorization logic
+- **Middleware Protection** - Route-level authorization
+- **Template Integration** - Authorization directives in views
+
+### Quick Start
+
+#### 1. Configure Roles and Permissions
+
+Edit `config/auth.php` to define your application's roles and permissions:
+
+```php
+'roles' => [
+    'admin' => ['*'], // All permissions
+    'editor' => ['edit-posts', 'delete-posts', 'view-posts'],
+    'viewer' => ['view-posts'],
+],
+
+'permissions' => [
+    'manage-users' => ['admin'],
+    'edit-posts' => ['admin', 'editor'],
+    'view-posts' => ['admin', 'editor', 'viewer'],
+],
+```
+
+#### 2. Update User Model
+
+Your User model should implement the `Authorizable` interface:
+
+```php
+use LengthOfRope\TreeHouse\Auth\Contracts\Authorizable;
+use LengthOfRope\TreeHouse\Auth\AuthorizableUser;
+
+class User extends ActiveRecord implements Authorizable
+{
+    use AuthorizableUser;
+    
+    protected array $fillable = ['name', 'email', 'password', 'role'];
+}
+```
+
+#### 3. Run Migration
+
+Add the role column to your users table:
+
+```bash
+./bin/th migrate:run
+```
+
+### Role Management
+
+#### Checking Roles
+
+```php
+// In controllers
+if ($user->hasRole('admin')) {
+    // Admin functionality
+}
+
+if ($user->hasAnyRole(['admin', 'editor'])) {
+    // Admin or editor functionality
+}
+```
+
+#### Assigning Roles
+
+```php
+$user->assignRole('editor');
+$user->removeRole('viewer');
+```
+
+### Permission System
+
+#### Checking Permissions
+
+```php
+// In controllers
+if ($user->can('manage-users')) {
+    // User management code
+}
+
+if ($user->cannot('delete-posts')) {
+    // Handle insufficient permissions
+}
+
+// Using Gate
+if (Gate::allows('edit-post', $post)) {
+    // Edit post logic
+}
+```
+
+#### Custom Permissions
+
+Define custom permission logic using Gate:
+
+```php
+Gate::define('edit-post', function($user, $post) {
+    return $user->id === $post->author_id || $user->hasRole('admin');
+});
+```
+
+### Middleware Protection
+
+#### Route Protection
+
+```php
+// Protect routes with roles
+$router->group(['middleware' => 'role:admin'], function($router) {
+    $router->get('/admin/users', 'AdminController@users');
+});
+
+// Protect with permissions
+$router->get('/posts/create', 'PostController@create')
+       ->middleware('permission:edit-posts');
+
+// Multiple roles (OR logic)
+$router->group(['middleware' => 'role:admin,editor'], function($router) {
+    $router->get('/posts/manage', 'PostController@manage');
+});
+```
+
+### Template Authorization
+
+#### Authentication Directives
+
+```html
+<!-- Show content only to authenticated users -->
+<div th:auth>
+    Welcome back, {user.name}!
+</div>
+
+<!-- Show content only to guests -->
+<div th:guest>
+    Please <a href="/login">log in</a> to continue.
+</div>
+```
+
+#### Role-Based Directives
+
+```html
+<!-- Single role -->
+<div th:role="admin">
+    <a href="/admin">Administrator Panel</a>
+</div>
+
+<!-- Multiple roles (OR logic) -->
+<div th:role="admin,editor">
+    <a href="/posts/manage">Manage Posts</a>
+</div>
+```
+
+#### Permission-Based Directives
+
+```html
+<!-- Single permission -->
+<div th:permission="manage-users">
+    <button>Add User</button>
+</div>
+
+<!-- Multiple permissions (OR logic) -->
+<div th:permission="edit-posts,delete-posts">
+    <button>Manage Posts</button>
+</div>
+```
+
+### Authorization Helper Functions
+
+```php
+// Check authentication
+if (auth()->check()) {
+    $user = auth()->user();
+}
+
+// Check permissions
+if (can('manage-users')) {
+    // User management logic
+}
+
+if (cannot('delete-posts')) {
+    // Handle restriction
+}
+```
+
+### Policy-Based Authorization
+
+#### Creating Policies
+
+```php
+use LengthOfRope\TreeHouse\Auth\Policy;
+
+class PostPolicy extends Policy
+{
+    public function view(Authorizable $user, Post $post): bool
+    {
+        return $user->can('view-posts') || $post->author_id === $user->id;
+    }
+    
+    public function update(Authorizable $user, Post $post): bool
+    {
+        return $user->hasRole('admin') || $post->author_id === $user->id;
+    }
+}
+```
+
+#### Registering Policies
+
+```php
+Gate::policy(Post::class, PostPolicy::class);
+```
+
+#### Using Policies
+
+```php
+// In controllers
+if (Gate::allows('update', $post)) {
+    // Update post
+}
+
+if (Gate::denies('delete', $post)) {
+    abort(403, 'Cannot delete this post');
+}
+```
+
+This authentication and authorization system provides enterprise-grade security features while maintaining TreeHouse's lightweight philosophy.

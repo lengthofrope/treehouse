@@ -13,6 +13,7 @@ Please note that this framework is in WIP state. It is nowhere near production r
 - **MVC Architecture**: Clean separation of concerns
 - **Dependency Injection**: Built-in container with automatic resolution
 - **Routing**: Flexible HTTP routing with middleware support
+- **Authorization**: Role-based access control with middleware and template integration
 - **Template Engine**: ThymeLeaf-inspired template engine with components and layouts
 - **Database ORM**: Active Record pattern with relationships
 - **Console Commands**: CLI interface for development and maintenance
@@ -92,6 +93,14 @@ $router->get('/users/{id}', [UserController::class, 'show'])
 $router->group(['middleware' => 'auth'], function($router) {
     $router->get('/dashboard', [DashboardController::class, 'index']);
 });
+
+// Authorization middleware
+$router->group(['middleware' => 'role:admin'], function($router) {
+    $router->get('/admin/users', [AdminController::class, 'users']);
+});
+
+$router->get('/posts/create', [PostController::class, 'create'])
+       ->middleware('permission:edit-posts');
 ```
 
 ### 3. Create Models
@@ -102,10 +111,14 @@ $router->group(['middleware' => 'auth'], function($router) {
 namespace App\Models;
 
 use LengthOfRope\TreeHouse\Database\ActiveRecord;
+use LengthOfRope\TreeHouse\Auth\Contracts\Authorizable;
+use LengthOfRope\TreeHouse\Auth\AuthorizableUser;
 
-class User extends ActiveRecord
+class User extends ActiveRecord implements Authorizable
 {
-    protected array $fillable = ['name', 'email'];
+    use AuthorizableUser;
+    
+    protected array $fillable = ['name', 'email', 'role'];
     protected array $hidden = ['password'];
     
     public function posts()
@@ -209,8 +222,20 @@ TreeHouse includes a powerful ThymeLeaf-inspired template engine:
     <h1 th:text="${title}">Welcome</h1>
     <p th:text="${message}">Default message</p>
     
-    <div th:if="${user}">
-        <p>Welcome, <span th:text="${user.name}">User</span>!</p>
+    <div th:auth>
+        <p>Welcome back, {user.name}!</p>
+        
+        <!-- Role-based content -->
+        <div th:role="admin">
+            <a href="/admin">Admin Panel</a>
+        </div>
+        
+        <!-- Permission-based content -->
+        <button th:permission="edit-posts">Create Post</button>
+    </div>
+    
+    <div th:guest>
+        <p>Please <a href="/login">log in</a> to continue.</p>
     </div>
     
     <div th:each="post : ${posts}">
@@ -226,6 +251,10 @@ TreeHouse includes a powerful ThymeLeaf-inspired template engine:
 - `th:text` - Set element text content
 - `th:if` - Conditional rendering
 - `th:each` - Loop over collections
+- `th:auth` - Show content to authenticated users
+- `th:guest` - Show content to guests
+- `th:role` - Show content based on user roles
+- `th:permission` - Show content based on permissions
 - `th:extends` - Extend layout templates
 - `th:fragment` - Define reusable fragments
 - `${variable}` - Variable interpolation
@@ -253,6 +282,82 @@ class AuthMiddleware implements MiddlewareInterface
         
         return $next($request);
     }
+}
+```
+
+## Authorization
+
+TreeHouse includes a comprehensive role-based authorization system:
+
+### User Roles and Permissions
+
+```php
+// Check user roles
+if ($user->hasRole('admin')) {
+    // Admin functionality
+}
+
+if ($user->hasAnyRole(['admin', 'editor'])) {
+    // Admin or editor functionality
+}
+
+// Check permissions
+if ($user->can('manage-users')) {
+    // User management
+}
+
+if ($user->cannot('delete-posts')) {
+    // Handle restriction
+}
+```
+
+### Route Protection
+
+```php
+// Role-based middleware
+$router->group(['middleware' => 'role:admin'], function($router) {
+    $router->get('/admin/users', [AdminController::class, 'users']);
+});
+
+// Permission-based middleware
+$router->get('/posts/create', [PostController::class, 'create'])
+       ->middleware('permission:edit-posts');
+
+// Multiple roles/permissions (OR logic)
+$router->group(['middleware' => 'role:admin,editor'], function($router) {
+    $router->get('/posts/manage', [PostController::class, 'manage']);
+});
+```
+
+### Template Authorization
+
+```html
+<!-- Authentication-based -->
+<div th:auth>Welcome, {user.name}!</div>
+<div th:guest>Please log in.</div>
+
+<!-- Role-based -->
+<div th:role="admin">Admin Panel</div>
+<div th:role="admin,editor">Content Management</div>
+
+<!-- Permission-based -->
+<button th:permission="manage-users">Add User</button>
+<div th:permission="edit-posts,delete-posts">Post Tools</div>
+```
+
+### Gate System
+
+```php
+use LengthOfRope\TreeHouse\Auth\Gate;
+
+// Define custom permissions
+Gate::define('edit-post', function($user, $post) {
+    return $user->id === $post->author_id || $user->hasRole('admin');
+});
+
+// Check permissions
+if (Gate::allows('edit-post', $post)) {
+    // Edit post
 }
 ```
 

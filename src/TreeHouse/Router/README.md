@@ -114,9 +114,21 @@ $router->get('/admin', 'AdminController@index')
 $router->get('/api/data', 'ApiController@data')
     ->middleware('throttle:60,1');
 
+// Authorization middleware
+$router->get('/admin', 'AdminController@index')
+    ->middleware('role:admin');
+
+$router->get('/posts/manage', 'PostController@manage')
+    ->middleware('role:admin,editor');
+
+$router->get('/users/create', 'UserController@create')
+    ->middleware('permission:manage-users');
+
 // Middleware aliases
 $router->middlewareAliases([
     'auth' => 'App\Middleware\AuthMiddleware',
+    'role' => 'LengthOfRope\TreeHouse\Router\Middleware\RoleMiddleware',
+    'permission' => 'LengthOfRope\TreeHouse\Router\Middleware\PermissionMiddleware',
     'throttle' => 'App\Middleware\ThrottleMiddleware',
 ]);
 ```
@@ -286,4 +298,85 @@ $router->group(['prefix' => 'api/v1', 'middleware' => 'api'], function($router) 
 });
 ```
 
-The TreeHouse Router System provides a robust foundation for handling HTTP routing in web applications, with excellent performance characteristics and seamless integration with other TreeHouse components.
+## Authorization Middleware
+
+TreeHouse includes built-in authorization middleware for protecting routes based on user roles and permissions.
+
+### Role-Based Route Protection
+
+```php
+// Single role requirement
+$router->group(['middleware' => 'role:admin'], function($router) {
+    $router->get('/admin/users', 'AdminController@users');
+    $router->post('/admin/settings', 'AdminController@settings');
+});
+
+// Multiple roles (OR logic) - user needs ANY of these roles
+$router->group(['middleware' => 'role:admin,editor'], function($router) {
+    $router->get('/posts/manage', 'PostController@manage');
+    $router->post('/posts', 'PostController@store');
+});
+
+// Individual route protection
+$router->get('/dashboard', 'DashboardController@index')
+    ->middleware('role:admin,editor,viewer');
+```
+
+### Permission-Based Route Protection
+
+```php
+// Single permission requirement
+$router->get('/users/create', 'UserController@create')
+    ->middleware('permission:manage-users');
+
+// Multiple permissions (OR logic) - user needs ANY of these permissions
+$router->group(['middleware' => 'permission:edit-posts,delete-posts'], function($router) {
+    $router->get('/posts/admin', 'PostController@admin');
+    $router->delete('/posts/{id}', 'PostController@destroy');
+});
+
+// Specific permission for sensitive operations
+$router->delete('/users/{id}', 'UserController@destroy')
+    ->middleware('permission:delete-users');
+```
+
+### Combined Authorization
+
+```php
+// Multiple middleware layers
+$router->group([
+    'middleware' => ['auth', 'role:admin'],
+    'prefix' => 'admin'
+], function($router) {
+    $router->get('/dashboard', 'AdminController@dashboard');
+    
+    // Additional permission check
+    $router->group(['middleware' => 'permission:manage-users'], function($router) {
+        $router->get('/users', 'AdminController@users');
+        $router->post('/users', 'AdminController@createUser');
+    });
+});
+```
+
+### Authorization Responses
+
+The authorization middleware provides appropriate HTTP responses:
+
+- **401 Unauthorized** - User is not authenticated
+- **403 Forbidden** - User lacks required role/permission
+- **JSON responses** - For AJAX requests with error details
+- **HTML responses** - For regular browser requests
+
+### Middleware Registration
+
+Register the authorization middleware aliases in your router setup:
+
+```php
+$router->middlewareAliases([
+    'auth' => 'App\Middleware\AuthMiddleware',
+    'role' => 'LengthOfRope\TreeHouse\Router\Middleware\RoleMiddleware',
+    'permission' => 'LengthOfRope\TreeHouse\Router\Middleware\PermissionMiddleware',
+]);
+```
+
+The TreeHouse Router System provides a robust foundation for handling HTTP routing in web applications, with excellent performance characteristics, comprehensive authorization capabilities, and seamless integration with other TreeHouse components.
