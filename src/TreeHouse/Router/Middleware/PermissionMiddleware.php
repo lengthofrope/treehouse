@@ -175,9 +175,9 @@ class PermissionMiddleware implements MiddlewareInterface
     private function findUserById(mixed $userId): ?Authorizable
     {
         // Try to use User model if available
-        if (class_exists('\App\Models\User')) {
+        if (class_exists('\LengthOfRope\TreeHouse\Models\User')) {
             try {
-                $userClass = '\App\Models\User';
+                $userClass = '\LengthOfRope\TreeHouse\Models\User';
                 $user = $userClass::find($userId);
                 if ($user instanceof Authorizable) {
                     return $user;

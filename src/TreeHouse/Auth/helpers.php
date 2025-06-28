@@ -287,9 +287,9 @@ if (!function_exists('getCurrentUser')) {
         // Try to get from session if available
         if (isset($_SESSION['user_id'])) {
             // Try to use User model if available
-            if (class_exists('\App\Models\User')) {
+            if (class_exists('\LengthOfRope\TreeHouse\Models\User')) {
                 try {
-                    $userClass = '\App\Models\User';
+                    $userClass = '\LengthOfRope\TreeHouse\Models\User';
                     $user = $userClass::find($_SESSION['user_id']);
                     if ($user instanceof Authorizable) {
                         return $user;

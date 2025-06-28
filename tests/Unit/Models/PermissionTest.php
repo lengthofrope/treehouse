@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Models;
 
 use Tests\DatabaseTestCase;
-use App\Models\Permission;
-use App\Models\Role;
+use LengthOfRope\TreeHouse\Models\Permission;
+use LengthOfRope\TreeHouse\Models\Role;
 use LengthOfRope\TreeHouse\Support\Collection;
 
 /**

@@ -8,9 +8,9 @@ use Tests\DatabaseTestCase;
 use LengthOfRope\TreeHouse\Console\Commands\RoleCommand;
 use LengthOfRope\TreeHouse\Console\Input\InputInterface;
 use LengthOfRope\TreeHouse\Console\Output\OutputInterface;
-use App\Models\Role;
-use App\Models\Permission;
-use App\Models\User;
+use LengthOfRope\TreeHouse\Models\Role;
+use LengthOfRope\TreeHouse\Models\Permission;
+use LengthOfRope\TreeHouse\Models\User;
 
 /**
  * Role Command Tests

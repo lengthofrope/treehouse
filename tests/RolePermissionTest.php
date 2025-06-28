@@ -80,12 +80,12 @@ echo "✓ Administrator has {$adminPermissions} permissions\n";
 // Test 3: Test User Model (if exists)
 echo "\n=== Testing User Model ===\n";
 
-if (class_exists('\App\Models\User')) {
+if (class_exists('\LengthOfRope\TreeHouse\Models\User')) {
     echo "✓ User model exists\n";
     
     // Try to create a test user
     try {
-        $userClass = '\App\Models\User';
+        $userClass = '\LengthOfRope\TreeHouse\Models\User';
         
         // Check if we can instantiate the model
         $reflection = new ReflectionClass($userClass);
@@ -105,11 +105,11 @@ if (class_exists('\App\Models\User')) {
 // Test 4: Test Role Model
 echo "\n=== Testing Role Model ===\n";
 
-if (class_exists('\App\Models\Role')) {
+if (class_exists('\LengthOfRope\TreeHouse\Models\Role')) {
     echo "✓ Role model exists\n";
     
     try {
-        $roleClass = '\App\Models\Role';
+        $roleClass = '\LengthOfRope\TreeHouse\Models\Role';
         
         // Try to find administrator role
         $admin = $roleClass::where('name', 'administrator')->first();
@@ -133,11 +133,11 @@ if (class_exists('\App\Models\Role')) {
 // Test 5: Test Permission Model
 echo "\n=== Testing Permission Model ===\n";
 
-if (class_exists('\App\Models\Permission')) {
+if (class_exists('\LengthOfRope\TreeHouse\Models\Permission')) {
     echo "✓ Permission model exists\n";
     
     try {
-        $permissionClass = '\App\Models\Permission';
+        $permissionClass = '\LengthOfRope\TreeHouse\Models\Permission';
         
         // Try to find a permission
         $permission = $permissionClass::where('name', 'manage-users')->first();
