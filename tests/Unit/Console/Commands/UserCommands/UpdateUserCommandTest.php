@@ -394,10 +394,12 @@ class UpdateUserCommandTest extends TestCase
         ];
 
         $command = $this->getMockBuilder(UpdateUserCommand::class)
-            ->onlyMethods(['findUser'])
+            ->onlyMethods(['findUser', 'getInteractiveUpdates'])
             ->getMock();
 
         $command->method('findUser')->willReturn($existingUser);
+        // Mock interactive method to return empty array (no updates)
+        $command->method('getInteractiveUpdates')->willReturn([]);
 
         $input = $this->createMockInput(
             ['identifier' => 'test@example.com'],
@@ -405,10 +407,9 @@ class UpdateUserCommandTest extends TestCase
         );
         $output = $this->createMockOutput();
 
-        // Interactive mode will fail in automated testing due to stdin requirements
         $result = $command->execute($input, $output);
 
-        $this->assertEquals(1, $result);
+        $this->assertEquals(0, $result); // Should succeed with no updates
     }
 
     public function testUpdateFailure(): void

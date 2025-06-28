@@ -127,21 +127,24 @@ class CreateUserCommandTest extends TestCase
 
     public function testPasswordMinimumLength(): void
     {
-        // Test through reflection since password input is hidden
-        $reflection = new \ReflectionClass($this->command);
-        $method = $reflection->getMethod('getUserData');
-        $method->setAccessible(true);
+        // Mock the command to avoid stdin interaction during password input
+        $command = $this->getMockBuilder(CreateUserCommand::class)
+            ->onlyMethods(['askForPassword'])
+            ->getMock();
+
+        // Mock password method to return a short password
+        $command->method('askForPassword')->willReturn('123');
 
         $input = $this->createMockInput(
             ['name' => 'Test User', 'email' => 'test@example.com'],
-            ['role' => 'viewer', 'password' => '123', 'interactive' => false] // Too short
+            ['role' => 'viewer', 'interactive' => false]
         );
         $output = $this->createMockOutput();
 
-        $result = $method->invoke($this->command, $input, $output);
+        $result = $command->execute($input, $output);
 
-        // Should handle short password appropriately
-        $this->assertIsArray($result);
+        // Should fail due to short password
+        $this->assertEquals(1, $result);
     }
 
     public function testSuccessfulUserCreationConfiguration(): void
@@ -174,12 +177,18 @@ class CreateUserCommandTest extends TestCase
 
     public function testInteractiveModeTriggering(): void
     {
+        // Mock the command to avoid stdin interaction
+        $command = $this->getMockBuilder(CreateUserCommand::class)
+            ->onlyMethods(['getInteractiveUserData'])
+            ->getMock();
+
+        // Mock interactive method to return null (simulating user cancellation)
+        $command->method('getInteractiveUserData')->willReturn(null);
+
         $input = $this->createMockInput([], ['interactive' => true]);
         $output = $this->createMockOutput();
 
-        // Since interactive mode requires user input, we expect it to fail
-        // in automated testing environment
-        $result = $this->command->execute($input, $output);
+        $result = $command->execute($input, $output);
 
         $this->assertEquals(1, $result);
     }
