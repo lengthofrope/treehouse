@@ -202,90 +202,136 @@ class PermissionChecker
     }
 
     /**
-     * Get all permissions for a role
+     * Get all permissions for a role (database query)
      *
-     * @param string $role Role name
+     * @param string $role Role slug
      * @return array
      */
     public function getPermissionsForRole(string $role): array
     {
-        $roleConfig = $this->config['roles'] ?? [];
-        
-        if (!isset($roleConfig[$role])) {
+        try {
+            $connection = $this->getDatabaseConnection();
+            
+            $query = "
+                SELECT p.slug
+                FROM role_permissions rp
+                JOIN roles r ON r.id = rp.role_id
+                JOIN permissions p ON p.id = rp.permission_id
+                WHERE r.slug = ?
+            ";
+            
+            $results = $connection->select($query, [$role]);
+            return array_column($results, 'slug');
+        } catch (\Exception $e) {
             return [];
         }
-
-        $rolePermissions = $roleConfig[$role];
-        
-        // Handle wildcard permissions
-        if (in_array('*', $rolePermissions)) {
-            return $this->getAllPermissions();
-        }
-
-        return $rolePermissions;
     }
 
     /**
-     * Get all available permissions
+     * Get all available permissions (database query)
      *
      * @return array
      */
     public function getAllPermissions(): array
     {
-        $permissions = $this->config['permissions'] ?? [];
-        return array_keys($permissions);
+        try {
+            $connection = $this->getDatabaseConnection();
+            $results = $connection->select("SELECT slug FROM permissions ORDER BY slug");
+            return array_column($results, 'slug');
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     /**
-     * Get all available roles
+     * Get all available roles (database query)
      *
      * @return array
      */
     public function getAllRoles(): array
     {
-        $roles = $this->config['roles'] ?? [];
-        return array_keys($roles);
+        try {
+            $connection = $this->getDatabaseConnection();
+            $results = $connection->select("SELECT slug FROM roles ORDER BY slug");
+            return array_column($results, 'slug');
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     /**
-     * Check if a role exists in configuration
+     * Check if a role exists in database
      *
-     * @param string $role Role name
+     * @param string $role Role slug
      * @return bool
      */
     public function roleExists(string $role): bool
     {
-        $roles = $this->config['roles'] ?? [];
-        return isset($roles[$role]);
+        try {
+            $connection = $this->getDatabaseConnection();
+            $result = $connection->selectOne("SELECT COUNT(*) as count FROM roles WHERE slug = ?", [$role]);
+            return ($result['count'] ?? 0) > 0;
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 
     /**
-     * Check if a permission exists in configuration
+     * Check if a permission exists in database
      *
-     * @param string $permission Permission name
+     * @param string $permission Permission slug
      * @return bool
      */
     public function permissionExists(string $permission): bool
     {
-        $permissions = $this->config['permissions'] ?? [];
-        return isset($permissions[$permission]);
+        try {
+            $connection = $this->getDatabaseConnection();
+            $result = $connection->selectOne("SELECT COUNT(*) as count FROM permissions WHERE slug = ?", [$permission]);
+            return ($result['count'] ?? 0) > 0;
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 
     /**
-     * Get roles that have a specific permission
+     * Get roles that have a specific permission (database query)
      *
-     * @param string $permission Permission name
+     * @param string $permission Permission slug
      * @return array
      */
     public function getRolesWithPermission(string $permission): array
     {
-        $permissions = $this->config['permissions'] ?? [];
-        
-        if (!isset($permissions[$permission])) {
+        try {
+            $connection = $this->getDatabaseConnection();
+            
+            $query = "
+                SELECT r.slug
+                FROM role_permissions rp
+                JOIN roles r ON r.id = rp.role_id
+                JOIN permissions p ON p.id = rp.permission_id
+                WHERE p.slug = ?
+            ";
+            
+            $results = $connection->select($query, [$permission]);
+            return array_column($results, 'slug');
+        } catch (\Exception $e) {
             return [];
         }
+    }
 
-        return $permissions[$permission];
+    /**
+     * Get database connection
+     *
+     * @return \LengthOfRope\TreeHouse\Database\Connection
+     */
+    protected function getDatabaseConnection(): \LengthOfRope\TreeHouse\Database\Connection
+    {
+        // Use the db() helper function which is available in the framework
+        if (function_exists('db')) {
+            return db();
+        }
+        
+        throw new \RuntimeException('Database connection not available. Make sure the db() helper is loaded.');
     }
 
     /**

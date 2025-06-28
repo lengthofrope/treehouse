@@ -66,35 +66,23 @@ trait AuthorizableUser
     /**
      * Check if the user can perform a specific permission
      *
-     * This method checks permissions based on the configuration in config/auth.php
+     * This method checks permissions based on the database role-permission system
      *
      * @param string $permission Permission name to check
      * @return bool
      */
     public function can(string $permission): bool
     {
-        // Get permission configuration
-        $permissions = $this->getPermissionConfig();
+        $userRoles = $this->getRoles();
         
-        if (!isset($permissions[$permission])) {
-            return false;
+        // Check if any of the user's roles have this permission
+        foreach ($userRoles as $role) {
+            if ($this->roleHasPermission($role, $permission)) {
+                return true;
+            }
         }
         
-        $allowedRoles = $permissions[$permission];
-        
-        // Handle wildcard permission (everyone can access)
-        if (in_array('*', $allowedRoles)) {
-            return true;
-        }
-        
-        // Check if user's role is in the allowed roles
-        $userRole = $this->getRole();
-        
-        if (is_array($userRole)) {
-            return !empty(array_intersect($userRole, $allowedRoles));
-        }
-        
-        return in_array($userRole, $allowedRoles);
+        return false;
     }
 
     /**
@@ -200,29 +188,50 @@ trait AuthorizableUser
     protected function getDefaultRole(): string
     {
         $config = $this->getAuthConfig();
-        return $config['default_role'] ?? 'viewer';
+        return $config['default_role'] ?? 'member';
     }
 
     /**
-     * Get the permission configuration
+     * Check if a role has a specific permission (database query)
      *
-     * @return array
+     * @param string $role Role slug
+     * @param string $permission Permission slug
+     * @return bool
      */
-    protected function getPermissionConfig(): array
+    protected function roleHasPermission(string $role, string $permission): bool
     {
-        $config = $this->getAuthConfig();
-        return $config['permissions'] ?? [];
+        try {
+            $connection = $this->getDatabaseConnection();
+            
+            $query = "
+                SELECT COUNT(*) as count
+                FROM role_permissions rp
+                JOIN roles r ON r.id = rp.role_id
+                JOIN permissions p ON p.id = rp.permission_id
+                WHERE r.slug = ? AND p.slug = ?
+            ";
+            
+            $result = $connection->selectOne($query, [$role, $permission]);
+            return ($result['count'] ?? 0) > 0;
+        } catch (\Exception $e) {
+            // Fallback to false if database query fails
+            return false;
+        }
     }
 
     /**
-     * Get the role configuration
+     * Get database connection
      *
-     * @return array
+     * @return \LengthOfRope\TreeHouse\Database\Connection
      */
-    protected function getRoleConfig(): array
+    protected function getDatabaseConnection(): \LengthOfRope\TreeHouse\Database\Connection
     {
-        $config = $this->getAuthConfig();
-        return $config['roles'] ?? [];
+        // Use the db() helper function which is available in the framework
+        if (function_exists('db')) {
+            return db();
+        }
+        
+        throw new \RuntimeException('Database connection not available. Make sure the db() helper is loaded.');
     }
 
     /**
