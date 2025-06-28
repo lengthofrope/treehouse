@@ -216,12 +216,12 @@ abstract class Command
     {
         $synopsis = '';
         
-        // Add arguments
+        // Add arguments - use format that won't be stripped by OutputFormatter
         foreach ($this->getArguments() as $name => $config) {
             if ($config['mode'] & InputArgument::REQUIRED) {
-                $synopsis .= "<{$name}> ";
+                $synopsis .= "{$name} ";
             } else {
-                $synopsis .= "[<{$name}>] ";
+                $synopsis .= "[{$name}] ";
             }
         }
         

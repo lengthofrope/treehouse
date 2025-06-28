@@ -100,8 +100,8 @@ class CommandTest extends TestCase
         
         $synopsis = $command->getSynopsis();
         
-        $this->assertStringContainsString('<required-arg>', $synopsis);
-        $this->assertStringContainsString('[<optional-arg>]', $synopsis);
+        $this->assertStringContainsString('required-arg', $synopsis);
+        $this->assertStringContainsString('[optional-arg]', $synopsis);
         $this->assertStringContainsString('[options]', $synopsis);
     }
 
@@ -111,7 +111,7 @@ class CommandTest extends TestCase
         
         $synopsis = $command->getSynopsis();
         
-        $this->assertStringContainsString('<name>', $synopsis);
+        $this->assertStringContainsString('name', $synopsis);
         $this->assertStringNotContainsString('[options]', $synopsis);
     }
 
