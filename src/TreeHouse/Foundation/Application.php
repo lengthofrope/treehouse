@@ -166,12 +166,17 @@ class Application
             $cookie = new \LengthOfRope\TreeHouse\Http\Cookie('auth_cookie');
             $hash = new \LengthOfRope\TreeHouse\Security\Hash();
             
-            return new \LengthOfRope\TreeHouse\Auth\AuthManager(
+            $authManager = new \LengthOfRope\TreeHouse\Auth\AuthManager(
                 $config,
                 $session,
                 $cookie,
                 $hash
             );
+            
+            // Set global reference for auth() helper function
+            $GLOBALS['auth_manager'] = $authManager;
+            
+            return $authManager;
         });
 
         // Register session service
