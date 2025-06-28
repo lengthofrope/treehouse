@@ -124,7 +124,19 @@ class ViewEngine
         // Find template file
         $templatePath = $this->findTemplate($template);
         if ($templatePath === null) {
-            throw new InvalidArgumentException("Template '{$template}' not found");
+            $searchedPaths = [];
+            $templateFile = str_replace('.', '/', $template);
+            
+            foreach ($this->paths as $path) {
+                foreach ($this->extensions as $extension) {
+                    $searchedPaths[] = $path . '/' . $templateFile . $extension;
+                }
+            }
+            
+            $pathsList = implode("\n  - ", $searchedPaths);
+            throw new InvalidArgumentException(
+                "Template '{$template}' not found. Searched in:\n  - {$pathsList}"
+            );
         }
 
         // Merge data with shared variables

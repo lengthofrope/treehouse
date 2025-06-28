@@ -29,8 +29,22 @@ if (!function_exists('view')) {
                 require_once __DIR__ . '/../Support/helpers.php';
             }
             
-            // Load configuration from config file
-            $configFile = getcwd() . '/config/view.php';
+            // Find application root directory
+            $appRoot = getcwd();
+            
+            // If we're in a vendor package, find the real app root
+            if (strpos(__DIR__, 'vendor/lengthofrope/treehouse') !== false) {
+                // We're installed as a vendor package
+                $vendorPos = strpos(__DIR__, 'vendor/lengthofrope/treehouse');
+                $appRoot = substr(__DIR__, 0, $vendorPos);
+            } elseif (strpos(__DIR__, 'vendor') !== false && strpos(__DIR__, 'lengthofrope') !== false) {
+                // Alternative vendor structure
+                $vendorPos = strpos(__DIR__, 'vendor');
+                $appRoot = substr(__DIR__, 0, $vendorPos);
+            }
+            
+            // Load configuration from config file in application root
+            $configFile = rtrim($appRoot, '/') . '/config/view.php';
             $config = [];
             
             if (file_exists($configFile)) {
@@ -46,10 +60,10 @@ if (!function_exists('view')) {
             if (empty($config)) {
                 $config = [
                     'paths' => [
-                        getcwd() . '/resources/views',
-                        getcwd() . '/templates',
+                        $appRoot . '/resources/views',
+                        $appRoot . '/templates',
                     ],
-                    'cache_path' => getcwd() . '/storage/views',
+                    'cache_path' => $appRoot . '/storage/views',
                     'cache_enabled' => true,
                 ];
             }
