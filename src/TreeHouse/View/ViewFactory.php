@@ -44,7 +44,7 @@ class ViewFactory
                 getcwd() . '/resources/views',
                 getcwd() . '/templates',
             ],
-            'cache_path' => getcwd() . '/storage/framework/views',
+            'cache_path' => getcwd() . '/storage/views',
             'cache_enabled' => true,
             'extensions' => ['.th.html', '.th.php', '.php', '.html'],
         ], $config);

@@ -24,7 +24,37 @@ if (!function_exists('view')) {
         static $factory = null;
         
         if ($factory === null) {
-            $factory = new ViewFactory();
+            // Load support helpers if needed
+            if (!function_exists('env')) {
+                require_once __DIR__ . '/../Support/helpers.php';
+            }
+            
+            // Load configuration from config file
+            $configFile = getcwd() . '/config/view.php';
+            $config = [];
+            
+            if (file_exists($configFile)) {
+                try {
+                    $config = require $configFile;
+                } catch (Throwable $e) {
+                    // Fall back to default if config fails to load
+                    $config = [];
+                }
+            }
+            
+            // Set default configuration if not loaded
+            if (empty($config)) {
+                $config = [
+                    'paths' => [
+                        getcwd() . '/resources/views',
+                        getcwd() . '/templates',
+                    ],
+                    'cache_path' => getcwd() . '/storage/views',
+                    'cache_enabled' => true,
+                ];
+            }
+            
+            $factory = new ViewFactory($config);
         }
         
         if ($template === null) {
