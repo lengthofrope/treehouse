@@ -159,9 +159,8 @@ class NewProjectCommand extends Command
         $this->copyStubFile('resources/views/home.th.html', $basePath . '/resources/views/home.th.html', $projectName, $output);
         $this->copyStubFile('resources/views/about.th.html', $basePath . '/resources/views/about.th.html', $projectName, $output);
         
-        // Database migrations
-        $this->copyStubFile('database/migrations/001_create_users_table.php', $basePath . '/database/migrations/001_create_users_table.php', $projectName, $output);
-        $this->copyStubFile('database/migrations/002_create_password_resets_table.php', $basePath . '/database/migrations/002_create_password_resets_table.php', $projectName, $output);
+        // Database migrations - framework migrations will be discovered automatically by the migrate command
+        // No need to copy framework migrations as stubs since they should be loaded from the vendor directory
         
         // Environment file
         $this->copyStubFile('.env.example', $basePath . '/.env.example', $projectName, $output);

@@ -32,7 +32,8 @@ class MigrateRunCommand extends Command
             ->setDescription('Run pending database migrations')
             ->setHelp('This command runs all pending database migrations.')
             ->addOption('force', 'f', InputOption::VALUE_NONE, 'Force run migrations in production')
-            ->addOption('step', null, InputOption::VALUE_OPTIONAL, 'Number of migrations to run', '0');
+            ->addOption('step', null, InputOption::VALUE_OPTIONAL, 'Number of migrations to run', '0')
+            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Show which migrations would be run without executing them');
     }
 
     /**
@@ -42,20 +43,29 @@ class MigrateRunCommand extends Command
     {
         $force = $input->getOption('force');
         $step = (int) $input->getOption('step');
+        $dryRun = $input->getOption('dry-run');
         
-        $output->writeln('<info>Running database migrations...</info>');
+        if ($dryRun) {
+            $output->writeln('<info>Dry run: Discovering available migrations...</info>');
+        } else {
+            $output->writeln('<info>Running database migrations...</info>');
+        }
         
         try {
-            // Check if we're in production and force is not set
-            if ($this->isProduction() && !$force) {
+            // Check if we're in production and force is not set (skip for dry run)
+            if (!$dryRun && $this->isProduction() && !$force) {
                 $this->error($output, 'Cannot run migrations in production without --force flag');
                 return 1;
             }
             
-            // Get database connection once and reuse it
-            $connection = $this->getDatabaseConnection();
-            
-            $migrations = $this->getAllPendingMigrations($connection);
+            // For dry run, we don't need a database connection
+            if ($dryRun) {
+                $migrations = $this->getAllPendingMigrationsForDryRun($output);
+            } else {
+                // Get database connection once and reuse it
+                $connection = $this->getDatabaseConnection();
+                $migrations = $this->getAllPendingMigrations($connection, $output);
+            }
             
             if (empty($migrations)) {
                 $this->info($output, 'No pending migrations found.');
@@ -66,10 +76,14 @@ class MigrateRunCommand extends Command
                 $migrations = array_slice($migrations, 0, $step);
             }
             
-            $this->runMigrations($migrations, $output, $connection);
-            
-            $count = count($migrations);
-            $this->success($output, "Successfully ran {$count} migration(s)!");
+            if ($dryRun) {
+                $this->showDryRunResults($migrations, $output);
+            } else {
+                $this->runMigrations($migrations, $output, $connection);
+                
+                $count = count($migrations);
+                $this->success($output, "Successfully ran {$count} migration(s)!");
+            }
             
             return 0;
             
@@ -91,26 +105,73 @@ class MigrateRunCommand extends Command
     /**
      * Get all pending migrations from both framework and application directories
      */
-    private function getAllPendingMigrations(Connection $connection): array
+    private function getAllPendingMigrations(Connection $connection, OutputInterface $output): array
     {
         $migrationPaths = $this->getMigrationPaths();
         $allMigrations = [];
         
+        if ($output->isVerbose()) {
+            $output->writeln('<comment>Scanning migration paths:</comment>');
+        }
+        
         foreach ($migrationPaths as $path) {
             if (is_dir($path)) {
+                if ($output->isVerbose()) {
+                    $output->writeln("  Found directory: {$path}");
+                }
                 $migrations = $this->getPendingMigrations($path, $connection);
+                if ($output->isVerbose() && !empty($migrations)) {
+                    $output->writeln("    Found " . count($migrations) . " migration(s)");
+                    foreach ($migrations as $migration) {
+                        $output->writeln("      - " . basename($migration));
+                    }
+                }
                 $allMigrations = array_merge($allMigrations, $migrations);
+            } else {
+                if ($output->isVerbose()) {
+                    $output->writeln("  Path not found: {$path}");
+                }
             }
         }
         
-        // Sort all migrations by filename to ensure proper execution order
-        sort($allMigrations);
+        // Remove duplicates based on filename (in case the same migration exists in multiple paths)
+        $uniqueMigrations = [];
+        $seenFiles = [];
+        
+        foreach ($allMigrations as $migrationFile) {
+            $filename = basename($migrationFile);
+            if (!isset($seenFiles[$filename])) {
+                $uniqueMigrations[] = $migrationFile;
+                $seenFiles[$filename] = true;
+            } else {
+                if ($output->isVerbose()) {
+                    $output->writeln("  <comment>Skipping duplicate:</comment> {$filename}");
+                }
+            }
+        }
+        
+        // Sort all migrations - framework first, then by filename
+        usort($uniqueMigrations, function($a, $b) {
+            $aIsFramework = strpos($a, 'vendor/') !== false;
+            $bIsFramework = strpos($b, 'vendor/') !== false;
+            
+            // Framework migrations always come first
+            if ($aIsFramework && !$bIsFramework) {
+                return -1;
+            }
+            if (!$aIsFramework && $bIsFramework) {
+                return 1;
+            }
+            
+            // Within the same type (framework or application), sort by filename
+            return basename($a) <=> basename($b);
+        });
         
         // Filter out already run migrations
         $this->ensureMigrationsTableExists($connection);
         $runMigrations = $this->getRunMigrations($connection);
         
-        return array_filter($allMigrations, function($migrationFile) use ($runMigrations) {
+        return array_filter($uniqueMigrations, function($migrationFile) use ($runMigrations) {
             $filename = basename($migrationFile, '.php');
             return !in_array($filename, $runMigrations);
         });
@@ -147,12 +208,14 @@ class MigrateRunCommand extends Command
         $possiblePaths = [
             // If framework is installed via Composer (correct package name)
             getcwd() . '/vendor/lengthofrope/treehouse/database/migrations',
-            // If running from within the framework itself
-            __DIR__ . '/../../../../database/migrations',
             // Try using reflection to find where the TreeHouse classes are loaded from
             $this->getFrameworkPathViaReflection(),
-            // Legacy/alternative paths for backward compatibility
-            getcwd() . '/vendor/lengthofRope/treehouse-framework/database/migrations',
+            // If running from within the framework itself
+            __DIR__ . '/../../../../database/migrations',
+            // Alternative composer vendor path structure
+            getcwd() . '/vendor/lengthofrope/treehouse-framework/database/migrations',
+            // Check parent directories for when app is in a subdirectory
+            dirname(getcwd()) . '/vendor/lengthofrope/treehouse/database/migrations',
         ];
         
         // Filter out null values and check each path
@@ -371,6 +434,119 @@ class MigrateRunCommand extends Command
         $parts = explode('_', $className);
         
         return implode('', array_map('ucfirst', $parts));
+    }
+
+    /**
+     * Get all pending migrations for dry run (without database connection)
+     */
+    private function getAllPendingMigrationsForDryRun(OutputInterface $output): array
+    {
+        $migrationPaths = $this->getMigrationPaths();
+        $allMigrations = [];
+        
+        if ($output->isVerbose()) {
+            $output->writeln('<comment>Scanning migration paths:</comment>');
+        }
+        
+        foreach ($migrationPaths as $path) {
+            if (is_dir($path)) {
+                if ($output->isVerbose()) {
+                    $output->writeln("  Found directory: {$path}");
+                }
+                $migrations = $this->getMigrationsFromPath($path);
+                if ($output->isVerbose() && !empty($migrations)) {
+                    $output->writeln("    Found " . count($migrations) . " migration(s)");
+                    foreach ($migrations as $migration) {
+                        $output->writeln("      - " . basename($migration));
+                    }
+                }
+                $allMigrations = array_merge($allMigrations, $migrations);
+            } else {
+                if ($output->isVerbose()) {
+                    $output->writeln("  Path not found: {$path}");
+                }
+            }
+        }
+        
+        // Remove duplicates based on filename
+        $uniqueMigrations = [];
+        $seenFiles = [];
+        
+        foreach ($allMigrations as $migrationFile) {
+            $filename = basename($migrationFile);
+            if (!isset($seenFiles[$filename])) {
+                $uniqueMigrations[] = $migrationFile;
+                $seenFiles[$filename] = true;
+            } else {
+                if ($output->isVerbose()) {
+                    $output->writeln("  <comment>Skipping duplicate:</comment> {$filename}");
+                }
+            }
+        }
+        
+        // Sort all migrations - framework first, then by filename
+        usort($uniqueMigrations, function($a, $b) {
+            $aIsFramework = strpos($a, 'vendor/') !== false;
+            $bIsFramework = strpos($b, 'vendor/') !== false;
+            
+            // Framework migrations always come first
+            if ($aIsFramework && !$bIsFramework) {
+                return -1;
+            }
+            if (!$aIsFramework && $bIsFramework) {
+                return 1;
+            }
+            
+            // Within the same type (framework or application), sort by filename
+            return basename($a) <=> basename($b);
+        });
+        
+        return $uniqueMigrations;
+    }
+
+    /**
+     * Get migration files from a specific path
+     */
+    private function getMigrationsFromPath(string $migrationsPath): array
+    {
+        $files = glob($migrationsPath . '/*.php');
+        $migrations = [];
+        
+        foreach ($files as $file) {
+            $filename = basename($file);
+            // Support both timestamp format and simple numbering
+            if (preg_match('/^\d{3,4}_/', $filename) || preg_match('/^\d{4}_\d{2}_\d{2}_\d{6}_/', $filename)) {
+                $migrations[] = $file;
+            }
+        }
+        
+        sort($migrations);
+        
+        return $migrations;
+    }
+
+    /**
+     * Show dry run results
+     */
+    private function showDryRunResults(array $migrations, OutputInterface $output): void
+    {
+        $output->writeln('');
+        $output->writeln('<info>Migrations that would be run:</info>');
+        
+        if (empty($migrations)) {
+            $output->writeln('  <comment>No migrations found.</comment>');
+            return;
+        }
+        
+        foreach ($migrations as $migrationFile) {
+            $filename = basename($migrationFile);
+            $source = strpos($migrationFile, 'vendor/') !== false ? '[Framework]' : '[Application]';
+            $output->writeln("  <info>✓</info> {$filename} {$source}");
+        }
+        
+        $count = count($migrations);
+        $output->writeln('');
+        $output->writeln("<comment>Total: {$count} migration(s) would be executed.</comment>");
     }
 
 }
