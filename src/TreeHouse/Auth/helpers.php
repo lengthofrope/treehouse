@@ -5,6 +5,83 @@ declare(strict_types=1);
 use LengthOfRope\TreeHouse\Auth\Contracts\Authorizable;
 use LengthOfRope\TreeHouse\Database\Connection;
 
+if (!function_exists('auth')) {
+    /**
+     * Get the authentication manager instance
+     *
+     * @return \LengthOfRope\TreeHouse\Auth\AuthManager|null Authentication manager instance
+     */
+    function auth(): ?\LengthOfRope\TreeHouse\Auth\AuthManager
+    {
+        // Try to get from application container first
+        if (isset($GLOBALS['app']) && method_exists($GLOBALS['app'], 'make')) {
+            try {
+                return $GLOBALS['app']->make('auth');
+            } catch (\Exception $e) {
+                // Fall through to global fallback
+            }
+        }
+        
+        // Fallback to global reference set by Application
+        if (isset($GLOBALS['auth_manager'])) {
+            return $GLOBALS['auth_manager'];
+        }
+        
+        // If no auth manager is available, create a basic one for library usage
+        // This allows the framework to work when used as a library without full bootstrap
+        static $fallbackAuth = null;
+        if ($fallbackAuth === null) {
+            try {
+                // Try to create a minimal auth manager using available configuration
+                $config = [
+                    'default' => 'web',
+                    'guards' => [
+                        'web' => [
+                            'driver' => 'session',
+                            'provider' => 'users',
+                        ],
+                    ],
+                    'providers' => [
+                        'users' => [
+                            'driver' => 'database',
+                            'table' => 'users',
+                        ],
+                    ],
+                ];
+                
+                // Create minimal dependencies
+                $session = new \LengthOfRope\TreeHouse\Http\Session([
+                    'name' => 'treehouse_session',
+                    'lifetime' => 7200,
+                    'path' => '/',
+                    'domain' => '',
+                    'secure' => false,
+                    'httponly' => true,
+                    'samesite' => 'Lax',
+                ]);
+                $cookie = new \LengthOfRope\TreeHouse\Http\Cookie('auth_cookie');
+                $hash = new \LengthOfRope\TreeHouse\Security\Hash();
+                
+                $fallbackAuth = new \LengthOfRope\TreeHouse\Auth\AuthManager(
+                    $config,
+                    $session,
+                    $cookie,
+                    $hash
+                );
+                
+                // Store it globally for future use
+                $GLOBALS['auth_manager'] = $fallbackAuth;
+                
+            } catch (\Exception $e) {
+                // If we can't create an auth manager, return null
+                return null;
+            }
+        }
+        
+        return $fallbackAuth;
+    }
+}
+
 if (!function_exists('db')) {
     /**
      * Get database connection from application container
