@@ -13,7 +13,7 @@ Please note that this framework is in WIP state. It is nowhere near production r
 - **MVC Architecture**: Clean separation of concerns
 - **Dependency Injection**: Built-in container with automatic resolution
 - **Routing**: Flexible HTTP routing with middleware support
-- **Template Engine**: Custom template engine with components and layouts
+- **Template Engine**: ThymeLeaf-inspired template engine with components and layouts
 - **Database ORM**: Active Record pattern with relationships
 - **Console Commands**: CLI interface for development and maintenance
 - **Caching**: Multi-driver caching system
@@ -78,7 +78,7 @@ class HomeController
 
 ### 2. Define Routes
 
-In `config/routes.php`:
+In `config/routes/web.php`:
 
 ```php
 <?php
@@ -181,33 +181,54 @@ Configuration files are stored in the `config/` directory:
 - `app.php` - Application settings
 - `database.php` - Database connections
 - `cache.php` - Cache configuration
-- `routes.php` - Route definitions
+- `routes/web.php` - Web route definitions
+- `routes/api.php` - API route definitions
 
 ## Template Engine
 
-TreeHouse includes a powerful template engine:
+TreeHouse includes a powerful ThymeLeaf-inspired template engine:
 
+**Layout Template (`layouts/app.th.html`):**
 ```html
-@extends('layouts.app')
-
-@section('title', 'Home Page')
-
-@section('content')
-    <h1>{{ $title }}</h1>
-    <p>{{ $message }}</p>
-    
-    @if($user)
-        <p>Welcome, {{ $user->name }}!</p>
-    @endif
-    
-    @foreach($posts as $post)
-        <article>
-            <h2>{{ $post->title }}</h2>
-            <p>{{ $post->excerpt }}</p>
-        </article>
-    @endforeach
-@endsection
+<!DOCTYPE html>
+<html>
+<head>
+    <title th:text="${title}">Default Title</title>
+</head>
+<body>
+    <main th:fragment="content">
+        <!-- Content will be inserted here -->
+    </main>
+</body>
+</html>
 ```
+
+**Page Template (`home.th.html`):**
+```html
+<div th:extends="layouts/app" th:fragment="content">
+    <h1 th:text="${title}">Welcome</h1>
+    <p th:text="${message}">Default message</p>
+    
+    <div th:if="${user}">
+        <p>Welcome, <span th:text="${user.name}">User</span>!</p>
+    </div>
+    
+    <div th:each="post : ${posts}">
+        <article>
+            <h2 th:text="${post.title}">Post Title</h2>
+            <p th:text="${post.excerpt}">Post excerpt</p>
+        </article>
+    </div>
+</div>
+```
+
+### Template Features:
+- `th:text` - Set element text content
+- `th:if` - Conditional rendering
+- `th:each` - Loop over collections
+- `th:extends` - Extend layout templates
+- `th:fragment` - Define reusable fragments
+- `${variable}` - Variable interpolation
 
 ## Middleware
 
