@@ -12,7 +12,6 @@ use LengthOfRope\TreeHouse\Console\Output\OutputInterface;
 use LengthOfRope\TreeHouse\Database\Connection;
 use LengthOfRope\TreeHouse\Security\Hash;
 use LengthOfRope\TreeHouse\Support\Env;
-use App\Models\User;
 
 /**
  * Create User Command
@@ -91,11 +90,40 @@ class CreateUserCommand extends Command
             return $this->getInteractiveUserData($input, $output);
         }
 
+        $password = $input->getOption('password') ?: $this->askForPassword($output);
+        
+        // Validate password length
+        if (strlen($password) < 6) {
+            $this->error($output, 'Password must be at least 6 characters');
+            return null;
+        }
+        
+        // Validate email format
+        $email = $input->getArgument('email');
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->error($output, 'Invalid email address format');
+            return null;
+        }
+        
+        // Check if email already exists
+        if ($this->emailExists($email)) {
+            $this->error($output, "User with email '{$email}' already exists");
+            return null;
+        }
+        
+        // Validate role
+        $role = $input->getOption('role');
+        $availableRoles = ['admin', 'editor', 'viewer'];
+        if (!in_array($role, $availableRoles)) {
+            $this->error($output, "Invalid role '{$role}'. Available roles: " . implode(', ', $availableRoles));
+            return null;
+        }
+
         return [
             'name' => $input->getArgument('name'),
-            'email' => $input->getArgument('email'),
-            'password' => $input->getOption('password') ?: $this->askForPassword($output),
-            'role' => $input->getOption('role'),
+            'email' => $email,
+            'password' => $password,
+            'role' => $role,
             'email_verified' => $input->getOption('verified'),
         ];
     }

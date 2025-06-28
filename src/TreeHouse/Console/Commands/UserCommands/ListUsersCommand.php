@@ -177,7 +177,7 @@ class ListUsersCommand extends Command
         
         foreach ($columns as $index => $column) {
             $width = $widths[$index] ?? 15;
-            $formatted = str_pad($column, $width);
+            $formatted = str_pad((string) $column, $width);
             
             if ($isHeader) {
                 $row .= "<info>{$formatted}</info>";
