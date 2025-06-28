@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Auth;
 
-use PHPUnit\Framework\TestCase;
+use Tests\DatabaseTestCase;
 use LengthOfRope\TreeHouse\Auth\Gate;
 use LengthOfRope\TreeHouse\Auth\PermissionChecker;
 use LengthOfRope\TreeHouse\Auth\AuthorizableUser;
@@ -16,7 +16,7 @@ use LengthOfRope\TreeHouse\Auth\Contracts\Authorizable;
  * Tests for the role-based authorization system including
  * roles, permissions, Gate, and middleware functionality.
  */
-class AuthorizationTest extends TestCase
+class AuthorizationTest extends DatabaseTestCase
 {
     protected array $authConfig;
     protected TestUser $adminUser;
@@ -27,7 +27,10 @@ class AuthorizationTest extends TestCase
     {
         parent::setUp();
 
-        // Mock auth configuration
+        // Set up test data in database
+        $this->setupTestData();
+
+        // Mock auth configuration (for fallback compatibility)
         $this->authConfig = [
             'roles' => [
                 'admin' => ['*'],
@@ -48,10 +51,39 @@ class AuthorizationTest extends TestCase
         $this->editorUser = new TestUser(['id' => 2, 'name' => 'Editor', 'role' => 'editor']);
         $this->viewerUser = new TestUser(['id' => 3, 'name' => 'Viewer', 'role' => 'viewer']);
 
-        // Set config for test users
+        // Set config for test users (for fallback compatibility)
         $this->adminUser->setAuthConfig($this->authConfig);
         $this->editorUser->setAuthConfig($this->authConfig);
         $this->viewerUser->setAuthConfig($this->authConfig);
+    }
+
+    protected function setupTestData(): void
+    {
+        // Insert test roles
+        $this->connection->insert("INSERT INTO roles (slug, name) VALUES (?, ?)", ['admin', 'Administrator']);
+        $this->connection->insert("INSERT INTO roles (slug, name) VALUES (?, ?)", ['editor', 'Editor']);
+        $this->connection->insert("INSERT INTO roles (slug, name) VALUES (?, ?)", ['viewer', 'Viewer']);
+
+        // Insert test permissions
+        $this->connection->insert("INSERT INTO permissions (slug, name) VALUES (?, ?)", ['manage-users', 'Manage Users']);
+        $this->connection->insert("INSERT INTO permissions (slug, name) VALUES (?, ?)", ['edit-posts', 'Edit Posts']);
+        $this->connection->insert("INSERT INTO permissions (slug, name) VALUES (?, ?)", ['delete-posts', 'Delete Posts']);
+        $this->connection->insert("INSERT INTO permissions (slug, name) VALUES (?, ?)", ['view-posts', 'View Posts']);
+
+        // Set up role-permission relationships
+        // Admin gets all permissions
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [1, 1]); // admin -> manage-users
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [1, 2]); // admin -> edit-posts
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [1, 3]); // admin -> delete-posts
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [1, 4]); // admin -> view-posts
+
+        // Editor gets edit, delete, view posts
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [2, 2]); // editor -> edit-posts
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [2, 3]); // editor -> delete-posts
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [2, 4]); // editor -> view-posts
+
+        // Viewer gets only view posts
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [3, 4]); // viewer -> view-posts
     }
 
     public function testUserHasRole(): void

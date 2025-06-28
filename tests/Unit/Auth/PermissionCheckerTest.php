@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Auth;
 
-use PHPUnit\Framework\TestCase;
+use Tests\DatabaseTestCase;
 use LengthOfRope\TreeHouse\Auth\PermissionChecker;
 use LengthOfRope\TreeHouse\Auth\Contracts\Authorizable;
 use LengthOfRope\TreeHouse\Auth\AuthorizableUser;
@@ -14,7 +14,7 @@ use LengthOfRope\TreeHouse\Auth\AuthorizableUser;
  *
  * Tests for the permission evaluation utility class.
  */
-class PermissionCheckerTest extends TestCase
+class PermissionCheckerTest extends DatabaseTestCase
 {
     protected PermissionChecker $checker;
     protected array $authConfig;
@@ -22,6 +22,9 @@ class PermissionCheckerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Set up test data in database
+        $this->setupTestData();
 
         $this->authConfig = [
             'roles' => [
@@ -41,6 +44,40 @@ class PermissionCheckerTest extends TestCase
         ];
 
         $this->checker = new PermissionChecker($this->authConfig);
+    }
+
+    protected function setupTestData(): void
+    {
+        // Insert test roles
+        $this->connection->insert("INSERT INTO roles (slug, name) VALUES (?, ?)", ['admin', 'Administrator']);
+        $this->connection->insert("INSERT INTO roles (slug, name) VALUES (?, ?)", ['editor', 'Editor']);
+        $this->connection->insert("INSERT INTO roles (slug, name) VALUES (?, ?)", ['viewer', 'Viewer']);
+        $this->connection->insert("INSERT INTO roles (slug, name) VALUES (?, ?)", ['guest', 'Guest']);
+
+        // Insert test permissions
+        $this->connection->insert("INSERT INTO permissions (slug, name) VALUES (?, ?)", ['manage-users', 'Manage Users']);
+        $this->connection->insert("INSERT INTO permissions (slug, name) VALUES (?, ?)", ['edit-posts', 'Edit Posts']);
+        $this->connection->insert("INSERT INTO permissions (slug, name) VALUES (?, ?)", ['delete-posts', 'Delete Posts']);
+        $this->connection->insert("INSERT INTO permissions (slug, name) VALUES (?, ?)", ['view-posts', 'View Posts']);
+        $this->connection->insert("INSERT INTO permissions (slug, name) VALUES (?, ?)", ['special-permission', 'Special Permission']);
+
+        // Set up role-permission relationships
+        // Admin gets all permissions
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [1, 1]); // admin -> manage-users
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [1, 2]); // admin -> edit-posts
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [1, 3]); // admin -> delete-posts
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [1, 4]); // admin -> view-posts
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [1, 5]); // admin -> special-permission
+
+        // Editor gets edit, delete, view posts
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [2, 2]); // editor -> edit-posts
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [2, 3]); // editor -> delete-posts
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [2, 4]); // editor -> view-posts
+
+        // Viewer gets only view posts
+        $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [3, 4]); // viewer -> view-posts
+
+        // Guest gets no permissions (empty)
     }
 
     public function testCheckPermissionWithAuthorizedUser(): void

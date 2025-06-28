@@ -67,6 +67,7 @@ trait AuthorizableUser
      * Check if the user can perform a specific permission
      *
      * This method checks permissions based on the database role-permission system
+     * with fallback to config-based system for testing/compatibility
      *
      * @param string $permission Permission name to check
      * @return bool
@@ -83,6 +84,64 @@ trait AuthorizableUser
         }
         
         return false;
+    }
+
+    /**
+     * Check permission using config-based approach (fallback)
+     *
+     * @param string $permission Permission name to check
+     * @return bool
+     */
+    protected function canUsingConfig(string $permission): bool
+    {
+        // Get permission configuration
+        $permissions = $this->getPermissionConfig();
+        
+        if (!isset($permissions[$permission])) {
+            return false;
+        }
+        
+        $allowedRoles = $permissions[$permission];
+        
+        // Handle wildcard permission (everyone can access)
+        if (in_array('*', $allowedRoles)) {
+            return true;
+        }
+        
+        // Check if user's role is in the allowed roles
+        $userRole = $this->getRole();
+        
+        if (is_array($userRole)) {
+            return !empty(array_intersect($userRole, $allowedRoles));
+        }
+        
+        return in_array($userRole, $allowedRoles);
+    }
+
+    /**
+     * Check if database is available for queries
+     *
+     * @return bool
+     */
+    protected function isDatabaseAvailable(): bool
+    {
+        try {
+            $this->getDatabaseConnection();
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get the permission configuration (for config-based fallback)
+     *
+     * @return array
+     */
+    protected function getPermissionConfig(): array
+    {
+        $config = $this->getAuthConfigFromFile();
+        return $config['permissions'] ?? [];
     }
 
     /**
@@ -187,7 +246,7 @@ trait AuthorizableUser
      */
     protected function getDefaultRole(): string
     {
-        $config = $this->getAuthConfig();
+        $config = $this->getAuthConfigFromFile();
         return $config['default_role'] ?? 'member';
     }
 
@@ -242,7 +301,7 @@ trait AuthorizableUser
      *
      * @return array
      */
-    protected function getAuthConfig(): array
+    protected function getAuthConfigFromFile(): array
     {
         // Try to get config through static file inclusion
         $configPath = getcwd() . '/config/auth.php';
@@ -328,7 +387,7 @@ trait AuthorizableUser
      */
     protected function getRoleHierarchy(): array
     {
-        $config = $this->getAuthConfig();
+        $config = $this->getAuthConfigFromFile();
         return $config['role_hierarchy'] ?? [];
     }
 }

@@ -202,13 +202,14 @@ class PermissionChecker
     }
 
     /**
-     * Get all permissions for a role (database query)
+     * Get all permissions for a role
      *
      * @param string $role Role slug
      * @return array
      */
     public function getPermissionsForRole(string $role): array
     {
+        // Try database approach first
         try {
             $connection = $this->getDatabaseConnection();
             
@@ -223,84 +224,98 @@ class PermissionChecker
             $results = $connection->select($query, [$role]);
             return array_column($results, 'slug');
         } catch (\Exception $e) {
-            return [];
+            // Fallback to config-based approach
+            return $this->getPermissionsForRoleFromConfig($role);
         }
     }
 
     /**
-     * Get all available permissions (database query)
+     * Get all available permissions
      *
      * @return array
      */
     public function getAllPermissions(): array
     {
+        // Try database approach first
         try {
             $connection = $this->getDatabaseConnection();
             $results = $connection->select("SELECT slug FROM permissions ORDER BY slug");
             return array_column($results, 'slug');
         } catch (\Exception $e) {
-            return [];
+            // Fallback to config-based approach
+            $permissions = $this->config['permissions'] ?? [];
+            return array_keys($permissions);
         }
     }
 
     /**
-     * Get all available roles (database query)
+     * Get all available roles
      *
      * @return array
      */
     public function getAllRoles(): array
     {
+        // Try database approach first
         try {
             $connection = $this->getDatabaseConnection();
             $results = $connection->select("SELECT slug FROM roles ORDER BY slug");
             return array_column($results, 'slug');
         } catch (\Exception $e) {
-            return [];
+            // Fallback to config-based approach
+            $roles = $this->config['roles'] ?? [];
+            return array_keys($roles);
         }
     }
 
     /**
-     * Check if a role exists in database
+     * Check if a role exists
      *
      * @param string $role Role slug
      * @return bool
      */
     public function roleExists(string $role): bool
     {
+        // Try database approach first
         try {
             $connection = $this->getDatabaseConnection();
             $result = $connection->selectOne("SELECT COUNT(*) as count FROM roles WHERE slug = ?", [$role]);
             return ($result['count'] ?? 0) > 0;
         } catch (\Exception $e) {
-            return false;
+            // Fallback to config-based approach
+            $roles = $this->config['roles'] ?? [];
+            return isset($roles[$role]);
         }
     }
 
     /**
-     * Check if a permission exists in database
+     * Check if a permission exists
      *
      * @param string $permission Permission slug
      * @return bool
      */
     public function permissionExists(string $permission): bool
     {
+        // Try database approach first
         try {
             $connection = $this->getDatabaseConnection();
             $result = $connection->selectOne("SELECT COUNT(*) as count FROM permissions WHERE slug = ?", [$permission]);
             return ($result['count'] ?? 0) > 0;
         } catch (\Exception $e) {
-            return false;
+            // Fallback to config-based approach
+            $permissions = $this->config['permissions'] ?? [];
+            return isset($permissions[$permission]);
         }
     }
 
     /**
-     * Get roles that have a specific permission (database query)
+     * Get roles that have a specific permission
      *
      * @param string $permission Permission slug
      * @return array
      */
     public function getRolesWithPermission(string $permission): array
     {
+        // Try database approach first
         try {
             $connection = $this->getDatabaseConnection();
             
@@ -315,8 +330,40 @@ class PermissionChecker
             $results = $connection->select($query, [$permission]);
             return array_column($results, 'slug');
         } catch (\Exception $e) {
+            // Fallback to config-based approach
+            $permissions = $this->config['permissions'] ?? [];
+            
+            if (!isset($permissions[$permission])) {
+                return [];
+            }
+
+            return $permissions[$permission];
+        }
+    }
+
+    /**
+     * Get permissions for role from config (fallback method)
+     *
+     * @param string $role Role name
+     * @return array
+     */
+    protected function getPermissionsForRoleFromConfig(string $role): array
+    {
+        $roleConfig = $this->config['roles'] ?? [];
+        
+        if (!isset($roleConfig[$role])) {
             return [];
         }
+
+        $rolePermissions = $roleConfig[$role];
+        
+        // Handle wildcard permissions
+        if (in_array('*', $rolePermissions)) {
+            $permissions = $this->config['permissions'] ?? [];
+            return array_keys($permissions);
+        }
+
+        return $rolePermissions;
     }
 
     /**
