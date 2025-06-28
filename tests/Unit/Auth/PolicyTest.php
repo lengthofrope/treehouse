@@ -71,6 +71,19 @@ class PolicyTest extends DatabaseTestCase
 
         // Viewer gets only view posts
         $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [3, 4]); // viewer -> view-posts
+
+        // Create test users in database
+        $this->connection->insert("INSERT INTO users (id, name, email, password) VALUES (?, ?, ?, ?)",
+            [1, 'Admin User', 'admin@example.com', 'password']);
+        $this->connection->insert("INSERT INTO users (id, name, email, password) VALUES (?, ?, ?, ?)",
+            [2, 'Editor User', 'editor@example.com', 'password']);
+        $this->connection->insert("INSERT INTO users (id, name, email, password) VALUES (?, ?, ?, ?)",
+            [3, 'Viewer User', 'viewer@example.com', 'password']);
+
+        // Set up user-role relationships in database
+        $this->connection->insert("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", [1, 1]); // admin user -> admin role
+        $this->connection->insert("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", [2, 2]); // editor user -> editor role
+        $this->connection->insert("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", [3, 3]); // viewer user -> viewer role
     }
 
     public function testBeforeMethodAllowsAdminUsers(): void
@@ -204,7 +217,7 @@ class PolicyTest extends DatabaseTestCase
 
     public function testHasAnyRoleHelper(): void
     {
-        $editorUser = new PolicyTestUser(['id' => 1, 'role' => 'editor']);
+        $editorUser = new PolicyTestUser(['id' => 2, 'role' => 'editor']); // Use ID 2 which has editor role in DB
         $editorUser->setAuthConfig($this->authConfig);
 
         $this->assertTrue($this->policy->testHasAnyRole($editorUser, ['admin', 'editor']));
@@ -213,7 +226,7 @@ class PolicyTest extends DatabaseTestCase
 
     public function testHasRoleHelper(): void
     {
-        $editorUser = new PolicyTestUser(['id' => 1, 'role' => 'editor']);
+        $editorUser = new PolicyTestUser(['id' => 2, 'role' => 'editor']); // Use ID 2 which has editor role in DB
         $editorUser->setAuthConfig($this->authConfig);
 
         $this->assertTrue($this->policy->testHasRole($editorUser, 'editor'));
@@ -222,7 +235,7 @@ class PolicyTest extends DatabaseTestCase
 
     public function testCanHelper(): void
     {
-        $editorUser = new PolicyTestUser(['id' => 1, 'role' => 'editor']);
+        $editorUser = new PolicyTestUser(['id' => 2, 'role' => 'editor']); // Use ID 2 which has editor role in DB
         $editorUser->setAuthConfig($this->authConfig);
 
         $this->assertTrue($this->policy->testCan($editorUser, 'edit-posts'));
@@ -243,7 +256,7 @@ class PolicyTest extends DatabaseTestCase
 
     public function testConcreteMethodWithNonOwner(): void
     {
-        $user = new PolicyTestUser(['id' => 1, 'role' => 'viewer']);
+        $user = new PolicyTestUser(['id' => 3, 'role' => 'viewer']); // Use ID 3 which has viewer role in DB
         $user->setAuthConfig($this->authConfig);
         $resource = new TestResource(['user_id' => 999]); // Different owner
 
@@ -254,7 +267,7 @@ class PolicyTest extends DatabaseTestCase
 
     public function testConcreteMethodWithNoPermissionAndNotOwner(): void
     {
-        $user = new PolicyTestUser(['id' => 1, 'role' => 'viewer']);
+        $user = new PolicyTestUser(['id' => 3, 'role' => 'viewer']); // Use ID 3 which has viewer role in DB
         $user->setAuthConfig($this->authConfig);
         $resource = new TestResource(['user_id' => 999]);
 
@@ -355,6 +368,11 @@ class PolicyTestUser implements Authorizable
     public function setAuthConfig(array $config): void
     {
         $this->authConfig = $config;
+    }
+
+    protected function getAuthConfigFromFile(): array
+    {
+        return $this->authConfig;
     }
 
     public function save(): bool

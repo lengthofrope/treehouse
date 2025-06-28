@@ -37,13 +37,28 @@ trait AuthorizableUser
      */
     public function hasRole(string $role): bool
     {
-        $userRole = $this->getRole();
-        
-        if (is_array($userRole)) {
-            return in_array($role, $userRole);
+        try {
+            $connection = $this->getDatabaseConnection();
+            
+            $query = "
+                SELECT COUNT(*) as count
+                FROM user_roles ur
+                JOIN roles r ON r.id = ur.role_id
+                WHERE ur.user_id = ? AND r.slug = ?
+            ";
+            
+            $result = $connection->selectOne($query, [$this->getAuthIdentifier(), $role]);
+            return ($result['count'] ?? 0) > 0;
+        } catch (\Exception $e) {
+            // Fallback to attribute-based checking
+            $userRole = $this->getRole();
+            
+            if (is_array($userRole)) {
+                return in_array($role, $userRole);
+            }
+            
+            return $userRole === $role;
         }
-        
-        return $userRole === $role;
     }
 
     /**
@@ -163,21 +178,46 @@ trait AuthorizableUser
      */
     public function assignRole(string $role): void
     {
-        $currentRole = $this->getRole();
-        
-        if (is_array($currentRole)) {
-            if (!in_array($role, $currentRole)) {
-                $currentRole[] = $role;
-                $this->setRole($currentRole);
+        try {
+            $connection = $this->getDatabaseConnection();
+            
+            // First, get the role ID
+            $roleQuery = "SELECT id FROM roles WHERE slug = ?";
+            $roleResult = $connection->selectOne($roleQuery, [$role]);
+            
+            if (!$roleResult) {
+                throw new \InvalidArgumentException("Role '{$role}' does not exist");
             }
-        } else {
-            // For single role systems, replace the current role
-            $this->setRole($role);
-        }
-        
-        // Save the changes if the model supports it
-        if (method_exists($this, 'save')) {
-            $this->save();
+            
+            $roleId = $roleResult['id'];
+            $userId = $this->getAuthIdentifier();
+            
+            // Check if user already has this role
+            $existingQuery = "SELECT COUNT(*) as count FROM user_roles WHERE user_id = ? AND role_id = ?";
+            $existingResult = $connection->selectOne($existingQuery, [$userId, $roleId]);
+            
+            if (($existingResult['count'] ?? 0) == 0) {
+                // Insert the user-role relationship
+                $connection->insert("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", [$userId, $roleId]);
+            }
+        } catch (\Exception $e) {
+            // Fallback to attribute-based assignment
+            $currentRole = $this->getRole();
+            
+            if (is_array($currentRole)) {
+                if (!in_array($role, $currentRole)) {
+                    $currentRole[] = $role;
+                    $this->setRole($currentRole);
+                }
+            } else {
+                // For single role systems, replace the current role
+                $this->setRole($role);
+            }
+            
+            // Save the changes if the model supports it
+            if (method_exists($this, 'save')) {
+                $this->save();
+            }
         }
     }
 
@@ -189,20 +229,45 @@ trait AuthorizableUser
      */
     public function removeRole(string $role): void
     {
-        $currentRole = $this->getRole();
-        
-        if (is_array($currentRole)) {
-            $newRoles = array_filter($currentRole, fn($r) => $r !== $role);
-            $this->setRole(array_values($newRoles));
-        } else {
-            // For single role systems, set to default role
-            $defaultRole = $this->getDefaultRole();
-            $this->setRole($defaultRole);
-        }
-        
-        // Save the changes if the model supports it
-        if (method_exists($this, 'save')) {
-            $this->save();
+        try {
+            $connection = $this->getDatabaseConnection();
+            
+            // Get the role ID
+            $roleQuery = "SELECT id FROM roles WHERE slug = ?";
+            $roleResult = $connection->selectOne($roleQuery, [$role]);
+            
+            if ($roleResult) {
+                $roleId = $roleResult['id'];
+                $userId = $this->getAuthIdentifier();
+                
+                // Remove the user-role relationship
+                $connection->delete("DELETE FROM user_roles WHERE user_id = ? AND role_id = ?", [$userId, $roleId]);
+                
+                // Check if user has any roles left, if not assign default role
+                $remainingRolesQuery = "SELECT COUNT(*) as count FROM user_roles WHERE user_id = ?";
+                $remainingResult = $connection->selectOne($remainingRolesQuery, [$userId]);
+                
+                if (($remainingResult['count'] ?? 0) == 0) {
+                    $this->assignRole($this->getDefaultRole());
+                }
+            }
+        } catch (\Exception $e) {
+            // Fallback to attribute-based removal
+            $currentRole = $this->getRole();
+            
+            if (is_array($currentRole)) {
+                $newRoles = array_filter($currentRole, fn($r) => $r !== $role);
+                $this->setRole(array_values($newRoles));
+            } else {
+                // For single role systems, set to default role
+                $defaultRole = $this->getDefaultRole();
+                $this->setRole($defaultRole);
+            }
+            
+            // Save the changes if the model supports it
+            if (method_exists($this, 'save')) {
+                $this->save();
+            }
         }
     }
 
@@ -345,13 +410,28 @@ trait AuthorizableUser
      */
     public function getRoles(): array
     {
-        $role = $this->getRole();
-        
-        if (is_array($role)) {
-            return $role;
+        try {
+            $connection = $this->getDatabaseConnection();
+            
+            $query = "
+                SELECT r.slug
+                FROM user_roles ur
+                JOIN roles r ON r.id = ur.role_id
+                WHERE ur.user_id = ?
+            ";
+            
+            $results = $connection->select($query, [$this->getAuthIdentifier()]);
+            return array_column($results, 'slug');
+        } catch (\Exception $e) {
+            // Fallback to attribute-based roles
+            $role = $this->getRole();
+            
+            if (is_array($role)) {
+                return $role;
+            }
+            
+            return [$role];
         }
-        
-        return [$role];
     }
 
     /**

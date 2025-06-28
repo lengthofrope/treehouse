@@ -78,6 +78,19 @@ class PermissionCheckerTest extends DatabaseTestCase
         $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [3, 4]); // viewer -> view-posts
 
         // Guest gets no permissions (empty)
+
+        // Create test users in database
+        $this->connection->insert("INSERT INTO users (id, name, email, password) VALUES (?, ?, ?, ?)",
+            [1, 'Admin User', 'admin@example.com', 'password']);
+        $this->connection->insert("INSERT INTO users (id, name, email, password) VALUES (?, ?, ?, ?)",
+            [2, 'Editor User', 'editor@example.com', 'password']);
+        $this->connection->insert("INSERT INTO users (id, name, email, password) VALUES (?, ?, ?, ?)",
+            [3, 'Viewer User', 'viewer@example.com', 'password']);
+
+        // Set up user-role relationships in database
+        $this->connection->insert("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", [1, 1]); // admin user -> admin role
+        $this->connection->insert("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", [2, 2]); // editor user -> editor role
+        $this->connection->insert("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", [3, 3]); // viewer user -> viewer role
     }
 
     public function testCheckPermissionWithAuthorizedUser(): void
@@ -92,7 +105,7 @@ class PermissionCheckerTest extends DatabaseTestCase
 
     public function testCheckPermissionWithUnauthorizedUser(): void
     {
-        $user = new PermissionTestUser(['id' => 2, 'role' => 'viewer']);
+        $user = new PermissionTestUser(['id' => 3, 'role' => 'viewer']); // Use ID 3 which has viewer role in DB
         $user->setAuthConfig($this->authConfig);
 
         $this->assertFalse($this->checker->check($user, 'manage-users'));
@@ -111,7 +124,7 @@ class PermissionCheckerTest extends DatabaseTestCase
         $adminUser = new PermissionTestUser(['id' => 1, 'role' => 'admin']);
         $adminUser->setAuthConfig($this->authConfig);
 
-        $viewerUser = new PermissionTestUser(['id' => 2, 'role' => 'viewer']);
+        $viewerUser = new PermissionTestUser(['id' => 3, 'role' => 'viewer']); // Use ID 3 which has viewer role in DB
         $viewerUser->setAuthConfig($this->authConfig);
 
         $this->assertTrue($this->checker->hasRole($adminUser, 'admin'));
@@ -125,7 +138,7 @@ class PermissionCheckerTest extends DatabaseTestCase
 
     public function testHasAnyRole(): void
     {
-        $editorUser = new PermissionTestUser(['id' => 1, 'role' => 'editor']);
+        $editorUser = new PermissionTestUser(['id' => 2, 'role' => 'editor']); // Use ID 2 which has editor role in DB
         $editorUser->setAuthConfig($this->authConfig);
 
         $this->assertTrue($this->checker->hasAnyRole($editorUser, ['admin', 'editor']));
@@ -152,7 +165,7 @@ class PermissionCheckerTest extends DatabaseTestCase
 
     public function testHasAnyPermission(): void
     {
-        $editorUser = new PermissionTestUser(['id' => 1, 'role' => 'editor']);
+        $editorUser = new PermissionTestUser(['id' => 2, 'role' => 'editor']); // Use ID 2 which has editor role in DB
         $editorUser->setAuthConfig($this->authConfig);
 
         $this->assertTrue($this->checker->hasAnyPermission($editorUser, ['manage-users', 'edit-posts']));
@@ -332,6 +345,11 @@ class PermissionTestUser implements Authorizable
     public function setAuthConfig(array $config): void
     {
         $this->authConfig = $config;
+    }
+
+    protected function getAuthConfigFromFile(): array
+    {
+        return $this->authConfig;
     }
 
     public function save(): bool

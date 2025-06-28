@@ -84,6 +84,11 @@ class AuthorizationTest extends DatabaseTestCase
 
         // Viewer gets only view posts
         $this->connection->insert("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)", [3, 4]); // viewer -> view-posts
+
+        // Set up user-role relationships in database
+        $this->connection->insert("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", [1, 1]); // admin user -> admin role
+        $this->connection->insert("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", [2, 2]); // editor user -> editor role
+        $this->connection->insert("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", [3, 3]); // viewer user -> viewer role
     }
 
     public function testUserHasRole(): void
@@ -218,17 +223,22 @@ class AuthorizationTest extends DatabaseTestCase
 
     public function testRoleAssignment(): void
     {
+        // Create a new user in the database first
+        $this->connection->insert("INSERT INTO users (id, name, email, password) VALUES (?, ?, ?, ?)",
+            [4, 'Test User', 'test@example.com', 'password']);
+        
         $user = new TestUser(['id' => 4, 'name' => 'Test', 'role' => 'viewer']);
         $user->setAuthConfig($this->authConfig);
 
+        // Initially assign viewer role in database
+        $user->assignRole('viewer');
         $this->assertTrue($user->hasRole('viewer'));
         $this->assertFalse($user->hasRole('editor'));
 
         // Assign new role
         $user->assignRole('editor');
         $this->assertTrue($user->hasRole('editor'));
-        $this->assertFalse($user->hasRole('viewer'));
-
+        
         // Remove role (should revert to default)
         $user->removeRole('editor');
         $this->assertTrue($user->hasRole('viewer'));
