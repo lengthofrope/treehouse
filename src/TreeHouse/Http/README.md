@@ -1,515 +1,926 @@
-# TreeHouse Http Library
+# TreeHouse Framework - Http Layer
 
-The TreeHouse Http library provides a comprehensive set of classes for handling HTTP requests and responses in PHP. This library is designed to simplify web development by offering well-tested, secure utilities for request handling, response building, session management, cookie handling, and file uploads.
+The Http layer provides comprehensive HTTP request and response handling for the TreeHouse Framework. It includes secure session management, cookie handling, file uploads, and a rich set of utilities for building web applications.
 
 ## Table of Contents
 
-- [Helper Function](#helper-function)
-- [Classes Overview](#classes-overview)
-  - [Request - HTTP Request Handler](#request---http-request-handler)
-  - [Response - HTTP Response Builder](#response---http-response-builder)
-  - [Session - Session Management](#session---session-management)
-  - [Cookie - Cookie Handler](#cookie---cookie-handler)
-  - [UploadedFile - File Upload Handler](#uploadedfile---file-upload-handler)
+- [Overview](#overview)
+- [Core Components](#core-components)
+- [Request Handling](#request-handling)
+- [Response Building](#response-building)
+- [Session Management](#session-management)
+- [Cookie Management](#cookie-management)
+- [File Uploads](#file-uploads)
+- [Helper Functions](#helper-functions)
 - [Usage Examples](#usage-examples)
+- [Security Features](#security-features)
+- [Best Practices](#best-practices)
 
-## Helper Function
+## Overview
 
-TreeHouse provides a convenient global helper function for accessing the session:
+The Http layer provides:
 
-### Using the session() Helper
+- **Request Processing**: Parse and access HTTP request data, headers, and files
+- **Response Building**: Create various types of HTTP responses with proper headers
+- **Session Management**: Secure session handling with flash data and CSRF protection
+- **Cookie Management**: Secure cookie creation and management
+- **File Uploads**: Robust file upload handling with validation
+- **Security Features**: CSRF protection, secure headers, and input validation
+
+## Core Components
+
+### Request
+
+The [`Request`](Request.php:20) class handles incoming HTTP requests:
 
 ```php
-// Get the session instance
-$sessionInstance = session();
-
-// Use session operations directly
-session()->set('user_id', 123);
-$userId = session()->get('user_id');
-
-if (session()->has('cart')) {
-    $cart = session()->get('cart');
+class Request
+{
+    public static function createFromGlobals(): static;
+    public function method(): string;
+    public function uri(): string;
+    public function url(): string;
+    public function path(): string;
+    public function input(?string $key = null, mixed $default = null): mixed;
+    public function query(?string $key = null, mixed $default = null): mixed;
+    public function request(?string $key = null, mixed $default = null): mixed;
+    public function file(string $key): ?UploadedFile;
+    public function header(string $key, ?string $default = null): ?string;
+    public function cookie(string $key, ?string $default = null): ?string;
+    public function json(?string $key = null, mixed $default = null): mixed;
 }
-
-// Flash messages
-session()->flash('success', 'Operation completed!');
-$message = session()->getFlash('success');
-
-// CSRF protection
-$token = session()->token();
-$isValid = session()->validateToken($userToken);
-
-// Session management
-session()->regenerate();
-session()->clear();
 ```
 
-### Helper Usage Examples
+### Response
+
+The [`Response`](Response.php:17) class builds HTTP responses:
 
 ```php
-// Simple session operations
-session()->set('preferences.theme', 'dark');
-$theme = session()->get('preferences.theme', 'light');
-
-// Flash messages for user feedback
-if ($user->save()) {
-    session()->flash('success', 'Profile updated successfully!');
-    return Response::redirect('/profile');
+class Response
+{
+    public static function ok(string $content = '', array $headers = []): static;
+    public static function json(mixed $data, int $statusCode = 200, array $headers = [], int $options = 0): static;
+    public static function redirect(string $url, int $statusCode = 302, array $headers = []): static;
+    public static function download(string $filePath, ?string $filename = null, array $headers = []): static;
+    public static function notFound(string $message = 'Not Found', array $headers = []): static;
+    public function send(): void;
 }
-
-// Shopping cart example
-$cart = session()->get('cart', []);
-$cart[] = $product;
-session()->set('cart', $cart);
-
-// Counter example
-$views = session()->increment('page_views');
-echo "You have viewed {$views} pages this session";
-
-// CSRF protection in forms
-$csrfToken = session()->token();
-echo '<input type="hidden" name="_token" value="' . $csrfToken . '">';
 ```
 
-## Classes Overview
+### Session
 
-### Request - HTTP Request Handler
+The [`Session`](Session.php:20) class provides secure session management:
 
-The `Request` class provides comprehensive access to incoming HTTP requests, including headers, parameters, files, and other request-related information.
-
-#### Key Features:
-- **Global Request Creation**: Create from PHP superglobals ($_GET, $_POST, etc.)
-- **Data Access**: Access query parameters, form data, and JSON payloads
-- **File Handling**: Manage uploaded files with validation
-- **Header Management**: Read and validate HTTP headers
-- **Security Features**: IP detection, HTTPS detection, CSRF protection
-
-#### Core Methods:
 ```php
-// Create from globals
+class Session
+{
+    public function start(): bool;
+    public function get(string $key, mixed $default = null): mixed;
+    public function set(string $key, mixed $value): void;
+    public function flash(string $key, mixed $value): void;
+    public function token(): string;
+    public function regenerate(bool $deleteOldSession = true): bool;
+}
+```
+
+### Cookie
+
+The [`Cookie`](Cookie.php:17) class handles secure cookie management:
+
+```php
+class Cookie
+{
+    public static function make(string $name, string $value, int $minutes = 0, ...): static;
+    public static function forever(string $name, string $value, ...): static;
+    public static function forget(string $name, string $path = '/', string $domain = ''): static;
+    public function send(): bool;
+}
+```
+
+### UploadedFile
+
+The [`UploadedFile`](UploadedFile.php:19) class handles file uploads:
+
+```php
+class UploadedFile
+{
+    public function isValid(): bool;
+    public function move(string $targetPath): bool;
+    public function store(string $directory, ?string $filename = null): string;
+    public function getExtension(): string;
+    public function getMimeType(): ?string;
+    public function isImage(): bool;
+}
+```
+
+## Request Handling
+
+### Creating Requests
+
+```php
+// Create from PHP globals
 $request = Request::createFromGlobals();
 
-// Request information
-$request->method();                         // 'GET', 'POST', etc.
-$request->uri();                           // '/path/to/resource'
-$request->url();                           // 'https://example.com/path'
-$request->path();                          // '/path/to/resource'
-$request->isSecure();                      // true/false for HTTPS
-
-// Input data
-$request->input('name', 'default');        // Get input with default
-$request->query('page', 1);                // Get query parameter
-$request->request('email');                // Get POST/PUT data
-$request->json('user.name');               // Get JSON data with dot notation
-
-// Headers and metadata
-$request->header('content-type');          // Get header value
-$request->hasHeader('authorization');      // Check header exists
-$request->ip();                           // Get client IP
-$request->userAgent();                    // Get user agent
-
-// File uploads
-$request->file('avatar');                 // Get uploaded file
-$request->hasFile('document');            // Check if file uploaded
-$request->files();                        // Get all files
-
-// Request type detection
-$request->isMethod('POST');               // Check HTTP method
-$request->isAjax();                       // Check if AJAX request
-$request->expectsJson();                  // Check if expects JSON response
+// Create manually
+$request = new Request($_GET, $_POST, $_FILES, $_COOKIE, $_SERVER);
 ```
 
-### Response - HTTP Response Builder
+### Accessing Request Data
 
-The `Response` class provides a fluent interface for building and sending HTTP responses with proper status codes, headers, and content handling.
-
-#### Key Features:
-- **Multiple Content Types**: JSON, HTML, plain text, file downloads
-- **Status Code Helpers**: Pre-built methods for common HTTP status codes
-- **Header Management**: Set, modify, and remove response headers
-- **Cookie Support**: Attach cookies to responses
-- **File Responses**: Serve files for download or inline display
-
-#### Core Methods:
+#### Basic Information
 ```php
-// Basic responses
-Response::ok('Hello World');               // 200 OK
-Response::created($data);                  // 201 Created
-Response::noContent();                     // 204 No Content
-
-// Content-specific responses
-Response::json(['status' => 'success']);   // JSON response
-Response::html('<h1>Hello</h1>');         // HTML response
-Response::text('Plain text');             // Text response
-
-// Redirects
-Response::redirect('/dashboard');          // 302 redirect
-Response::redirect('/login', 301);        // 301 permanent redirect
-
-// File responses
-Response::download('/path/to/file.pdf');   // Force download
-Response::file('/path/to/image.jpg');     // Inline display
-
-// Error responses
-Response::badRequest('Invalid input');     // 400 Bad Request
-Response::unauthorized();                  // 401 Unauthorized
-Response::forbidden();                     // 403 Forbidden
-Response::notFound();                     // 404 Not Found
-Response::serverError();                  // 500 Internal Server Error
-
-// Fluent interface
-$response = Response::json($data)
-    ->setStatusCode(201)
-    ->setHeader('X-Custom', 'value')
-    ->withCookie('session', $sessionId);
-
-// Send response
-$response->send();
+$method = $request->method(); // GET, POST, PUT, etc.
+$uri = $request->uri(); // /path/to/resource
+$url = $request->url(); // https://example.com/path/to/resource
+$path = $request->path(); // /path/to/resource (without query string)
+$host = $request->getHost(); // example.com
+$ip = $request->ip(); // Client IP address
 ```
 
-### Session - Session Management
-
-The `Session` class provides secure session handling with flash data, CSRF protection, and session regeneration capabilities.
-
-#### Key Features:
-- **Secure Configuration**: Configurable security settings and cookie parameters
-- **Flash Data**: Temporary data that persists for one request cycle
-- **CSRF Protection**: Built-in CSRF token generation and validation
-- **Session Regeneration**: Prevent session fixation attacks
-- **Dot Notation**: Access nested session data with dot notation
-
-#### Core Methods:
+#### Input Data
 ```php
-// Session lifecycle
-$session = new Session(['lifetime' => 3600]);
-$session->start();                        // Start session
-$session->regenerate();                   // Regenerate session ID
-$session->destroy();                      // Destroy session
+// Get all input (query + request data)
+$allInput = $request->input();
 
-// Data management
-$session->set('user.name', 'John Doe');   // Set session data
-$session->get('user.name', 'Guest');      // Get with default
-$session->has('user.email');             // Check if exists
-$session->remove('user.temp');           // Remove data
-$session->all();                         // Get all session data
-$session->clear();                       // Clear all data
+// Get specific input with default
+$name = $request->input('name', 'Anonymous');
 
-// Flash data (survives one request)
-$session->flash('message', 'Success!');   // Set flash data
-$session->getFlash('message');            // Get flash data
-$session->hasFlash('error');             // Check flash exists
-$session->keepFlash(['message']);        // Keep for another request
-$session->reflash();                     // Keep all flash data
+// Get query parameters
+$page = $request->query('page', 1);
 
-// Utility methods
-$session->pull('temp_data');             // Get and remove
-$session->increment('page_views');       // Increment counter
-$session->decrement('attempts', 2);      // Decrement counter
-
-// CSRF protection
-$token = $session->token();              // Get CSRF token
-$session->regenerateToken();             // Generate new token
-$session->validateToken($userToken);     // Validate token
+// Get request data (POST/PUT/PATCH)
+$email = $request->request('email');
 ```
 
-### Cookie - Cookie Handler
-
-The `Cookie` class provides secure cookie management with proper encoding, security attributes, and validation.
-
-#### Key Features:
-- **Security Attributes**: Secure, HttpOnly, SameSite configuration
-- **Flexible Expiration**: Session cookies, timed expiration, or permanent cookies
-- **Validation**: Cookie name and attribute validation
-- **Easy Creation**: Factory methods for common cookie types
-- **Header Generation**: Generate proper Set-Cookie headers
-
-#### Core Methods:
+#### Headers
 ```php
-// Cookie creation
-$cookie = new Cookie('name', 'value', time() + 3600);
-$cookie = Cookie::make('session_id', $id, 120);  // 120 minutes
-$cookie = Cookie::forever('remember_token', $token);
-$cookie = Cookie::forget('old_cookie');          // Deletion cookie
+// Get specific header
+$contentType = $request->header('content-type');
+$userAgent = $request->userAgent();
 
-// Security configuration
-$cookie->setSecure(true)                // HTTPS only
-       ->setHttpOnly(true)              // No JavaScript access
-       ->setSameSite('Strict')          // CSRF protection
-       ->setDomain('.example.com')      // Domain scope
-       ->setPath('/admin');             // Path scope
+// Get all headers
+$headers = $request->headers();
 
-// Cookie properties
-$cookie->getName();                     // Get cookie name
-$cookie->getValue();                    // Get cookie value
-$cookie->getExpires();                  // Get expiration timestamp
-$cookie->isExpired();                   // Check if expired
-$cookie->isSessionCookie();             // Check if session cookie
-$cookie->getMaxAge();                   // Get max age in seconds
-
-// Validation
-Cookie::isValidName('my-cookie');       // Validate cookie name
-Cookie::isValidSameSite('Lax');        // Validate SameSite value
-
-// Global cookie access
-Cookie::get('session_id', 'default');   // Get from $_COOKIE
-Cookie::has('remember_token');          // Check if exists
-
-// Send cookie
-$cookie->send();                        // Send to browser
-$headerString = $cookie->toHeaderString(); // Get header string
+// Check if header exists
+if ($request->hasHeader('authorization')) {
+    $auth = $request->header('authorization');
+}
 ```
 
-### UploadedFile - File Upload Handler
-
-The `UploadedFile` class represents uploaded files and provides methods for secure file handling, validation, and storage.
-
-#### Key Features:
-- **Upload Validation**: Check upload errors and file integrity
-- **MIME Type Detection**: Both client-reported and actual MIME type detection
-- **File Operations**: Move, store, and read file contents
-- **Image Handling**: Image-specific validation and dimension detection
-- **Security Validation**: Extension and MIME type whitelisting
-
-#### Core Methods:
+#### JSON Data
 ```php
-// File information
-$file->getName();                       // Original filename
-$file->getClientOriginalName();         // Alias for getName()
-$file->getExtension();                  // File extension
-$file->getSize();                       // File size in bytes
-$file->getClientMimeType();             // Client-reported MIME type
-$file->getMimeType();                   // Actual MIME type (detected)
+// Get all JSON data
+$jsonData = $request->json();
 
-// Upload validation
-$file->isValid();                       // Check if upload successful
-$file->getError();                      // Get upload error code
-$file->getErrorMessage();               // Get human-readable error
-$file->isMoved();                       // Check if already moved
+// Get specific JSON field
+$userId = $request->json('user.id');
 
-// File operations
-$content = $file->getContent();         // Read file contents
-$file->move('/path/to/destination.jpg'); // Move to specific path
-$filename = $file->store('/uploads');    // Store with generated name
-$file->getTempName();                   // Get temporary file path
+// Check if request expects JSON
+if ($request->expectsJson()) {
+    return Response::json($data);
+}
+```
 
-// Validation helpers
-$file->hasAllowedExtension(['jpg', 'png', 'gif']);
-$file->hasAllowedMimeType(['image/jpeg', 'image/png']);
-$file->isWithinSizeLimit(1024 * 1024);  // 1MB limit
+#### Request Type Detection
+```php
+// Check request method
+if ($request->isMethod('POST')) {
+    // Handle POST request
+}
 
-// Image-specific methods
-$file->isImage();                       // Check if image file
-$dimensions = $file->getImageDimensions(); // [width, height]
+// Check if AJAX request
+if ($request->isAjax()) {
+    return Response::json($response);
+}
 
-// Security
-$hash = $file->getHash('sha256');       // Get file hash
+// Check if secure (HTTPS)
+if ($request->isSecure()) {
+    // Handle secure request
+}
+```
+
+## Response Building
+
+### Basic Responses
+
+```php
+// Simple text response
+return Response::ok('Hello World');
+
+// HTML response
+return Response::html('<h1>Welcome</h1>');
+
+// Plain text response
+return Response::text('Plain text content');
+
+// No content response
+return Response::noContent();
+```
+
+### JSON Responses
+
+```php
+// Simple JSON response
+return Response::json(['message' => 'Success']);
+
+// JSON with custom status code
+return Response::json(['error' => 'Not found'], 404);
+
+// JSON with custom headers
+return Response::json($data, 200, ['X-Custom-Header' => 'value']);
+
+// JSON with encoding options
+return Response::json($data, 200, [], JSON_PRETTY_PRINT);
+```
+
+### Redirects
+
+```php
+// Simple redirect
+return Response::redirect('/dashboard');
+
+// Permanent redirect
+return Response::redirect('/new-url', 301);
+
+// Redirect with custom headers
+return Response::redirect('/login', 302, ['X-Reason' => 'Authentication required']);
+```
+
+### File Responses
+
+```php
+// File download
+return Response::download('/path/to/file.pdf', 'document.pdf');
+
+// Inline file display
+return Response::file('/path/to/image.jpg', 'photo.jpg');
+
+// File with custom headers
+return Response::download($filePath, $filename, [
+    'X-Custom-Header' => 'value'
+]);
+```
+
+### Error Responses
+
+```php
+// Bad request
+return Response::badRequest('Invalid input data');
+
+// Unauthorized
+return Response::unauthorized('Authentication required');
+
+// Forbidden
+return Response::forbidden('Access denied');
+
+// Not found
+return Response::notFound('Resource not found');
+
+// Method not allowed
+return Response::methodNotAllowed('POST method not allowed');
+
+// Unprocessable entity
+return Response::unprocessableEntity('Validation failed');
+
+// Server error
+return Response::serverError('Internal server error');
+```
+
+### Response Manipulation
+
+```php
+$response = Response::ok('Content');
+
+// Set headers
+$response->setHeader('Cache-Control', 'no-cache');
+$response->withHeaders([
+    'X-Frame-Options' => 'DENY',
+    'X-Content-Type-Options' => 'nosniff'
+]);
+
+// Set cookies
+$response->withCookie('user_preference', 'dark_mode', time() + 3600);
+
+// Modify content
+$response->setContent('New content');
+
+// Change status code
+$response->setStatusCode(201);
+```
+
+## Session Management
+
+### Starting Sessions
+
+```php
+$session = new Session([
+    'name' => 'app_session',
+    'lifetime' => 7200, // 2 hours
+    'secure' => true,
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
+
+$session->start();
+```
+
+### Basic Session Operations
+
+```php
+// Set session data
+$session->set('user_id', 123);
+$session->set('user.profile.name', 'John Doe');
+
+// Get session data
+$userId = $session->get('user_id');
+$name = $session->get('user.profile.name', 'Guest');
+
+// Check if key exists
+if ($session->has('user_id')) {
+    // User is logged in
+}
+
+// Remove session data
+$session->remove('temp_data');
+
+// Get and remove (pull)
+$message = $session->pull('status_message', 'No message');
+
+// Clear all session data
+$session->clear();
+```
+
+### Flash Data
+
+```php
+// Set flash data for next request
+$session->flash('success', 'Profile updated successfully');
+$session->flash('errors', ['Email is required', 'Password too short']);
+
+// Get flash data (available only once)
+$success = $session->getFlash('success');
+$errors = $session->getFlash('errors', []);
+
+// Check if flash data exists
+if ($session->hasFlash('success')) {
+    echo $session->getFlash('success');
+}
+
+// Keep flash data for another request
+$session->keepFlash(['success', 'errors']);
+
+// Reflash all data
+$session->reflash();
+```
+
+### CSRF Protection
+
+```php
+// Get CSRF token
+$token = $session->token();
+
+// Regenerate token
+$newToken = $session->regenerateToken();
+
+// Validate token
+$isValid = $session->validateToken($submittedToken);
+
+// In forms
+echo '<input type="hidden" name="_token" value="' . $session->token() . '">';
+```
+
+### Session Security
+
+```php
+// Regenerate session ID (prevent session fixation)
+$session->regenerate();
+
+// Increment/decrement values
+$loginAttempts = $session->increment('login_attempts');
+$remaining = $session->decrement('api_calls_remaining');
+
+// Session information
+$sessionId = $session->getId();
+$sessionName = $session->getName();
+
+// Destroy session
+$session->destroy();
+```
+
+## Cookie Management
+
+### Creating Cookies
+
+```php
+// Simple cookie (session cookie)
+$cookie = Cookie::make('user_preference', 'dark_mode');
+
+// Cookie with expiration (in minutes)
+$cookie = Cookie::make('remember_token', $token, 1440); // 24 hours
+
+// Permanent cookie (5 years)
+$cookie = Cookie::forever('user_settings', json_encode($settings));
+
+// Secure cookie with all options
+$cookie = Cookie::make(
+    'secure_data',
+    $encryptedValue,
+    60, // 1 hour
+    '/', // path
+    '.example.com', // domain
+    true, // secure
+    true, // httpOnly
+    'Strict' // sameSite
+);
+```
+
+### Cookie Operations
+
+```php
+// Send cookie to browser
+$cookie->send();
+
+// Get cookie properties
+$name = $cookie->getName();
+$value = $cookie->getValue();
+$expires = $cookie->getExpires();
+$maxAge = $cookie->getMaxAge();
+
+// Check cookie status
+$isExpired = $cookie->isExpired();
+$isSession = $cookie->isSessionCookie();
+$isSecure = $cookie->isSecure();
+$isHttpOnly = $cookie->isHttpOnly();
+
+// Modify cookie
+$cookie->setValue('new_value')
+       ->expiresIn(120) // 2 hours
+       ->setSecure(true)
+       ->setHttpOnly(true);
+
+// Delete cookie
+$deleteCookie = Cookie::forget('user_preference');
+$deleteCookie->send();
+```
+
+### Reading Cookies
+
+```php
+// Get cookie from request
+$preference = Cookie::get('user_preference', 'light_mode');
+
+// Check if cookie exists
+if (Cookie::has('remember_token')) {
+    $token = Cookie::get('remember_token');
+}
+
+// Get cookie header string
+$headerString = $cookie->toHeaderString();
+```
+
+## File Uploads
+
+### Basic File Handling
+
+```php
+// Get uploaded file
+$file = $request->file('avatar');
+
+if ($file && $file->isValid()) {
+    // File was uploaded successfully
+    $filename = $file->getName();
+    $size = $file->getSize();
+    $extension = $file->getExtension();
+    $mimeType = $file->getMimeType();
+}
+```
+
+### File Validation
+
+```php
+// Check if file is valid
+if (!$file->isValid()) {
+    $error = $file->getErrorMessage();
+    return Response::badRequest("Upload error: $error");
+}
+
+// Validate file extension
+$allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+if (!$file->hasAllowedExtension($allowedExtensions)) {
+    return Response::badRequest('Invalid file type');
+}
+
+// Validate MIME type
+$allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
+if (!$file->hasAllowedMimeType($allowedMimeTypes)) {
+    return Response::badRequest('Invalid file format');
+}
+
+// Validate file size (5MB limit)
+if (!$file->isWithinSizeLimit(5 * 1024 * 1024)) {
+    return Response::badRequest('File too large');
+}
+
+// Check if file is an image
+if ($file->isImage()) {
+    $dimensions = $file->getImageDimensions();
+    [$width, $height] = $dimensions;
+}
+```
+
+### Storing Files
+
+```php
+// Move file to specific location
+$targetPath = '/uploads/avatars/' . $file->getName();
+$file->move($targetPath);
+
+// Store with generated filename
+$filename = $file->store('/uploads/documents');
+// Returns: "a1b2c3d4e5f6g7h8.pdf"
+
+// Store with custom filename
+$filename = $file->store('/uploads/avatars', 'user_123_avatar');
+// Returns: "user_123_avatar.jpg"
+```
+
+### File Information
+
+```php
+// Get file hash
+$hash = $file->getHash('sha256');
+
+// Get file content
+$content = $file->getContent();
+
+// Get original filename
+$originalName = $file->getClientOriginalName();
+
+// Get client MIME type (from browser)
+$clientMimeType = $file->getClientMimeType();
+
+// Get actual MIME type (detected from content)
+$actualMimeType = $file->getMimeType();
+```
+
+## Helper Functions
+
+### Session Helper
+
+The [`session()`](helpers.php:13) helper provides convenient access to the session:
+
+```php
+// Get session instance
+$session = session();
+
+// Direct usage examples
+session()->set('user_id', 123);
+$userId = session()->get('user_id');
+session()->flash('message', 'Success!');
+$token = session()->token();
 ```
 
 ## Usage Examples
 
-### Complete Request/Response Cycle
+### User Authentication
+
 ```php
-// Handle incoming request
-$request = Request::createFromGlobals();
-
-// Route based on method and path
-if ($request->isMethod('POST') && $request->path() === '/api/users') {
-    // Get JSON data
-    $userData = $request->json();
-    
-    // Validate CSRF token
-    $session = new Session();
-    $session->start();
-    
-    if (!$session->validateToken($request->header('X-CSRF-Token'))) {
-        return Response::forbidden('Invalid CSRF token')->send();
-    }
-    
-    // Process user creation
-    $user = createUser($userData);
-    
-    // Flash success message
-    $session->flash('message', 'User created successfully');
-    
-    // Return JSON response
-    return Response::json($user, 201)->send();
-}
-```
-
-### File Upload Processing
-```php
-$request = Request::createFromGlobals();
-
-if ($request->hasFile('avatar')) {
-    $file = $request->file('avatar');
-    
-    // Validate file
-    if (!$file->isValid()) {
-        return Response::badRequest('Upload failed: ' . $file->getErrorMessage());
-    }
-    
-    // Check file type and size
-    if (!$file->isImage()) {
-        return Response::badRequest('Only image files are allowed');
-    }
-    
-    if (!$file->isWithinSizeLimit(2 * 1024 * 1024)) { // 2MB
-        return Response::badRequest('File too large');
-    }
-    
-    // Store file
-    try {
-        $filename = $file->store('/uploads/avatars');
-        return Response::json(['filename' => $filename]);
-    } catch (RuntimeException $e) {
-        return Response::serverError('Failed to store file');
-    }
-}
-```
-
-### Session-Based Authentication
-```php
-$session = new Session([
-    'lifetime' => 7200,
-    'secure' => true,
-    'httponly' => true,
-    'samesite' => 'Strict'
-]);
-
-$session->start();
-
-// Login process
-if ($request->isMethod('POST') && $request->path() === '/login') {
-    $email = $request->input('email');
-    $password = $request->input('password');
-    
-    if (authenticateUser($email, $password)) {
-        // Regenerate session ID for security
-        $session->regenerate();
+class AuthController
+{
+    public function login(Request $request): Response
+    {
+        $email = $request->input('email');
+        $password = $request->input('password');
+        $remember = $request->input('remember', false);
         
-        // Store user data
-        $session->set('user', [
-            'id' => $user->id,
-            'email' => $user->email,
-            'role' => $user->role
-        ]);
-        
-        // Set remember me cookie if requested
-        if ($request->input('remember')) {
-            $rememberToken = generateRememberToken();
-            $cookie = Cookie::forever('remember_token', $rememberToken)
-                ->setSecure(true)
-                ->setHttpOnly(true);
-            
-            return Response::redirect('/dashboard')
-                ->withCookie($cookie->getName(), $cookie->getValue());
+        // Validate CSRF token
+        if (!session()->validateToken($request->input('_token'))) {
+            return Response::forbidden('Invalid CSRF token');
         }
         
-        return Response::redirect('/dashboard');
-    } else {
-        $session->flash('error', 'Invalid credentials');
+        if ($this->attemptLogin($email, $password)) {
+            // Regenerate session ID for security
+            session()->regenerate();
+            
+            // Set user session
+            session()->set('user_id', $user->id);
+            session()->flash('success', 'Welcome back!');
+            
+            // Set remember cookie if requested
+            if ($remember) {
+                $rememberToken = $this->generateRememberToken();
+                $cookie = Cookie::make('remember_token', $rememberToken, 43200); // 30 days
+                
+                return Response::redirect('/dashboard')->withCookie(
+                    $cookie->getName(),
+                    $cookie->getValue(),
+                    $cookie->getExpires()
+                );
+            }
+            
+            return Response::redirect('/dashboard');
+        }
+        
+        session()->flash('error', 'Invalid credentials');
         return Response::redirect('/login');
     }
 }
-
-// Check authentication
-if (!$session->has('user')) {
-    return Response::redirect('/login');
-}
 ```
 
-### API Response Building
+### File Upload Handler
+
 ```php
-class ApiController
+class FileUploadController
 {
-    public function handleRequest(Request $request): Response
+    public function uploadAvatar(Request $request): Response
     {
+        $file = $request->file('avatar');
+        
+        if (!$file || !$file->isValid()) {
+            return Response::json([
+                'error' => 'No valid file uploaded'
+            ], 400);
+        }
+        
+        // Validate file
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        $maxSize = 2 * 1024 * 1024; // 2MB
+        
+        if (!$file->hasAllowedMimeType($allowedTypes)) {
+            return Response::json([
+                'error' => 'Only JPEG, PNG, and GIF images are allowed'
+            ], 400);
+        }
+        
+        if (!$file->isWithinSizeLimit($maxSize)) {
+            return Response::json([
+                'error' => 'File size must be less than 2MB'
+            ], 400);
+        }
+        
+        // Validate image dimensions
+        if ($file->isImage()) {
+            $dimensions = $file->getImageDimensions();
+            if ($dimensions && ($dimensions[0] > 1000 || $dimensions[1] > 1000)) {
+                return Response::json([
+                    'error' => 'Image dimensions must be less than 1000x1000'
+                ], 400);
+            }
+        }
+        
         try {
-            // Content negotiation
-            if (!$request->expectsJson()) {
-                return Response::badRequest('API only accepts JSON requests');
-            }
+            // Store file
+            $filename = $file->store('/uploads/avatars', 'user_' . session()->get('user_id'));
             
-            // Rate limiting check
-            $session = new Session();
-            $session->start();
+            // Update user avatar in database
+            $this->updateUserAvatar(session()->get('user_id'), $filename);
             
-            $attempts = $session->get('api_attempts', 0);
-            if ($attempts > 100) {
-                return Response::json(['error' => 'Rate limit exceeded'], 429);
-            }
+            return Response::json([
+                'success' => true,
+                'filename' => $filename,
+                'url' => '/uploads/avatars/' . $filename
+            ]);
             
-            $session->increment('api_attempts');
-            
-            // Process request
-            $data = $this->processApiRequest($request);
-            
-            // Build response with custom headers
-            return Response::json($data)
-                ->setHeader('X-API-Version', '1.0')
-                ->setHeader('X-Rate-Limit-Remaining', (string)(100 - $attempts));
-                
         } catch (Exception $e) {
             return Response::json([
-                'error' => 'Internal server error',
-                'message' => $e->getMessage()
+                'error' => 'Failed to upload file'
             ], 500);
         }
     }
 }
 ```
 
-### Cookie-Based Preferences
+### API Response Handler
+
 ```php
-// Set user preferences
-$preferences = [
-    'theme' => 'dark',
-    'language' => 'en',
-    'timezone' => 'UTC'
-];
-
-$cookie = Cookie::make('user_prefs', json_encode($preferences), 43200) // 30 days
-    ->setPath('/')
-    ->setSecure($request->isSecure())
-    ->setHttpOnly(false) // Allow JavaScript access for UI
-    ->setSameSite('Lax');
-
-$response = Response::ok('Preferences saved')
-    ->withCookie($cookie->getName(), $cookie->getValue());
-
-// Read preferences
-$prefsJson = Cookie::get('user_prefs');
-$preferences = $prefsJson ? json_decode($prefsJson, true) : [];
-$theme = $preferences['theme'] ?? 'light';
+class ApiController
+{
+    public function handleRequest(Request $request): Response
+    {
+        // Check if request expects JSON
+        if (!$request->expectsJson()) {
+            return Response::badRequest('API endpoints require JSON requests');
+        }
+        
+        // Get JSON data
+        $data = $request->json();
+        
+        if (empty($data)) {
+            return Response::json([
+                'error' => 'Invalid JSON data'
+            ], 400);
+        }
+        
+        try {
+            $result = $this->processData($data);
+            
+            return Response::json([
+                'success' => true,
+                'data' => $result
+            ])->withHeaders([
+                'X-API-Version' => '1.0',
+                'X-Rate-Limit-Remaining' => '99'
+            ]);
+            
+        } catch (ValidationException $e) {
+            return Response::json([
+                'error' => 'Validation failed',
+                'details' => $e->getErrors()
+            ], 422);
+            
+        } catch (Exception $e) {
+            return Response::json([
+                'error' => 'Internal server error'
+            ], 500);
+        }
+    }
+}
 ```
 
-## Performance Considerations
+### Session-based Shopping Cart
 
-- **Request Parsing**: Headers and input data are parsed lazily for better performance
-- **File Uploads**: Large files are handled efficiently with streaming where possible
-- **Session Storage**: Configurable session storage backends for scalability
-- **Cookie Security**: Automatic security attribute configuration based on request context
-- **Memory Management**: Uploaded files are processed without loading entire contents into memory
+```php
+class CartController
+{
+    public function addItem(Request $request): Response
+    {
+        $productId = $request->input('product_id');
+        $quantity = $request->input('quantity', 1);
+        
+        // Get current cart from session
+        $cart = session()->get('cart', []);
+        
+        // Add or update item
+        if (isset($cart[$productId])) {
+            $cart[$productId]['quantity'] += $quantity;
+        } else {
+            $cart[$productId] = [
+                'product_id' => $productId,
+                'quantity' => $quantity,
+                'added_at' => time()
+            ];
+        }
+        
+        // Save cart back to session
+        session()->set('cart', $cart);
+        session()->flash('success', 'Item added to cart');
+        
+        return Response::json([
+            'success' => true,
+            'cart_count' => count($cart)
+        ]);
+    }
+    
+    public function getCart(): Response
+    {
+        $cart = session()->get('cart', []);
+        $cartData = $this->enrichCartData($cart);
+        
+        return Response::json([
+            'cart' => $cartData,
+            'total' => $this->calculateTotal($cartData)
+        ]);
+    }
+}
+```
 
 ## Security Features
 
-- **CSRF Protection**: Built-in token generation and validation
-- **Secure Sessions**: Configurable security settings and session regeneration
-- **File Upload Security**: MIME type validation and secure file handling
-- **Cookie Security**: Automatic security attributes (Secure, HttpOnly, SameSite)
-- **Input Validation**: Safe access to user input with proper escaping
-- **IP Detection**: Accurate client IP detection through proxy headers
+### CSRF Protection
 
-## Contributing
+```php
+// Generate and validate CSRF tokens
+$token = session()->token();
 
-This library follows PSR-12 coding standards and includes comprehensive test coverage. When contributing:
+// In forms
+echo '<input type="hidden" name="_token" value="' . htmlspecialchars($token) . '">';
 
-1. Write tests for new functionality
-2. Follow existing code style and patterns
-3. Update documentation for new features
-4. Ensure backward compatibility
-5. Consider security implications of changes
+// Validation
+if (!session()->validateToken($request->input('_token'))) {
+    return Response::forbidden('CSRF token mismatch');
+}
+```
 
-## License
+### Secure Headers
 
-This library is part of the TreeHouse framework and follows the same licensing terms.
+```php
+$response = Response::ok($content);
+
+// Add security headers
+$response->withHeaders([
+    'X-Frame-Options' => 'DENY',
+    'X-Content-Type-Options' => 'nosniff',
+    'X-XSS-Protection' => '1; mode=block',
+    'Strict-Transport-Security' => 'max-age=31536000; includeSubDomains',
+    'Content-Security-Policy' => "default-src 'self'"
+]);
+```
+
+### Secure Cookies
+
+```php
+// Create secure cookie
+$cookie = Cookie::make('session_data', $encryptedData, 60)
+    ->setSecure(true)
+    ->setHttpOnly(true)
+    ->setSameSite('Strict');
+```
+
+### Input Validation
+
+```php
+// Validate and sanitize input
+$email = filter_var($request->input('email'), FILTER_VALIDATE_EMAIL);
+if (!$email) {
+    return Response::badRequest('Invalid email address');
+}
+
+// Check for required fields
+$requiredFields = ['name', 'email', 'password'];
+foreach ($requiredFields as $field) {
+    if (!$request->input($field)) {
+        return Response::badRequest("Field '$field' is required");
+    }
+}
+```
+
+## Best Practices
+
+### Request Handling
+
+```php
+// Always validate input
+$input = $request->input();
+$validated = $this->validateInput($input);
+
+// Use appropriate response types
+if ($request->expectsJson()) {
+    return Response::json($data);
+} else {
+    return Response::html($view);
+}
+
+// Handle different HTTP methods appropriately
+switch ($request->method()) {
+    case 'GET':
+        return $this->show($request);
+    case 'POST':
+        return $this->store($request);
+    case 'PUT':
+        return $this->update($request);
+    case 'DELETE':
+        return $this->destroy($request);
+}
+```
+
+### Session Management
+
+```php
+// Regenerate session ID on privilege changes
+if ($userLoggedIn) {
+    session()->regenerate();
+}
+
+// Use flash data for one-time messages
+session()->flash('success', 'Operation completed');
+
+// Clear sensitive data after use
+$sensitiveData = session()->pull('sensitive_data');
+```
+
+### File Upload Security
+
+```php
+// Always validate uploaded files
+if ($file->isValid()) {
+    // Check file type
+    if (!$file->hasAllowedExtension(['jpg', 'png'])) {
+        throw new InvalidFileException();
+    }
+    
+    // Check file size
+    if (!$file->isWithinSizeLimit(5 * 1024 * 1024)) {
+        throw new FileTooLargeException();
+    }
+    
+    // Generate secure filename
+    $filename = $file->store('/secure/uploads');
+}
+```
+
+### Response Security
+
+```php
+// Always set appropriate headers
+$response->withHeaders([
+    'Cache-Control' => 'no-cache, no-store, must-revalidate',
+    'Pragma' => 'no-cache',
+    'Expires' => '0'
+]);
+
+// Escape output in HTML responses
+$safeContent = htmlspecialchars($userContent, ENT_QUOTES, 'UTF-8');
+return Response::html($safeContent);
+```
+
+The Http layer provides a comprehensive foundation for handling HTTP requests and responses securely and efficiently in web applications.

@@ -1,280 +1,224 @@
-# TreeHouse Database Library
+# TreeHouse Database Layer
 
-The TreeHouse Database library provides a comprehensive set of classes for database operations in PHP. This library is designed to simplify database development by offering well-tested, secure utilities for connection management, query building, Active Record modeling, database migrations, and relationship handling.
+## Overview
 
-**Enhanced with Support Classes**: This library now fully integrates with TreeHouse Support classes including Collection, Carbon, Arr, Str, Uuid, and helper functions for improved data handling, date operations, and modern PHP development patterns.
+The Database layer provides a comprehensive ORM (Object-Relational Mapping) system with ActiveRecord pattern, query builder, migrations, and relationship management. This layer handles all database operations with support for multiple database engines and advanced querying capabilities.
 
 ## Table of Contents
 
-- [Classes Overview](#classes-overview)
-  - [Connection - Database Connection Manager](#connection---database-connection-manager)
-  - [QueryBuilder - Fluent Query Builder](#querybuilder---fluent-query-builder)
-  - [ActiveRecord - Base Model Class](#activerecord---base-model-class)
-  - [Migration - Database Migration System](#migration---database-migration-system)
-  - [Relations - Database Relationships](#relations---database-relationships)
-- [Usage Examples](#usage-examples)
-
-## Classes Overview
+- [Connection - Database Connection Manager](#connection---database-connection-manager)
+- [QueryBuilder - Fluent Query Builder](#querybuilder---fluent-query-builder)
+- [ActiveRecord - Base Model Class](#activerecord---base-model-class)
+- [Migration - Database Migration System](#migration---database-migration-system)
+- [Relations - Database Relationships](#relations---database-relationships)
 
 ### Connection - Database Connection Manager
 
-The `Connection` class provides comprehensive database connection management with PDO, including transaction support, query execution, and connection pooling capabilities.
+The [`Connection`](Connection.php:23) class manages database connections with support for multiple database engines, transaction handling, and query logging.
 
 #### Key Features:
-- **Multiple Database Support**: MySQL, SQLite, PostgreSQL drivers
-- **Transaction Management**: Nested transactions with savepoints
-- **Query Logging**: Optional query execution logging with timing
-- **Connection Pooling**: Efficient connection reuse and management
+- **Multi-Database Support**: MySQL, PostgreSQL, SQLite support
+- **Connection Pooling**: Efficient connection management
+- **Transaction Support**: Nested transactions with rollback capabilities
+- **Query Logging**: Debug and performance monitoring
 - **Schema Introspection**: Table and column information retrieval
 
 #### Core Methods:
+
 ```php
 // Connection management
-$connection = new Connection([
-    'driver' => 'mysql',
-    'host' => 'localhost',
-    'database' => 'myapp',
-    'username' => 'user',
-    'password' => 'pass'
-]);
-
-$connection->connect();                    // Establish connection
-$connection->disconnect();                 // Close connection
-$connection->isConnected();               // Check connection status
+$connection = new Connection($config);
+$pdo = $connection->getPdo();
+$connection->connect();
+$connection->disconnect();
 
 // Query execution
 $results = $connection->select('SELECT * FROM users WHERE active = ?', [1]);
-$user = $connection->selectOne('SELECT * FROM users WHERE id = ?', [123]);
+$user = $connection->selectOne('SELECT * FROM users WHERE id = ?', [1]);
 $id = $connection->insert('INSERT INTO users (name, email) VALUES (?, ?)', ['John', 'john@example.com']);
-$affected = $connection->update('UPDATE users SET active = ? WHERE id = ?', [0, 123]);
-$deleted = $connection->delete('DELETE FROM users WHERE active = ?', [0]);
+$affected = $connection->update('UPDATE users SET active = ? WHERE id = ?', [1, 1]);
+$deleted = $connection->delete('DELETE FROM users WHERE id = ?', [1]);
 
-// Transaction management
-$connection->beginTransaction();           // Start transaction
-$connection->commit();                     // Commit transaction
-$connection->rollback();                   // Rollback transaction
+// Transaction handling
+$connection->beginTransaction();
+$connection->commit();
+$connection->rollback();
 
 // Transaction with callback
-$result = $connection->transaction(function($conn) {
-    $conn->insert('INSERT INTO users (name) VALUES (?)', ['Alice']);
-    $conn->insert('INSERT INTO profiles (user_id) VALUES (?)', [1]);
+$result = $connection->transaction(function() use ($connection) {
+    $connection->insert('INSERT INTO users ...');
+    $connection->update('UPDATE profiles ...');
     return 'success';
 });
 
 // Schema introspection
-$tables = $connection->getTableNames();    // Get all table names
-$exists = $connection->tableExists('users'); // Check if table exists
-$columns = $connection->getTableColumns('users'); // Get table columns
-
-// Query logging
-$connection->enableQueryLog(true);         // Enable logging
-$log = $connection->getQueryLog();         // Get query log
-$connection->clearQueryLog();              // Clear log
+$tables = $connection->getTableNames();
+$exists = $connection->tableExists('users');
+$columns = $connection->getTableColumns('users');
 ```
 
 ### QueryBuilder - Fluent Query Builder
 
-The `QueryBuilder` class provides a fluent interface for building SQL queries with support for complex conditions, joins, aggregations, and subqueries.
+The [`QueryBuilder`](QueryBuilder.php:21) class provides a fluent interface for building complex SQL queries with method chaining and parameter binding.
 
 #### Key Features:
-- **Fluent Interface**: Chainable method calls for readable query building
-- **Collection Results**: Query results are returned as Collection instances for enhanced data manipulation
-- **Complex Conditions**: Support for WHERE, IN, BETWEEN, NULL conditions
-- **Join Support**: INNER, LEFT, RIGHT joins with multiple conditions
-- **Aggregation**: COUNT, SUM, AVG, MIN, MAX functions
-- **Pagination**: Built-in limit/offset and pagination support
+- **Fluent Interface**: Method chaining for readable queries
+- **Parameter Binding**: Automatic SQL injection protection
+- **Complex Queries**: Joins, subqueries, aggregations
+- **Pagination Support**: Built-in pagination with offset/limit
+- **Collection Results**: Returns structured data collections
 
 #### Core Methods:
+
 ```php
-$builder = new QueryBuilder($connection, 'users');
-
-// Basic queries - returns Collection instance
-$users = $builder->select(['name', 'email'])
+// Basic queries
+$users = QueryBuilder::table('users')
+    ->select(['id', 'name', 'email'])
     ->where('active', 1)
-    ->orderBy('created_at', 'DESC')
-    ->limit(10)
-    ->get(); // Returns Collection, not array
-
-// Collection methods available
-$userNames = $users->pluck('name');
-$activeUsers = $users->filter(fn($user) => $user['active']);
-$firstUser = $users->first();
+    ->orderBy('name')
+    ->get();
 
 // Complex conditions
-$builder->where('age', '>', 18)
-    ->where('status', 'active')
-    ->orWhere('role', 'admin')
-    ->whereIn('department', ['IT', 'HR'])
+$results = QueryBuilder::table('users')
+    ->where('age', '>', 18)
+    ->whereIn('status', ['active', 'pending'])
     ->whereNotNull('email')
-    ->whereBetween('salary', 50000, 100000)
-    ->whereLike('name', '%john%');
+    ->whereBetween('created_at', '2023-01-01', '2023-12-31')
+    ->whereLike('name', '%john%')
+    ->get();
 
-// Joins
-$builder->join('profiles', 'users.id', '=', 'profiles.user_id')
-    ->leftJoin('departments', 'users.dept_id', '=', 'departments.id')
-    ->select(['users.*', 'profiles.bio', 'departments.name as dept_name']);
+// Joins and relationships
+$data = QueryBuilder::table('users')
+    ->join('profiles', 'users.id', '=', 'profiles.user_id')
+    ->leftJoin('roles', 'users.role_id', '=', 'roles.id')
+    ->select(['users.*', 'profiles.bio', 'roles.name as role_name'])
+    ->get();
 
-// Aggregation and grouping
-$stats = $builder->select(['department', 'COUNT(*) as count', 'AVG(salary) as avg_salary'])
-    ->groupBy('department')
-    ->having('COUNT(*)', '>', 5)
+// Aggregations and grouping
+$stats = QueryBuilder::table('orders')
+    ->select(['status', 'COUNT(*) as count', 'SUM(total) as total_amount'])
+    ->groupBy('status')
+    ->having('count', '>', 10)
     ->get();
 
 // Pagination
-$page1 = $builder->paginate(1, 15);       // Page 1, 15 items per page
-$page2 = $builder->paginate(2, 15);       // Page 2, 15 items per page
+$users = QueryBuilder::table('users')
+    ->paginate(1, 15); // page 1, 15 per page
 
 // Data modification
-$id = $builder->insert([
+$id = QueryBuilder::table('users')->insert([
     'name' => 'John Doe',
-    'email' => 'john@example.com',
-    'active' => 1
+    'email' => 'john@example.com'
 ]);
 
-$affected = $builder->where('id', 123)
-    ->update(['active' => 0]);
+$affected = QueryBuilder::table('users')
+    ->where('id', 1)
+    ->update(['name' => 'Jane Doe']);
 
-$deleted = $builder->where('active', 0)
+$deleted = QueryBuilder::table('users')
+    ->where('active', 0)
     ->delete();
-
-// Utility methods
-$count = $builder->where('active', 1)->count();
-$exists = $builder->where('email', 'john@example.com')->exists();
-$first = $builder->where('id', 123)->first();
-$user = $builder->find(123);              // Find by primary key
 ```
 
 ### ActiveRecord - Base Model Class
 
-The `ActiveRecord` class provides an Active Record implementation with support for relationships, mass assignment protection, attribute casting, and model events.
+The [`ActiveRecord`](ActiveRecord.php:26) class provides an elegant ORM implementation with automatic table mapping, relationships, and data validation.
 
 #### Key Features:
-- **Active Record Pattern**: Database records as objects with behavior
-- **Automatic Connection Setup**: Database connections are automatically configured when using TreeHouse Application
-- **Collection Results**: Query methods return Collection instances instead of arrays
-- **Enhanced Date Handling**: Carbon integration for superior date/time operations
-- **UUID Support**: Built-in UUID generation and handling for primary keys
-- **Mass Assignment Protection**: Fillable and guarded attributes with Arr utility support
-- **Attribute Casting**: Automatic type conversion including Carbon for dates
-- **Relationships**: HasMany, BelongsTo, BelongsToMany relationships with Collection support
-- **Timestamps**: Automatic created_at and updated_at handling with Carbon
-- **Helper Functions**: Integration with collect(), data_get(), data_set() helpers
+- **Automatic Table Mapping**: Convention-based table names
+- **Mass Assignment Protection**: Fillable and guarded attributes
+- **Timestamps**: Automatic created_at/updated_at handling
+- **Type Casting**: Automatic data type conversion
+- **Relationships**: HasMany, BelongsTo, BelongsToMany support
+- **Query Scopes**: Reusable query constraints
+- **Events**: Model lifecycle hooks
 
 #### Core Methods:
 
-**Automatic Database Setup with TreeHouse Application:**
-
 ```php
-// With TreeHouse Application - NO manual setup needed!
-use LengthOfRope\TreeHouse\Foundation\Application;
-
-$app = new Application(__DIR__);
-// Database connection is automatically configured from config/database.php
-// ActiveRecord models are ready to use immediately!
-
 // Model definition
 class User extends ActiveRecord
 {
     protected string $table = 'users';
+    protected string $primaryKey = 'id';
     protected array $fillable = ['name', 'email', 'password'];
-    protected array $hidden = ['password'];
+    protected array $guarded = ['id', 'created_at', 'updated_at'];
     protected array $casts = [
-        'id' => 'uuid',           // UUID casting support
-        'active' => 'boolean',
-        'settings' => 'json',
-        'created_at' => 'datetime' // Uses Carbon for enhanced date handling
+        'email_verified_at' => 'datetime',
+        'is_admin' => 'boolean',
+        'settings' => 'json'
     ];
     
     // Relationships
-    public function posts()
+    public function posts(): HasMany
     {
-        return $this->hasMany(Post::class, 'user_id');
+        return $this->hasMany(Post::class);
     }
     
-    public function profile()
+    public function roles(): BelongsToMany
     {
-        return $this->belongsTo(Profile::class, 'profile_id');
-    }
-    
-    public function roles()
-    {
-        return $this->belongsToMany(Role::class, 'user_roles', 'user_id', 'role_id');
+        return $this->belongsToMany(Role::class, 'user_roles');
     }
 }
 
-// Basic operations - work immediately with auto-configured connection!
-$user = new User(['name' => 'John', 'email' => 'john@example.com']);
-$user->save();                            // Save to database
+// Basic operations
+$users = User::all();
+$user = User::find(1);
+$user = User::findOrFail(1);
+$activeUsers = User::where('active', 1);
 
-$user = User::create([                    // Create and save
-    'name' => 'Jane',
-    'email' => 'jane@example.com'
+// Creating records
+$user = User::create([
+    'name' => 'John Doe',
+    'email' => 'john@example.com'
 ]);
 
-$user = User::find(123);                  // Find by primary key
-$user = User::findOrFail(123);           // Find or throw exception
-$users = User::where('active', true);    // Returns Collection
-$users = User::all();                    // Returns Collection
-```
+$user = new User();
+$user->name = 'Jane Doe';
+$user->email = 'jane@example.com';
+$user->save();
 
-**Manual Database Setup (Advanced):**
+// Updating records
+$user = User::find(1);
+$user->update(['name' => 'Updated Name']);
 
-```php
-// Only needed if not using TreeHouse Application
-$connection = new Connection([
-    'driver' => 'mysql',
-    'host' => 'localhost',
-    'database' => 'myapp',
-    'username' => 'user',
-    'password' => 'pass'
-]);
+$user->name = 'Another Update';
+$user->save();
 
-// Set connection for models
-ActiveRecord::setConnection($connection);
+// Mass updates
+User::where('active', 0)->update(['status' => 'inactive']);
 
-// Collection methods available on results
-$activeUsers = $users->filter(fn($user) => $user->active);
-$userNames = $users->pluck('name');
-$userCount = $users->count();
+// Deleting records
+$user = User::find(1);
+$user->delete();
 
-// Updates and deletion
-$user->update(['name' => 'John Smith']);  // Update attributes
-$user->delete();                         // Delete record
-
-User::updateOrCreate(
-    ['email' => 'john@example.com'],      // Search conditions
-    ['name' => 'John Doe', 'active' => true] // Update/create data
-);
+User::where('created_at', '<', '2023-01-01')->delete();
 
 // Attribute access
-$user->name = 'New Name';                // Set attribute
-$name = $user->name;                     // Get attribute
-$user->fill(['name' => 'John', 'email' => 'john@example.com']);
-
-// Dirty checking
-$user->isDirty();                        // Check if model has changes
-$user->isDirty(['name', 'email']);       // Check specific attributes
-$dirty = $user->getDirty();              // Get changed attributes
+$user = User::find(1);
+echo $user->name;
+echo $user->email;
+$user->name = 'New Name';
 
 // Array/JSON conversion
-$array = $user->toArray();               // Convert to array
-$json = $user->toJson();                 // Convert to JSON
+$array = $user->toArray();
+$json = $user->toJson();
 ```
 
 ### Migration - Database Migration System
 
-The `Migration` class provides database schema migration capabilities with support for creating, modifying, and dropping tables and columns.
+The [`Migration`](Migration.php:21) class provides version control for database schema with up/down migrations and schema building capabilities.
 
 #### Key Features:
-- **Schema Definition**: Fluent interface for table creation and modification
-- **UUID Support**: Built-in UUID column types and primary key support
-- **Enhanced Timestamps**: Carbon integration for better date/time handling
-- **Column Types**: Support for all common database column types including UUID
-- **Index Management**: Primary keys, unique constraints, regular indexes
-- **Foreign Keys**: Relationship constraints with cascade options
-- **Rollback Support**: Up and down migration methods
+- **Schema Building**: Fluent schema definition
+- **Version Control**: Track and rollback database changes
+- **Cross-Database**: Works with MySQL, PostgreSQL, SQLite
+- **Index Management**: Primary keys, unique constraints, indexes
+- **Foreign Keys**: Relationship constraints with cascading
+- **Column Types**: Comprehensive data type support
 
 #### Core Methods:
+
 ```php
 // Migration class
 class CreateUsersTable extends Migration
@@ -282,21 +226,13 @@ class CreateUsersTable extends Migration
     public function up(): void
     {
         $this->createTable('users', function (Blueprint $table) {
-            $table->uuid('id')->primary();        // UUID primary key
-            // OR $table->uuidPrimary();           // Shorthand for UUID primary
-            // OR $table->id();                    // Traditional auto-increment
-            $table->string('name');                // VARCHAR(255)
-            $table->string('email')->unique();    // Unique email
+            $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->boolean('active')->default(true);
-            $table->json('settings')->nullable();
-            $table->uuid('profile_id')->nullable(); // UUID foreign key
-            $table->timestamps();                  // created_at, updated_at (Carbon enhanced)
-            
-            // Indexes
-            $table->index(['active', 'created_at']);
-            $table->unique(['email']);
+            $table->timestamps();
         });
     }
     
@@ -306,71 +242,54 @@ class CreateUsersTable extends Migration
     }
 }
 
-// Column types
-$table->id();                             // Auto-increment primary key
-$table->uuid('id');                       // UUID column
-$table->uuidPrimary();                    // UUID primary key (shorthand)
-$table->bigIncrements('id');             // Big auto-increment
-$table->string('name', 100);             // VARCHAR with length
-$table->text('description');             // TEXT column
-$table->longText('content');             // LONGTEXT column
-$table->integer('count');                // INT column
-$table->bigInteger('big_number');        // BIGINT column
-$table->boolean('active');               // BOOLEAN (TINYINT(1))
-$table->decimal('price', 8, 2);          // DECIMAL(8,2)
-$table->float('rating', 3, 1);           // FLOAT(3,1)
-$table->date('birth_date');              // DATE column (Carbon enhanced)
-$table->dateTime('created_at');          // DATETIME column (Carbon enhanced)
-$table->timestamp('updated_at');         // TIMESTAMP column (Carbon enhanced)
-$table->json('metadata');                // JSON column
-$table->enum('status', ['active', 'inactive']); // ENUM column
-
-// Column modifiers
-$table->string('name')->nullable();       // Allow NULL
-$table->integer('sort')->default(0);     // Default value
-$table->bigInteger('amount')->unsigned(); // Unsigned
-$table->string('slug')->unique();        // Unique constraint
-$table->text('notes')->comment('User notes'); // Column comment
-
-// Foreign keys
-$table->foreignId('user_id')             // Foreign key column
-    ->constrained('users')               // References users.id
-    ->onDelete('cascade')                // Cascade on delete
-    ->onUpdate('restrict');              // Restrict on update
-
-// Table modification
-$this->table('users', function (Blueprint $table) {
-    $table->string('phone')->nullable(); // Add column
-    $table->dropColumn('old_field');     // Drop column
-    $table->index('phone');              // Add index
-    $table->dropIndex('users_email_index'); // Drop index
+// Schema building
+$this->createTable('posts', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+    $table->string('title');
+    $table->longText('content');
+    $table->enum('status', ['draft', 'published', 'archived']);
+    $table->json('metadata')->nullable();
+    $table->decimal('price', 8, 2)->default(0.00);
+    $table->timestamps();
+    
+    $table->index(['user_id', 'status']);
+    $table->unique(['user_id', 'title']);
 });
 
-// Utility methods
-$this->hasTable('users');                // Check if table exists
-$this->hasColumn('users', 'email');      // Check if column exists
-$this->renameTable('old_name', 'new_name'); // Rename table
-$this->statement('CREATE INDEX custom_idx ON users (name, email)'); // Raw SQL
+// Table modifications
+$this->table('users', function (Blueprint $table) {
+    $table->string('phone')->nullable();
+    $table->dropColumn('old_column');
+    $table->index('email');
+});
+
+// Foreign key constraints
+$table->foreign('user_id')
+    ->references('id')
+    ->on('users')
+    ->onDelete('cascade')
+    ->onUpdate('restrict');
 ```
 
 ### Relations - Database Relationships
 
-The Relations classes provide support for defining and working with database relationships between models.
+The Relations system provides powerful relationship management with lazy and eager loading capabilities.
 
 #### Key Features:
-- **Collection Results**: All relationship queries return Collection instances
-- **HasMany**: One-to-many relationships with Collection support
-- **BelongsTo**: Many-to-one relationships
-- **BelongsToMany**: Many-to-many relationships with pivot tables and Collection support
-- **Enhanced Array Operations**: Arr utility methods for better data handling
-- **Eager Loading**: Efficient loading of related models
-- **Lazy Loading**: On-demand loading of relationships
+- **HasMany**: One-to-many relationships
+- **BelongsTo**: Many-to-one relationships  
+- **BelongsToMany**: Many-to-many relationships
+- **Eager Loading**: Prevent N+1 query problems
+- **Lazy Loading**: Load relationships on demand
+- **Constraint Management**: Automatic foreign key constraints
 
 #### HasMany Relationship:
+
 ```php
 class User extends ActiveRecord
 {
-    public function posts()
+    public function posts(): HasMany
     {
         return $this->hasMany(Post::class, 'user_id', 'id');
     }
@@ -378,33 +297,17 @@ class User extends ActiveRecord
 
 // Usage
 $user = User::find(1);
-$posts = $user->posts;                   // Returns Collection
-$posts = $user->posts()->where('published', true)->get(); // Returns Collection
-
-// Collection methods available
-$publishedPosts = $posts->filter(fn($post) => $post->published);
-$postTitles = $posts->pluck('title');
-$latestPost = $posts->sortByDesc('created_at')->first();
-
-// Create related models
-$post = $user->posts()->create([
-    'title' => 'New Post',
-    'content' => 'Post content'
-]);
-
-// Save existing model
-$post = new Post(['title' => 'Another Post']);
-$user->posts()->save($post);
-
-// Save multiple models
-$user->posts()->saveMany([$post1, $post2]);
+$posts = $user->posts; // Lazy loading
+$posts = $user->posts()->where('published', true)->get();
+$count = $user->posts()->count();
 ```
 
 #### BelongsTo Relationship:
+
 ```php
 class Post extends ActiveRecord
 {
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
     }
@@ -412,364 +315,223 @@ class Post extends ActiveRecord
 
 // Usage
 $post = Post::find(1);
-$user = $post->user;                     // Get the user
-
-// Associate with parent
-$user = User::find(1);
-$post->user()->associate($user);
-$post->save();
-
-// Dissociate from parent
-$post->user()->dissociate();
-$post->save();
+$author = $post->user; // Lazy loading
+$authorName = $post->user->name;
 ```
 
 #### BelongsToMany Relationship:
+
 ```php
 class User extends ActiveRecord
 {
-    public function roles()
+    public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(
-            Role::class,           // Related model
-            'user_roles',          // Pivot table
-            'user_id',            // Foreign key for this model
-            'role_id'             // Foreign key for related model
-        )->withPivot(['assigned_at', 'assigned_by']); // Additional pivot columns
+        return $this->belongsToMany(Role::class, 'user_roles', 'user_id', 'role_id');
+    }
+}
+
+class Role extends ActiveRecord
+{
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_roles', 'role_id', 'user_id');
     }
 }
 
 // Usage
 $user = User::find(1);
-$roles = $user->roles;                   // Returns Collection
+$roles = $user->roles; // Collection of roles
+$hasRole = $user->roles()->where('name', 'admin')->exists();
 
-// Collection methods available
-$adminRoles = $roles->filter(fn($role) => $role->name === 'admin');
-$roleNames = $roles->pluck('name');
-
-// Attach roles
-$user->roles()->attach([1, 2, 3]);       // Attach role IDs
-$user->roles()->attach(1, ['assigned_at' => now()]); // With pivot data
-
-// Detach roles
-$user->roles()->detach([1, 2]);          // Detach specific roles
-$user->roles()->detach();                // Detach all roles
-
-// Sync roles (attach new, detach missing)
-$user->roles()->sync([1, 2, 4]);         // Keep only these roles
-
-// Toggle roles
-$changes = $user->roles()->toggle([1, 2]); // Attach if missing, detach if present
-
-// Access pivot data
-foreach ($user->roles as $role) {
-    echo $role->pivot->assigned_at;       // Access pivot attributes
-}
+// Attach/detach relationships
+$user->roles()->attach($roleId);
+$user->roles()->detach($roleId);
+$user->roles()->sync([$role1Id, $role2Id]);
 ```
 
-## Usage Examples
-
-### Complete Database Setup and Usage
-
-**With TreeHouse Application (Recommended):**
+## Complete Database Setup and Usage
 
 ```php
-// Create TreeHouse Application - automatically handles everything!
-use LengthOfRope\TreeHouse\Foundation\Application;
-
-$app = new Application(__DIR__);
-// Database connection automatically configured from config/database.php
-// Environment variables automatically loaded from .env
-// ActiveRecord models ready to use immediately!
-
-// config/database.php is automatically loaded:
-/*
-return [
-    'default' => env('DB_CONNECTION', 'mysql'),
-    'connections' => [
-        'mysql' => [
-            'driver' => 'mysql',
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'database' => env('DB_DATABASE', 'blog'),
-            'username' => env('DB_USERNAME', 'user'),
-            'password' => env('DB_PASSWORD', 'password'),
-        ],
-    ],
-];
-*/
-
-// .env file automatically loaded:
-/*
-DB_CONNECTION=mysql
-DB_HOST=localhost
-DB_DATABASE=blog
-DB_USERNAME=user
-DB_PASSWORD=password
-*/
-```
-
-**Manual Database Setup (Advanced):**
-
-```php
-// Only needed if not using TreeHouse Application
-$connection = new Connection([
+// 1. Database configuration
+$config = [
     'driver' => 'mysql',
     'host' => 'localhost',
-    'database' => 'blog',
-    'username' => 'user',
+    'port' => 3306,
+    'database' => 'treehouse_app',
+    'username' => 'root',
     'password' => 'password',
-    'charset' => 'utf8mb4'
-]);
+    'charset' => 'utf8mb4',
+    'collation' => 'utf8mb4_unicode_ci',
+];
 
-// Set connection for models
+// 2. Create connection
+$connection = new Connection($config);
 ActiveRecord::setConnection($connection);
 
-// Migration example
-class CreateBlogTables extends Migration
-{
-    public function up(): void
-    {
-        // Users table
-        $this->createTable('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->string('password');
-            $table->boolean('active')->default(true);
-            $table->timestamps();
-        });
-        
-        // Posts table
-        $this->createTable('posts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('title');
-            $table->text('content');
-            $table->boolean('published')->default(false);
-            $table->timestamps();
-            
-            $table->index(['published', 'created_at']);
-        });
-        
-        // Tags table
-        $this->createTable('tags', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->unique();
-            $table->string('slug')->unique();
-            $table->timestamps();
-        });
-        
-        // Post-Tag pivot table
-        $this->createTable('post_tags', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('post_id')->constrained()->onDelete('cascade');
-            $table->foreignId('tag_id')->constrained()->onDelete('cascade');
-            $table->timestamps();
-            
-            $table->unique(['post_id', 'tag_id']);
-        });
-    }
-    
-    public function down(): void
-    {
-        $this->dropTable('post_tags');
-        $this->dropTable('tags');
-        $this->dropTable('posts');
-        $this->dropTable('users');
-    }
-}
-
-// Run migration
-$migration = new CreateBlogTables($connection);
+// 3. Run migrations
+$migration = new CreateUsersTable($connection);
 $migration->up();
-```
 
-### Model Definitions with Relationships
-```php
-class User extends ActiveRecord
-{
-    protected array $fillable = ['name', 'email', 'password'];
-    protected array $hidden = ['password'];
-    protected array $casts = ['active' => 'boolean'];
-    
-    public function posts()
-    {
-        return $this->hasMany(Post::class, 'user_id');
-    }
-    
-    public function publishedPosts()
-    {
-        return $this->hasMany(Post::class, 'user_id')
-            ->where('published', true);
-    }
-}
-
-class Post extends ActiveRecord
-{
-    protected array $fillable = ['title', 'content', 'published'];
-    protected array $casts = [
-        'published' => 'boolean',
-        'created_at' => 'datetime'
-    ];
-    
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-    
-    public function tags()
-    {
-        return $this->belongsToMany(Tag::class, 'post_tags', 'post_id', 'tag_id')
-            ->withPivot(['created_at']);
-    }
-}
-
-class Tag extends ActiveRecord
-{
-    protected array $fillable = ['name', 'slug'];
-    
-    public function posts()
-    {
-        return $this->belongsToMany(Post::class, 'post_tags', 'tag_id', 'post_id');
-    }
-}
-```
-
-### Complex Query Operations
-```php
-// Create user with posts
+// 4. Use models
 $user = User::create([
     'name' => 'John Doe',
     'email' => 'john@example.com',
     'password' => password_hash('secret', PASSWORD_DEFAULT)
 ]);
 
-// Create posts for user
-$post1 = $user->posts()->create([
+$posts = $user->posts()->create([
     'title' => 'My First Post',
-    'content' => 'This is my first blog post.',
-    'published' => true
+    'content' => 'This is the content of my first post.'
 ]);
-
-$post2 = $user->posts()->create([
-    'title' => 'Draft Post',
-    'content' => 'This is a draft.',
-    'published' => false
-]);
-
-// Create tags and associate with posts
-$tag1 = Tag::create(['name' => 'PHP', 'slug' => 'php']);
-$tag2 = Tag::create(['name' => 'Web Development', 'slug' => 'web-development']);
-
-$post1->tags()->attach([$tag1->id, $tag2->id]);
-
-// Complex queries
-$publishedPosts = Post::query()
-    ->where('published', true)
-    ->whereHas('user', function($query) {
-        $query->where('active', true);
-    })
-    ->with(['user', 'tags'])
-    ->orderBy('created_at', 'DESC')
-    ->paginate(1, 10);
-
-// Aggregate queries
-$userStats = User::query()
-    ->select(['users.*'])
-    ->selectRaw('COUNT(posts.id) as post_count')
-    ->selectRaw('COUNT(CASE WHEN posts.published = 1 THEN 1 END) as published_count')
-    ->leftJoin('posts', 'users.id', '=', 'posts.user_id')
-    ->groupBy('users.id')
-    ->having('post_count', '>', 0)
-    ->get();
-
-// Transaction example
-$connection->transaction(function() use ($user) {
-    // Update user
-    $user->update(['name' => 'John Smith']);
-    
-    // Create new post
-    $user->posts()->create([
-        'title' => 'Transaction Post',
-        'content' => 'Created in transaction',
-        'published' => true
-    ]);
-    
-    // Update all user's posts
-    $user->posts()->update(['updated_at' => date('Y-m-d H:i:s')]);
-});
 ```
 
-### Advanced Relationship Operations
-```php
-// Eager loading to prevent N+1 queries
-$posts = Post::query()
-    ->with(['user', 'tags'])
-    ->where('published', true)
-    ->get();
+## Model Definitions with Relationships
 
-foreach ($posts as $post) {
-    echo $post->title . ' by ' . $post->user->name;
-    echo 'Tags: ' . implode(', ', $post->tags->pluck('name'));
+```php
+// User model with relationships
+class User extends ActiveRecord
+{
+    protected array $fillable = ['name', 'email', 'password'];
+    protected array $hidden = ['password'];
+    protected array $casts = [
+        'email_verified_at' => 'datetime',
+        'is_admin' => 'boolean'
+    ];
+    
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class);
+    }
+    
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class, 'user_roles');
+    }
+    
+    public function profile(): HasOne
+    {
+        return $this->hasOne(Profile::class);
+    }
 }
 
-// Conditional eager loading
-$posts = Post::query()
-    ->with([
-        'user' => function($query) {
-            $query->select(['id', 'name', 'email']);
-        },
-        'tags' => function($query) {
-            $query->where('active', true);
-        }
-    ])
+// Post model
+class Post extends ActiveRecord
+{
+    protected array $fillable = ['title', 'content', 'status', 'user_id'];
+    protected array $casts = [
+        'published_at' => 'datetime',
+        'metadata' => 'json'
+    ];
+    
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+    
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'post_tags');
+    }
+}
+
+// Role model for RBAC
+class Role extends ActiveRecord
+{
+    protected array $fillable = ['name', 'slug', 'description'];
+    
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_roles');
+    }
+    
+    public function permissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class, 'role_permissions');
+    }
+}
+```
+
+## Complex Query Operations
+
+```php
+// Advanced querying with relationships
+$users = User::query()
+    ->with(['posts', 'roles'])
+    ->where('active', true)
+    ->whereHas('posts', function($query) {
+        $query->where('published', true);
+    })
+    ->orderBy('created_at', 'desc')
+    ->paginate(1, 20);
+
+// Aggregations with relationships
+$userStats = User::query()
+    ->select(['users.*'])
+    ->withCount(['posts', 'roles'])
+    ->having('posts_count', '>', 5)
     ->get();
 
-// Many-to-many operations
-$user = User::find(1);
+// Complex joins
+$data = User::query()
+    ->join('posts', 'users.id', '=', 'posts.user_id')
+    ->join('categories', 'posts.category_id', '=', 'categories.id')
+    ->select([
+        'users.name',
+        'COUNT(posts.id) as post_count',
+        'categories.name as category'
+    ])
+    ->groupBy(['users.id', 'categories.id'])
+    ->orderBy('post_count', 'desc')
+    ->get();
+```
 
-// Sync user roles (replace all existing)
-$user->roles()->sync([1, 2, 3]);
+## Advanced Relationship Operations
 
-// Attach roles with pivot data
-$user->roles()->attach([
-    1 => ['assigned_at' => now(), 'assigned_by' => 'admin'],
-    2 => ['assigned_at' => now(), 'assigned_by' => 'admin']
-]);
+```php
+// Eager loading with constraints
+$users = User::with(['posts' => function($query) {
+    $query->where('published', true)
+          ->orderBy('created_at', 'desc')
+          ->limit(5);
+}])->get();
 
-// Toggle roles
-$changes = $user->roles()->toggle([1, 2, 4]);
-echo "Attached: " . implode(', ', $changes['attached']);
-echo "Detached: " . implode(', ', $changes['detached']);
+// Nested eager loading
+$posts = Post::with(['user.roles', 'tags'])->get();
+
+// Relationship existence queries
+$usersWithPosts = User::has('posts')->get();
+$usersWithPublishedPosts = User::whereHas('posts', function($query) {
+    $query->where('published', true);
+})->get();
+
+// Relationship counting
+$users = User::withCount(['posts', 'roles'])->get();
+foreach ($users as $user) {
+    echo "{$user->name} has {$user->posts_count} posts and {$user->roles_count} roles";
+}
 ```
 
 ## Performance Considerations
 
 - **Connection Pooling**: Reuse database connections efficiently
-- **Query Optimization**: Use indexes and optimize WHERE clauses
-- **Eager Loading**: Prevent N+1 query problems with relationship loading
-- **Pagination**: Use limit/offset for large result sets
-- **Transaction Management**: Group related operations for consistency
-- **Query Logging**: Monitor and optimize slow queries
+- **Query Optimization**: Use indexes and proper WHERE clauses
+- **Eager Loading**: Prevent N+1 query problems with `with()`
+- **Pagination**: Use `paginate()` for large result sets
+- **Query Caching**: Cache frequently used queries
+- **Batch Operations**: Use bulk inserts/updates for large datasets
 
 ## Security Features
 
-- **Parameter Binding**: All queries use prepared statements
-- **Mass Assignment Protection**: Fillable/guarded attributes prevent unwanted updates
-- **SQL Injection Prevention**: Parameterized queries and input validation
-- **Transaction Isolation**: Proper transaction handling for data consistency
-- **Schema Validation**: Migration system ensures proper database structure
+- **Parameter Binding**: Automatic SQL injection prevention
+- **Mass Assignment Protection**: Fillable/guarded attributes
+- **Query Logging**: Monitor and audit database operations
+- **Transaction Support**: Ensure data consistency
+- **Connection Security**: Encrypted connections and credential management
 
-## Contributing
+## Integration with Other Layers
 
-This library follows PSR-12 coding standards and includes comprehensive test coverage. When contributing:
-
-1. Write tests for new functionality
-2. Follow existing code style and patterns
-3. Update documentation for new features
-4. Ensure backward compatibility
-5. Consider security implications of changes
-
-## License
-
-This library is part of the TreeHouse framework and follows the same licensing terms.
+The Database layer integrates seamlessly with:
+- **Foundation Layer**: Automatic service registration and dependency injection
+- **Auth Layer**: User authentication and RBAC system
+- **Console Layer**: Database commands and migrations
+- **Cache Layer**: Query result caching and performance optimization

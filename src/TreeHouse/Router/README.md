@@ -1,272 +1,338 @@
 # TreeHouse Router System
 
-The TreeHouse Router System provides a powerful and flexible HTTP routing solution with middleware support, route groups, parameter constraints, and seamless integration with the TreeHouse Support classes.
+## Overview
 
-## Components
+The Router system provides comprehensive HTTP request routing with support for RESTful routes, middleware, route groups, parameter binding, and named routes. This layer handles all incoming HTTP requests and dispatches them to appropriate controllers or callbacks.
 
 ### Core Classes
 
-- **[`Router`](Router.php)** - Main HTTP router for registering routes and dispatching requests
-- **[`Route`](Route.php)** - Individual route representation with parameters and constraints
-- **[`RouteCollection`](RouteCollection.php)** - Route storage and matching engine
-- **[`MiddlewareInterface`](Middleware/MiddlewareInterface.php)** - Contract for middleware components
-- **[`MiddlewareStack`](Middleware/MiddlewareStack.php)** - Middleware execution pipeline
-
-## Features
+- **[`Router`](Router.php:23)**: Main routing engine with request dispatching
+- **[`Route`](Route.php:20)**: Individual route definition with parameters and middleware
+- **[`RouteCollection`](RouteCollection.php:23)**: Collection of routes with matching and indexing
+- **[`MiddlewareStack`](Middleware/MiddlewareStack.php:1)**: Middleware execution pipeline
+- **[`PermissionMiddleware`](Middleware/PermissionMiddleware.php:1)**: RBAC permission-based route protection
+- **[`RoleMiddleware`](Middleware/RoleMiddleware.php:1)**: RBAC role-based route protection
 
 ### Route Registration
 
+The router supports all standard HTTP methods with fluent registration:
+
 ```php
-use LengthOfRope\TreeHouse\Router\Router;
-
-$router = new Router();
-
-// Basic routes
+// Basic route registration
 $router->get('/users', 'UserController@index');
 $router->post('/users', 'UserController@store');
 $router->put('/users/{id}', 'UserController@update');
+$router->patch('/users/{id}', 'UserController@patch');
 $router->delete('/users/{id}', 'UserController@destroy');
+$router->options('/users', 'UserController@options');
 
-// Route with closure
-$router->get('/hello', function($request) {
-    return 'Hello World!';
+// Multiple methods
+$router->match(['GET', 'POST'], '/contact', 'ContactController@handle');
+$router->any('/webhook', 'WebhookController@handle');
+
+// Closure routes
+$router->get('/hello', function(Request $request) {
+    return new Response('Hello World!');
 });
 
-// Multiple HTTP methods
-$router->match(['GET', 'POST'], '/contact', 'ContactController@handle');
-
-// Any HTTP method
-$router->any('/webhook', 'WebhookController@handle');
+// Array-based controller routes
+$router->get('/profile', [ProfileController::class, 'show']);
 ```
 
 ### Route Parameters
 
+Routes support dynamic parameters with optional constraints and defaults:
+
 ```php
-// Required parameters
+// Basic parameters
 $router->get('/users/{id}', 'UserController@show');
+$router->get('/posts/{slug}', 'PostController@show');
 
 // Optional parameters
-$router->get('/posts/{slug?}', 'PostController@show');
+$router->get('/posts/{id}/{slug?}', 'PostController@show');
 
 // Parameter constraints
 $router->get('/users/{id}', 'UserController@show')
-    ->where('id', '\d+');
+    ->where('id', '[0-9]+');
+
+$router->get('/posts/{slug}', 'PostController@show')
+    ->where('slug', '[a-z0-9-]+');
 
 // Multiple constraints
-$router->get('/posts/{year}/{month}', 'PostController@archive')
-    ->where(['year' => '\d{4}', 'month' => '\d{2}']);
+$router->get('/archive/{year}/{month}', 'ArchiveController@show')
+    ->where(['year' => '[0-9]{4}', 'month' => '[0-9]{2}']);
 
-// Parameter defaults
+// Default values
 $router->get('/search/{query?}', 'SearchController@index')
     ->defaults('query', '');
 ```
 
 ### Named Routes
 
-```php
-// Named route
-$router->get('/users/{id}', 'UserController@show')
-    ->name('users.show');
+Routes can be named for URL generation and reference:
 
-// Generate URL
+```php
+// Named routes
+$router->get('/users/{id}', 'UserController@show')->name('users.show');
+$router->post('/users', 'UserController@store')->name('users.store');
+
+// Generate URLs from named routes
 $url = $router->url('users.show', ['id' => 123]);
 // Result: /users/123
+
+$url = $router->url('users.store');
+// Result: /users
 ```
 
 ### Route Groups
 
-```php
-// Group with prefix
-$router->group(['prefix' => 'api/v1'], function($router) {
-    $router->get('/users', 'Api\UserController@index');
-    $router->post('/users', 'Api\UserController@store');
-});
+Group routes with shared attributes like prefixes, middleware, and constraints:
 
-// Group with middleware (permission without parameters = authentication only)
-$router->group(['middleware' => 'permission'], function($router) {
+```php
+// Basic grouping with prefix
+$router->group(['prefix' => 'api'], function($router) {
+    $router->get('/users', 'Api\UserController@index');
+    $router->get('/posts', 'Api\PostController@index');
+});
+// Routes: /api/users, /api/posts
+
+// Middleware groups
+$router->group(['middleware' => 'auth'], function($router) {
     $router->get('/dashboard', 'DashboardController@index');
     $router->get('/profile', 'ProfileController@show');
 });
 
-// Group with multiple attributes
+// Combined attributes
 $router->group([
     'prefix' => 'admin',
-    'middleware' => ['permission', 'role:admin'],
+    'middleware' => ['auth', 'role:admin'],
     'name' => 'admin.'
 ], function($router) {
-    $router->get('/users', 'Admin\UserController@index')
-        ->name('users.index'); // Full name: admin.users.index
+    $router->get('/users', 'Admin\UserController@index')->name('users.index');
+    $router->get('/settings', 'Admin\SettingsController@index')->name('settings');
 });
+// Named routes: admin.users.index, admin.settings
+
+// Nested groups
+$router->group(['prefix' => 'api'], function($router) {
+    $router->group(['prefix' => 'v1'], function($router) {
+        $router->get('/users', 'Api\V1\UserController@index');
+    });
+});
+// Route: /api/v1/users
 ```
 
 ### Middleware
 
+Middleware provides request/response filtering and processing:
+
 ```php
-// Global middleware
+// Global middleware (applies to all routes)
 $router->middleware('cors');
-$router->middleware(['throttle', 'auth']);
+$router->middleware(['throttle', 'csrf']);
 
-// Route-specific middleware (permission without parameters = authentication only)
+// Route-specific middleware
 $router->get('/admin', 'AdminController@index')
-    ->middleware('permission');
+    ->middleware('auth');
 
-// Middleware with parameters
-$router->get('/api/data', 'ApiController@data')
-    ->middleware('throttle:60,1');
-
-// Authorization middleware
-$router->get('/admin', 'AdminController@index')
-    ->middleware('role:admin');
-
-$router->get('/posts/manage', 'PostController@manage')
-    ->middleware('role:admin,editor');
-
-$router->get('/users/create', 'UserController@create')
-    ->middleware('permission:manage-users');
+$router->post('/api/data', 'ApiController@store')
+    ->middleware(['auth', 'throttle:60,1']);
 
 // Middleware aliases
 $router->middlewareAliases([
-    'role' => 'LengthOfRope\TreeHouse\Router\Middleware\RoleMiddleware',
-    'permission' => 'LengthOfRope\TreeHouse\Router\Middleware\PermissionMiddleware',
-    'throttle' => 'App\Middleware\ThrottleMiddleware',
+    'auth' => AuthMiddleware::class,
+    'role' => RoleMiddleware::class,
+    'permission' => PermissionMiddleware::class,
+    'throttle' => ThrottleMiddleware::class,
 ]);
+
+// Using aliased middleware
+$router->get('/admin', 'AdminController@index')
+    ->middleware(['auth', 'role:admin']);
+
+$router->get('/posts/create', 'PostController@create')
+    ->middleware(['auth', 'permission:posts.create']);
 ```
 
 ### Request Dispatching
 
+The router handles request dispatching with middleware execution:
+
 ```php
-use LengthOfRope\TreeHouse\Http\Request;
-
-// Create request from globals
+// Basic dispatching
 $request = Request::createFromGlobals();
-
-// Dispatch request
 $response = $router->dispatch($request);
-
-// Send response
 $response->send();
+
+// Access current route information
+$currentRoute = $router->getCurrentRoute();
+$parameters = $router->getCurrentParameters();
+$userId = $router->getParameter('id', null);
+
+// Route execution flow:
+// 1. Match route by method and URI
+// 2. Extract route parameters
+// 3. Build middleware stack (global + route-specific)
+// 4. Execute middleware pipeline
+// 5. Execute route action (controller or closure)
+// 6. Prepare and return response
 ```
 
 ## Support Class Integration
 
-The Router System leverages TreeHouse Support classes for enhanced functionality:
+The router integrates with TreeHouse support classes for enhanced functionality.
 
 ### Collection Integration
 
-- Route collections use [`Collection`](../Support/Collection.php) for fluent operations
-- Middleware stacks utilize Collection for pipeline management
-- Route parameters and groups benefit from Collection methods
+Routes are managed using the Collection class for powerful querying:
 
 ```php
-// Get all GET routes
+// Get all routes
+$allRoutes = $router->getRoutes();
+
+// Filter routes by method
 $getRoutes = $router->getRoutes()->getRoutesByMethod('GET');
 
-// Filter routes by middleware
+// Filter by middleware
 $authRoutes = $router->getRoutes()->getRoutesByMiddleware('auth');
 
 // Group routes by pattern
-$groupedRoutes = $router->getRoutes()->groupBy('uri');
+$groupedRoutes = $router->getRoutes()->groupBy('method');
 ```
 
 ### Array Utilities
 
-- Route parameter extraction uses [`Arr`](../Support/Arr.php) utilities
-- Route group attribute merging leverages Arr methods
-- Parameter constraint handling benefits from Arr operations
+Route parameters and attributes use array utilities:
 
 ```php
-// Route uses Arr::wrap for method normalization
-$route = new Route('GET', '/users', $action); // Internally uses Arr::wrap(['GET'])
+// Route parameter extraction
+$route = new Route(['GET'], '/users/{id}/posts/{slug}', $action);
+$parameters = $route->extractParameters('/users/123/posts/my-post');
+// Result: ['id' => '123', 'slug' => 'my-post']
 
-// Parameter defaults use Arr utilities
-$route->defaults(['page' => 1, 'limit' => 10]);
+// Route URL generation
+$url = $route->url(['id' => 123, 'slug' => 'my-post']);
+// Result: /users/123/posts/my-post
 ```
 
 ### Helper Functions
 
-- Route parameter access uses `dataGet()` helper
-- Nested parameter extraction leverages dot notation
-- Route attribute merging uses helper functions
+Global helper functions for common routing operations:
 
-## Advanced Features
+```php
+// Generate route URLs (if helper functions are available)
+$url = route('users.show', ['id' => 123]);
+$currentRoute = current_route();
+$routeParameter = route_parameter('id');
+```
 
 ### Route Model Binding
 
+Automatic model binding for route parameters:
+
 ```php
-// Automatic model binding (when integrated with models)
-$router->get('/users/{user}', function($request, User $user) {
-    return $user->toArray();
+// Implicit binding (if implemented)
+$router->get('/users/{user}', function(User $user) {
+    return $user->toJson();
+});
+
+// Explicit binding (if implemented)
+$router->bind('user', function($value) {
+    return User::find($value) ?? abort(404);
 });
 ```
 
 ### Route Caching
 
-```php
-// Get route collection for caching
-$routes = $router->getRoutes();
-$routeData = $routes->toArray();
+Route compilation and caching for performance:
 
-// Cache route data for production
-file_put_contents('routes.cache', serialize($routeData));
+```php
+// Route compilation (internal)
+$route = new Route(['GET'], '/users/{id}', $action);
+$compiledPattern = $route->getCompiledPattern();
+// Result: #^/users/([^/]+)$#
+
+// Route collection indexing
+$routes = new RouteCollection();
+$routes->add($route);
+$routes->rebuildIndexes(); // Optimizes route matching
 ```
 
 ### Debug Information
 
-```php
-// Get comprehensive debug info
-$debugInfo = $router->getDebugInfo();
+Comprehensive debugging information for development:
 
-// Includes:
-// - Route collection statistics
-// - Middleware configuration
-// - Current route information
-// - Route parameters
-// - Group stack state
+```php
+// Router debug info
+$debugInfo = $router->getDebugInfo();
+// Returns: routes, middleware, current_route, current_parameters, group_stack
+
+// Route collection debug info
+$routeDebugInfo = $router->getRoutes()->getDebugInfo();
+// Returns: total_routes, routes_by_method, named_routes, middleware_usage
 ```
 
 ## Error Handling
 
-The router handles various error scenarios:
+The router provides comprehensive error handling:
 
-- **404 Not Found** - When no route matches the request
-- **405 Method Not Allowed** - When route exists but method doesn't match
-- **Invalid Route Action** - When route action is malformed
-- **Missing Controller** - When controller class doesn't exist
-- **Missing Method** - When controller method doesn't exist
+```php
+// Route not found (404)
+try {
+    $response = $router->dispatch($request);
+} catch (RouteNotFoundException $e) {
+    $response = new Response('Page Not Found', 404);
+}
+
+// Invalid controller/method
+try {
+    $response = $router->dispatch($request);
+} catch (InvalidArgumentException $e) {
+    $response = new Response('Server Error', 500);
+}
+```
 
 ## Performance Considerations
 
-- Routes are indexed by HTTP method for O(1) lookup
-- Named routes are stored in a hash map for fast URL generation
-- Middleware stack uses efficient pipeline pattern
-- Route compilation is cached to avoid repeated regex compilation
-- Collection operations are optimized for common use cases
-
-## Integration Examples
+- **Route Compilation**: Routes are compiled to regex patterns for fast matching
+- **Collection Indexing**: Routes are indexed by method and pattern for efficient lookup
+- **Middleware Caching**: Middleware stacks are built once per request
+- **Parameter Extraction**: Optimized parameter extraction with compiled patterns
 
 ### Basic Application Setup
 
 ```php
-use LengthOfRope\TreeHouse\Router\Router;
-use LengthOfRope\TreeHouse\Http\Request;
-
-// Create router
+// Create router instance
 $router = new Router();
-
-// Register global middleware
-$router->middleware(['cors', 'throttle:1000,60']);
 
 // Register middleware aliases
 $router->middlewareAliases([
-    'permission' => 'LengthOfRope\TreeHouse\Router\Middleware\PermissionMiddleware',
-    'role' => 'LengthOfRope\TreeHouse\Router\Middleware\RoleMiddleware',
-    'guest' => 'App\Middleware\GuestMiddleware',
-    'admin' => 'App\Middleware\AdminMiddleware',
+    'auth' => AuthMiddleware::class,
+    'role' => RoleMiddleware::class,
+    'permission' => PermissionMiddleware::class,
 ]);
 
+// Register global middleware
+$router->middleware(['cors', 'throttle']);
+
 // Register routes
-require 'routes/web.php';
-require 'routes/api.php';
+$router->get('/', 'HomeController@index')->name('home');
+$router->get('/about', 'PageController@about')->name('about');
+
+// Protected routes
+$router->group(['middleware' => 'auth'], function($router) {
+    $router->get('/dashboard', 'DashboardController@index')->name('dashboard');
+    $router->get('/profile', 'ProfileController@show')->name('profile');
+});
+
+// API routes
+$router->group(['prefix' => 'api', 'middleware' => 'api'], function($router) {
+    $router->get('/users', 'Api\UserController@index');
+    $router->post('/users', 'Api\UserController@store');
+    $router->get('/users/{id}', 'Api\UserController@show');
+    $router->put('/users/{id}', 'Api\UserController@update');
+    $router->delete('/users/{id}', 'Api\UserController@destroy');
+});
 
 // Handle request
 $request = Request::createFromGlobals();
@@ -277,22 +343,27 @@ $response->send();
 ### API Routes Example
 
 ```php
-// routes/api.php
-$router->group(['prefix' => 'api/v1', 'middleware' => 'api'], function($router) {
-    // Public routes
-    $router->post('/auth/login', 'Api\AuthController@login');
-    $router->post('/auth/register', 'Api\AuthController@register');
-    
-    // Protected routes (permission without parameters = authentication only)
-    $router->group(['middleware' => 'permission'], function($router) {
-        $router->get('/user', 'Api\UserController@profile');
-        $router->put('/user', 'Api\UserController@update');
+// RESTful API with versioning
+$router->group(['prefix' => 'api'], function($router) {
+    $router->group(['prefix' => 'v1'], function($router) {
+        // Public endpoints
+        $router->post('/auth/login', 'Api\V1\AuthController@login');
+        $router->post('/auth/register', 'Api\V1\AuthController@register');
         
-        // Admin routes
-        $router->group(['middleware' => 'role:admin', 'prefix' => 'admin'], function($router) {
-            $router->get('/users', 'Api\Admin\UserController@index');
-            $router->delete('/users/{id}', 'Api\Admin\UserController@destroy')
-                ->where('id', '\d+');
+        // Protected endpoints
+        $router->group(['middleware' => 'auth:api'], function($router) {
+            $router->get('/user', 'Api\V1\UserController@profile');
+            $router->put('/user', 'Api\V1\UserController@updateProfile');
+            
+            // Resource routes
+            $router->get('/posts', 'Api\V1\PostController@index');
+            $router->post('/posts', 'Api\V1\PostController@store')
+                ->middleware('permission:posts.create');
+            $router->get('/posts/{id}', 'Api\V1\PostController@show');
+            $router->put('/posts/{id}', 'Api\V1\PostController@update')
+                ->middleware('permission:posts.update');
+            $router->delete('/posts/{id}', 'Api\V1\PostController@destroy')
+                ->middleware('permission:posts.delete');
         });
     });
 });
@@ -300,86 +371,101 @@ $router->group(['prefix' => 'api/v1', 'middleware' => 'api'], function($router) 
 
 ## Authorization Middleware
 
-TreeHouse includes built-in authorization middleware for protecting routes based on user roles and permissions.
+The router includes built-in RBAC middleware for route protection:
 
 ### Role-Based Route Protection
 
 ```php
-// Single role requirement
+// Protect routes by user roles
+$router->get('/admin', 'AdminController@index')
+    ->middleware('role:admin');
+
+$router->get('/moderator', 'ModeratorController@index')
+    ->middleware('role:admin,moderator'); // Multiple roles (OR)
+
+// Group protection
 $router->group(['middleware' => 'role:admin'], function($router) {
-    $router->get('/admin/users', 'AdminController@users');
-    $router->post('/admin/settings', 'AdminController@settings');
+    $router->get('/admin/users', 'Admin\UserController@index');
+    $router->get('/admin/settings', 'Admin\SettingsController@index');
 });
-
-// Multiple roles (OR logic) - user needs ANY of these roles
-$router->group(['middleware' => 'role:admin,editor'], function($router) {
-    $router->get('/posts/manage', 'PostController@manage');
-    $router->post('/posts', 'PostController@store');
-});
-
-// Individual route protection
-$router->get('/dashboard', 'DashboardController@index')
-    ->middleware('role:admin,editor,viewer');
 ```
 
 ### Permission-Based Route Protection
 
 ```php
-// Single permission requirement
-$router->get('/users/create', 'UserController@create')
-    ->middleware('permission:manage-users');
+// Protect routes by specific permissions
+$router->get('/posts/create', 'PostController@create')
+    ->middleware('permission:posts.create');
 
-// Multiple permissions (OR logic) - user needs ANY of these permissions
-$router->group(['middleware' => 'permission:edit-posts,delete-posts'], function($router) {
-    $router->get('/posts/admin', 'PostController@admin');
-    $router->delete('/posts/{id}', 'PostController@destroy');
-});
+$router->put('/posts/{id}', 'PostController@update')
+    ->middleware('permission:posts.update');
 
-// Specific permission for sensitive operations
-$router->delete('/users/{id}', 'UserController@destroy')
-    ->middleware('permission:delete-users');
+$router->delete('/posts/{id}', 'PostController@destroy')
+    ->middleware('permission:posts.delete');
+
+// Multiple permissions (user must have ALL)
+$router->get('/admin/reports', 'ReportController@index')
+    ->middleware('permission:reports.view,reports.export');
 ```
 
 ### Combined Authorization
 
 ```php
-// Multiple middleware layers
+// Combine role and permission checks
 $router->group([
-    'middleware' => ['permission', 'role:admin'],
-    'prefix' => 'admin'
+    'prefix' => 'admin',
+    'middleware' => ['auth', 'role:admin,manager']
 ], function($router) {
-    $router->get('/dashboard', 'AdminController@dashboard');
+    $router->get('/dashboard', 'Admin\DashboardController@index');
     
-    // Additional permission check
-    $router->group(['middleware' => 'permission:manage-users'], function($router) {
-        $router->get('/users', 'AdminController@users');
-        $router->post('/users', 'AdminController@createUser');
-    });
+    $router->get('/users', 'Admin\UserController@index')
+        ->middleware('permission:users.view');
+    
+    $router->post('/users', 'Admin\UserController@store')
+        ->middleware('permission:users.create');
 });
 ```
 
 ### Authorization Responses
 
-The authorization middleware provides appropriate HTTP responses:
+```php
+// Middleware returns appropriate responses:
+// - 401 Unauthorized: User not authenticated
+// - 403 Forbidden: User lacks required role/permission
+// - 200 OK: User authorized, continue to route action
 
-- **401 Unauthorized** - User is not authenticated
-- **403 Forbidden** - User lacks required role/permission
-- **JSON responses** - For AJAX requests with error details
-- **HTML responses** - For regular browser requests
+// Custom authorization handling in controllers
+class AdminController
+{
+    public function index(Request $request)
+    {
+        // User is guaranteed to have admin role due to middleware
+        return view('admin.dashboard');
+    }
+}
+```
 
 ### Middleware Registration
 
-Register the authorization middleware aliases in your router setup:
-
 ```php
+// Register RBAC middleware in application bootstrap
 $router->middlewareAliases([
-    'role' => 'LengthOfRope\TreeHouse\Router\Middleware\RoleMiddleware',
-    'permission' => 'LengthOfRope\TreeHouse\Router\Middleware\PermissionMiddleware',
+    'role' => \LengthOfRope\TreeHouse\Router\Middleware\RoleMiddleware::class,
+    'permission' => \LengthOfRope\TreeHouse\Router\Middleware\PermissionMiddleware::class,
 ]);
+
+// Use in route definitions
+$router->get('/admin', 'AdminController@index')
+    ->middleware(['auth', 'role:admin']);
 ```
 
-**Note:** The `permission` middleware can be used in two ways:
-- `permission` (without parameters) - performs authentication checking only
-- `permission:manage-users,edit-posts` (with parameters) - checks authentication AND specific permissions
+## Integration with Other Layers
 
-The TreeHouse Router System provides a robust foundation for handling HTTP routing in web applications, with excellent performance characteristics, comprehensive authorization capabilities, and seamless integration with other TreeHouse components.
+The Router layer integrates with all other framework layers:
+
+- **Foundation Layer**: Automatic service registration and dependency injection
+- **Auth Layer**: User authentication and RBAC middleware integration
+- **Http Layer**: Request/Response handling and middleware execution
+- **View Layer**: Controller response rendering and template integration
+- **Database Layer**: Route model binding and parameter resolution
+- **Console Layer**: Route listing and debugging commands
