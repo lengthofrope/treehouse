@@ -1,373 +1,589 @@
-# TreeHouse Security System
+# TreeHouse Framework - Security Layer
 
-The TreeHouse Security System provides comprehensive security utilities for web applications, including CSRF protection, encryption, password hashing, input sanitization, and file validation with seamless integration with the TreeHouse HTTP components.
+The Security Layer provides comprehensive security utilities for the TreeHouse Framework, including CSRF protection, encryption/decryption, password hashing, and input sanitization. This layer focuses on protecting applications from common security vulnerabilities and providing secure data handling capabilities.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Components](#components)
+- [CSRF Protection](#csrf-protection)
+- [Encryption](#encryption)
+- [Password Hashing](#password-hashing)
+- [Input Sanitization](#input-sanitization)
+- [Usage Examples](#usage-examples)
+- [Security Best Practices](#security-best-practices)
+- [Integration](#integration)
+
+## Overview
+
+The Security Layer consists of four main components:
+
+- **CSRF Protection**: Token-based Cross-Site Request Forgery protection
+- **Encryption**: AES-256-CBC encryption with secure payload handling
+- **Password Hashing**: Secure password hashing using PHP's built-in functions
+- **Input Sanitization**: XSS prevention and input cleaning utilities
+
+### Key Features
+
+- **CSRF Token Management**: Generation, validation, and session-based storage
+- **Symmetric Encryption**: AES-256-CBC with HMAC-SHA256 authentication
+- **Password Security**: bcrypt hashing with rehashing detection
+- **XSS Prevention**: Comprehensive input sanitization and HTML escaping
+- **Type-Safe Sanitization**: Type-specific input cleaning (string, email, URL, numeric)
+- **File Security**: Filename and path sanitization
+- **Collection Integration**: Fluent array sanitization using Collections
 
 ## Components
 
 ### Core Classes
 
-- **[`Csrf`](Csrf.php)** - Cross-Site Request Forgery protection with token generation and validation
-- **[`Encryption`](Encryption.php)** - AES-256-CBC encryption and decryption with payload support
-- **[`Hash`](Hash.php)** - Secure password hashing using PHP's password functions
-- **[`Sanitizer`](Sanitizer.php)** - Input sanitization and XSS protection utilities
-- **[`FileValidator`](FileValidator.php)** - File upload validation and security scanning
+```php
+// CSRF Protection
+LengthOfRope\TreeHouse\Security\Csrf
 
-## Features
+// Encryption/Decryption
+LengthOfRope\TreeHouse\Security\Encryption
 
-### CSRF Protection
+// Password Hashing
+LengthOfRope\TreeHouse\Security\Hash
+
+// Input Sanitization
+LengthOfRope\TreeHouse\Security\Sanitizer
+```
+
+## CSRF Protection
+
+The [`Csrf`](src/TreeHouse/Security/Csrf.php:1) class provides Cross-Site Request Forgery protection through token generation and validation.
+
+### Basic Usage
 
 ```php
 use LengthOfRope\TreeHouse\Security\Csrf;
-use LengthOfRope\TreeHouse\Http\Session;
 
-$session = new Session();
-$csrf = new Csrf($session);
+$csrf = new Csrf();
 
-// Generate and get token
+// Generate a new CSRF token
 $token = $csrf->generateToken();
-$currentToken = $csrf->getToken();
 
-// Verify token
-$isValid = $csrf->verifyToken($userToken);
-
-// HTML helpers
-echo $csrf->getTokenField(); // Hidden input field
-echo $csrf->getTokenMeta();  // Meta tag for AJAX
-
-// Verify request data
-$isValidRequest = $csrf->verifyRequest($_POST);
+// Validate a token
+if ($csrf->validateToken($token)) {
+    // Token is valid, process request
+    echo "Request validated";
+} else {
+    // Invalid token, reject request
+    throw new SecurityException('Invalid CSRF token');
+}
 ```
 
-### Encryption & Decryption
+### Token Management
+
+```php
+// Generate token with custom length
+$token = $csrf->generateToken(64); // 64-byte token
+
+// Get current token from session
+$currentToken = $csrf->getToken();
+
+// Regenerate token (invalidates previous)
+$newToken = $csrf->regenerateToken();
+
+// Clear token from session
+$csrf->clearToken();
+```
+
+### Form Integration
+
+```php
+// In your form template
+echo '<input type="hidden" name="_token" value="' . $csrf->getToken() . '">';
+
+// In your request handler
+if (!$csrf->validateToken($_POST['_token'] ?? '')) {
+    throw new SecurityException('CSRF token mismatch');
+}
+```
+
+### Key Methods
+
+- [`generateToken(int $length = 32): string`](src/TreeHouse/Security/Csrf.php:40) - Generate new CSRF token
+- [`validateToken(string $token): bool`](src/TreeHouse/Security/Csrf.php:56) - Validate provided token
+- [`getToken(): string`](src/TreeHouse/Security/Csrf.php:72) - Get current session token
+- [`regenerateToken(): string`](src/TreeHouse/Security/Csrf.php:85) - Generate and store new token
+- [`clearToken(): void`](src/TreeHouse/Security/Csrf.php:96) - Remove token from session
+
+## Encryption
+
+The [`Encryption`](src/TreeHouse/Security/Encryption.php:1) class provides AES-256-CBC encryption with HMAC-SHA256 authentication for secure data handling.
+
+### Basic Usage
 
 ```php
 use LengthOfRope\TreeHouse\Security\Encryption;
 
-// Generate a secure key
-$key = Encryption::generateKey();
-$encryption = new Encryption($key);
+$encryption = new Encryption('your-secret-key-here');
 
-// Basic encryption
+// Encrypt data
 $encrypted = $encryption->encrypt('sensitive data');
+
+// Decrypt data
 $decrypted = $encryption->decrypt($encrypted);
-
-// Payload encryption with expiration
-$payload = ['user_id' => 123, 'role' => 'admin'];
-$encrypted = $encryption->encryptPayload($payload, time() + 3600);
-$decrypted = $encryption->decryptPayload($encrypted);
-
-// Hashing and verification
-$hash = $encryption->hash('data', 'salt');
-$isValid = $encryption->verifyHash('data', $hash, 'salt');
-
-// Secure random bytes
-$randomBytes = $encryption->secureRandomBytes(32);
+echo $decrypted; // "sensitive data"
 ```
 
-### Password Hashing
+### Advanced Encryption
+
+```php
+// Encrypt with custom cipher
+$encrypted = $encryption->encrypt('data', 'aes-128-cbc');
+
+// Encrypt arrays and objects
+$data = ['user_id' => 123, 'role' => 'admin'];
+$encrypted = $encryption->encrypt(serialize($data));
+$decrypted = unserialize($encryption->decrypt($encrypted));
+
+// Handle encryption errors
+try {
+    $result = $encryption->decrypt($tamperedData);
+} catch (InvalidArgumentException $e) {
+    echo "Decryption failed: " . $e->getMessage();
+}
+```
+
+### Payload Structure
+
+The encrypted payload includes:
+- **IV**: Initialization vector for encryption
+- **Value**: Base64-encoded encrypted data
+- **MAC**: HMAC-SHA256 authentication code
+
+```php
+// Example payload structure
+$payload = [
+    'iv' => base64_encode($iv),
+    'value' => base64_encode($encrypted),
+    'mac' => hash_hmac('sha256', $data, $key)
+];
+```
+
+### Key Methods
+
+- [`encrypt(string $data, string $cipher = 'aes-256-cbc'): string`](src/TreeHouse/Security/Encryption.php:45) - Encrypt data
+- [`decrypt(string $payload): string`](src/TreeHouse/Security/Encryption.php:75) - Decrypt payload
+- [`generateKey(): string`](src/TreeHouse/Security/Encryption.php:108) - Generate random encryption key
+
+## Password Hashing
+
+The [`Hash`](src/TreeHouse/Security/Hash.php:1) class provides secure password hashing using PHP's built-in password functions.
+
+### Basic Usage
 
 ```php
 use LengthOfRope\TreeHouse\Security\Hash;
 
 $hash = new Hash();
 
-// Hash password
-$hashedPassword = $hash->make('user_password');
+// Hash a password
+$hashedPassword = $hash->make('user-password');
 
-// Verify password
-$isValid = $hash->check('user_password', $hashedPassword);
+// Verify a password
+if ($hash->check('user-password', $hashedPassword)) {
+    echo "Password is correct";
+} else {
+    echo "Invalid password";
+}
+```
 
-// Check if rehashing is needed
-if ($hash->needsRehash($hashedPassword)) {
-    $newHash = $hash->make('user_password');
+### Advanced Hashing
+
+```php
+// Hash with custom cost (higher = more secure, slower)
+$hashedPassword = $hash->make('password', ['cost' => 12]);
+
+// Check if hash needs rehashing (security upgrade)
+if ($hash->needsRehash($existingHash, ['cost' => 12])) {
+    $newHash = $hash->make($plainPassword, ['cost' => 12]);
+    // Update database with new hash
 }
 
 // Get hash information
 $info = $hash->getInfo($hashedPassword);
+echo "Algorithm: " . $info['algoName'];
+echo "Cost: " . $info['options']['cost'];
 ```
 
-### Input Sanitization
+### Password Security Workflow
+
+```php
+// Registration
+$password = $_POST['password'];
+$hashedPassword = $hash->make($password);
+// Store $hashedPassword in database
+
+// Login
+$inputPassword = $_POST['password'];
+$storedHash = getUserHashFromDatabase($userId);
+
+if ($hash->check($inputPassword, $storedHash)) {
+    // Check if hash needs upgrade
+    if ($hash->needsRehash($storedHash)) {
+        $newHash = $hash->make($inputPassword);
+        updateUserHashInDatabase($userId, $newHash);
+    }
+    
+    // Login successful
+    authenticateUser($userId);
+} else {
+    // Invalid credentials
+    throw new AuthenticationException('Invalid password');
+}
+```
+
+### Key Methods
+
+- [`make(string $password, array $options = []): string`](src/TreeHouse/Security/Hash.php:40) - Hash password
+- [`check(string $password, string $hash): bool`](src/TreeHouse/Security/Hash.php:61) - Verify password
+- [`needsRehash(string $hash, array $options = []): bool`](src/TreeHouse/Security/Hash.php:81) - Check if rehashing needed
+- [`getInfo(string $hash): array`](src/TreeHouse/Security/Hash.php:96) - Get hash information
+
+## Input Sanitization
+
+The [`Sanitizer`](src/TreeHouse/Security/Sanitizer.php:1) class provides comprehensive input sanitization to prevent XSS attacks and clean user input.
+
+### Basic Sanitization
 
 ```php
 use LengthOfRope\TreeHouse\Security\Sanitizer;
 
 $sanitizer = new Sanitizer();
 
-// Basic sanitization
-$clean = $sanitizer->sanitizeString('<script>alert("xss")</script>Hello');
-$email = $sanitizer->sanitizeEmail('user@example.com');
-$url = $sanitizer->sanitizeUrl('https://example.com');
-$int = $sanitizer->sanitizeInteger('123abc');
-$float = $sanitizer->sanitizeFloat('123.45abc');
-$bool = $sanitizer->sanitizeBoolean('true');
+// Sanitize different data types
+$cleanString = $sanitizer->sanitizeString('<script>alert("xss")</script>Hello');
+// Result: "Hello"
 
-// Array sanitization with rules
+$cleanEmail = $sanitizer->sanitizeEmail('user@example.com<script>');
+// Result: "user@example.com"
+
+$cleanUrl = $sanitizer->sanitizeUrl('javascript:alert("xss")');
+// Result: "" (dangerous URL removed)
+
+$cleanInt = $sanitizer->sanitizeInteger('123abc');
+// Result: 123
+
+$cleanFloat = $sanitizer->sanitizeFloat('123.45abc');
+// Result: 123.45
+
+$cleanBool = $sanitizer->sanitizeBoolean('true');
+// Result: true
+```
+
+### Array Sanitization
+
+```php
+// Define sanitization rules
 $rules = [
     'name' => 'string',
     'email' => 'email',
+    'website' => 'url',
     'age' => 'integer',
+    'salary' => 'float',
     'active' => 'boolean'
 ];
-$sanitized = $sanitizer->sanitizeArray($_POST, $rules);
 
-// XSS protection
-$safe = $sanitizer->removeXssAttempts($userInput);
-$escaped = $sanitizer->escapeHtml($userInput);
-$safeAttribute = $sanitizer->escapeAttribute($userInput);
-
-// File and path sanitization
-$safeFilename = $sanitizer->sanitizeFilename($uploadedFilename);
-$safePath = $sanitizer->sanitizePath($userPath);
-
-// Comprehensive validation and sanitization
-$result = $sanitizer->validateAndSanitize($_POST, [
-    'name' => ['type' => 'string', 'max_length' => 100],
-    'email' => ['type' => 'email'],
-    'age' => ['type' => 'integer', 'min' => 18, 'max' => 120]
-]);
-
-if ($result['valid']) {
-    $cleanData = $result['data'];
-} else {
-    $errors = $result['errors'];
-}
-```
-
-### File Validation
-
-```php
-use LengthOfRope\TreeHouse\Security\FileValidator;
-use LengthOfRope\TreeHouse\Http\UploadedFile;
-
-$validator = new FileValidator();
-
-// Basic validations
-$isValidType = $validator->validateFileType($mimeType, ['image/jpeg', 'image/png']);
-$isValidSize = $validator->validateFileSize($fileSize, 1024 * 1024); // 1MB
-$isValidExt = $validator->validateFileExtension($filename, ['jpg', 'png', 'gif']);
-
-// Security checks
-$isExecutable = $validator->isExecutableFile($filename);
-$hasValidContent = $validator->validateFileContent($fileContent);
-$passesVirusScan = $validator->scanForViruses($fileContent);
-
-// Image validation
-$isValidImage = $validator->validateImageFile($content, $filename);
-
-// Comprehensive uploaded file validation
-$uploadedFile = new UploadedFile($_FILES['upload']);
-$rules = [
-    'allowed_types' => ['image/jpeg', 'image/png', 'image/gif'],
-    'allowed_extensions' => ['jpg', 'jpeg', 'png', 'gif'],
-    'max_size' => 2 * 1024 * 1024, // 2MB
-    'scan_content' => true
+// Sanitize entire array
+$input = [
+    'name' => '<script>alert("xss")</script>John Doe',
+    'email' => 'john@example.com<script>',
+    'website' => 'https://example.com',
+    'age' => '25abc',
+    'salary' => '50000.50abc',
+    'active' => 'true'
 ];
 
-$result = $validator->validateUploadedFile($uploadedFile, $rules);
-if ($result['valid']) {
-    // File is safe to process
-} else {
-    $errors = $result['errors'];
-}
-
-// File utilities
-$mimeType = $validator->getMimeTypeFromContent($fileContent);
-$safeFilename = $validator->sanitizeFilename($originalFilename);
-$secureFilename = $validator->generateSecureFilename($originalFilename);
-```
-
-## Support Class Integration
-
-The Security System leverages TreeHouse Support classes for enhanced functionality:
-
-### Array Utilities
-
-- Input sanitization uses [`Arr`](../Support/Arr.php) utilities for array operations
-- Validation rules processing benefits from Arr methods
-- Multi-dimensional data sanitization leverages Arr operations
-
-```php
-// Sanitizer uses Arr utilities internally
 $sanitized = $sanitizer->sanitizeArray($input, $rules);
-
-// File validation rules use array operations
-$result = $validator->validateUploadedFile($file, $rules);
+// Result: Clean, type-appropriate values
 ```
 
-### Helper Functions
-
-- Data extraction uses `dataGet()` helper for nested arrays
-- Configuration merging uses helper functions
-- Validation error handling leverages helper utilities
-
-## Advanced Features
-
-### Custom Validation Rules
+### XSS Protection
 
 ```php
-// Extend sanitizer for custom rules
-class CustomSanitizer extends Sanitizer
-{
-    public function sanitizePhoneNumber(string $input): string
-    {
-        return preg_replace('/[^0-9+\-\(\)\s]/', '', $input);
-    }
-}
+// Remove XSS attempts
+$input = '<script>alert("xss")</script><p onclick="alert()">Content</p>';
+$clean = $sanitizer->removeXssAttempts($input);
+// Result: "<p>Content</p>"
 
-// Custom file validation
-$validator = new FileValidator();
-$customRules = [
-    'allowed_types' => ['application/pdf', 'text/plain'],
-    'max_size' => 5 * 1024 * 1024, // 5MB
-    'custom_validation' => function($content) {
-        return strpos($content, 'malicious') === false;
-    }
-];
+// Escape HTML for output
+$userInput = '<script>alert("xss")</script>Hello & "World"';
+$escaped = $sanitizer->escapeHtml($userInput);
+// Result: "&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;Hello &amp; &quot;World&quot;"
+
+// Escape for HTML attributes
+$attrValue = 'value"onclick="alert()"';
+$escaped = $sanitizer->escapeAttribute($attrValue);
+// Result: "value&quot;onclick=&quot;alert()&quot;"
 ```
 
-### Security Headers Integration
+### File Security
 
 ```php
-// Use with HTTP Response for security headers
-use LengthOfRope\TreeHouse\Http\Response;
+// Sanitize filenames
+$filename = $sanitizer->sanitizeFilename('../../../etc/passwd');
+// Result: "passwd"
 
-$response = new Response();
-$csrf = new Csrf($session);
+$filename = $sanitizer->sanitizeFilename('<script>evil.php');
+// Result: "evil.php"
 
-// Add CSRF token to response headers
-$response->header('X-CSRF-Token', $csrf->getToken());
-
-// Content Security Policy with nonce
-$nonce = bin2hex(random_bytes(16));
-$response->header('Content-Security-Policy', "script-src 'nonce-{$nonce}'");
+// Sanitize file paths
+$path = $sanitizer->sanitizePath('../../../var/www/uploads/file.txt');
+// Result: "var/www/uploads/file.txt"
 ```
 
-### Session Integration
+### Key Methods
+
+- [`sanitizeString(?string $input): string`](src/TreeHouse/Security/Sanitizer.php:36) - Clean string input
+- [`sanitizeEmail(string $input): string`](src/TreeHouse/Security/Sanitizer.php:51) - Sanitize email addresses
+- [`sanitizeUrl(string $input): string`](src/TreeHouse/Security/Sanitizer.php:68) - Clean and validate URLs
+- [`sanitizeInteger(mixed $input): int`](src/TreeHouse/Security/Sanitizer.php:95) - Convert to integer
+- [`sanitizeFloat(mixed $input): float`](src/TreeHouse/Security/Sanitizer.php:106) - Convert to float
+- [`sanitizeBoolean(mixed $input): bool`](src/TreeHouse/Security/Sanitizer.php:122) - Convert to boolean
+- [`sanitizeArray(array $input, array $rules): array`](src/TreeHouse/Security/Sanitizer.php:140) - Bulk sanitization
+- [`removeXssAttempts(string $input): string`](src/TreeHouse/Security/Sanitizer.php:170) - Remove XSS patterns
+- [`escapeHtml(string $input): string`](src/TreeHouse/Security/Sanitizer.php:192) - HTML entity escaping
+- [`escapeAttribute(string $input): string`](src/TreeHouse/Security/Sanitizer.php:203) - Attribute-safe escaping
+- [`sanitizeFilename(string $input): string`](src/TreeHouse/Security/Sanitizer.php:217) - Clean filenames
+- [`sanitizePath(string $input): string`](src/TreeHouse/Security/Sanitizer.php:242) - Sanitize file paths
+
+## Usage Examples
+
+### Complete Form Processing
 
 ```php
-// CSRF with custom session configuration
-use LengthOfRope\TreeHouse\Http\Session;
-
-$session = new Session([
-    'name' => 'secure_session',
-    'secure' => true,
-    'httponly' => true,
-    'samesite' => 'Strict'
-]);
-
-$csrf = new Csrf($session);
-```
-
-## Error Handling
-
-The Security System handles various security scenarios:
-
-- **Invalid Tokens** - CSRF token validation failures
-- **Encryption Errors** - Key validation and encryption/decryption failures
-- **File Security** - Malicious file detection and validation errors
-- **Input Validation** - Sanitization and validation rule violations
-- **Payload Expiration** - Encrypted payload expiration handling
-
-## Performance Considerations
-
-- CSRF tokens use cryptographically secure random generation
-- Encryption uses AES-256-CBC with secure IV generation
-- Password hashing uses PHP's optimized password functions
-- File validation includes efficient MIME type detection
-- Content scanning uses optimized pattern matching
-- Constant-time comparisons prevent timing attacks
-
-## Integration Examples
-
-### Basic Security Setup
-
-```php
-use LengthOfRope\TreeHouse\Security\{Csrf, Encryption, Hash, Sanitizer, FileValidator};
-use LengthOfRope\TreeHouse\Http\{Request, Response, Session};
+use LengthOfRope\TreeHouse\Security\{Csrf, Sanitizer, Hash};
 
 // Initialize security components
-$session = new Session();
-$csrf = new Csrf($session);
-$encryption = new Encryption($_ENV['APP_KEY']);
-$hash = new Hash();
+$csrf = new Csrf();
 $sanitizer = new Sanitizer();
-$fileValidator = new FileValidator();
+$hash = new Hash();
 
-// Middleware-style CSRF protection
-function csrfMiddleware($request, $csrf) {
-    if (in_array($request->getMethod(), ['POST', 'PUT', 'DELETE'])) {
-        if (!$csrf->verifyRequest($request->all())) {
-            throw new \Exception('CSRF token mismatch');
-        }
+// Process form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Validate CSRF token
+    if (!$csrf->validateToken($_POST['_token'] ?? '')) {
+        throw new SecurityException('CSRF token mismatch');
     }
-}
-
-// Process request
-$request = Request::createFromGlobals();
-csrfMiddleware($request, $csrf);
-
-// Sanitize input
-$cleanData = $sanitizer->validateAndSanitize($request->all(), [
-    'name' => ['type' => 'string', 'max_length' => 100],
-    'email' => ['type' => 'email'],
-    'message' => ['type' => 'string', 'max_length' => 1000]
-]);
-```
-
-### File Upload Security
-
-```php
-// Secure file upload handling
-function handleFileUpload($uploadedFile, $validator, $sanitizer) {
-    // Validate file
+    
+    // Sanitize input data
     $rules = [
-        'allowed_types' => ['image/jpeg', 'image/png', 'application/pdf'],
-        'allowed_extensions' => ['jpg', 'jpeg', 'png', 'pdf'],
-        'max_size' => 5 * 1024 * 1024, // 5MB
-        'scan_content' => true
+        'name' => 'string',
+        'email' => 'email',
+        'website' => 'url',
+        'age' => 'integer'
     ];
     
-    $result = $validator->validateUploadedFile($uploadedFile, $rules);
+    $sanitized = $sanitizer->sanitizeArray($_POST, $rules);
     
-    if (!$result['valid']) {
-        throw new \Exception('File validation failed: ' . implode(', ', $result['errors']));
+    // Hash password if provided
+    if (!empty($_POST['password'])) {
+        $sanitized['password'] = $hash->make($_POST['password']);
     }
     
-    // Generate secure filename
-    $secureFilename = $validator->generateSecureFilename($uploadedFile->getName());
-    $safePath = $sanitizer->sanitizePath('uploads/' . $secureFilename);
-    
-    // Move file to secure location
-    $uploadedFile->moveTo($safePath);
-    
-    return $safePath;
+    // Process sanitized data
+    saveUserData($sanitized);
 }
+
+// Generate token for form
+$token = $csrf->getToken();
 ```
 
-### API Authentication
+### Secure Data Storage
 
 ```php
-// JWT-style token with encryption
-function generateApiToken($payload, $encryption) {
-    $payload['expires_at'] = time() + 3600; // 1 hour
-    $payload['issued_at'] = time();
-    
-    return $encryption->encryptPayload($payload);
-}
+use LengthOfRope\TreeHouse\Security\Encryption;
 
-function validateApiToken($token, $encryption) {
-    try {
-        $payload = $encryption->decryptPayload($token);
+$encryption = new Encryption($_ENV['APP_KEY']);
+
+// Encrypt sensitive data before storage
+$sensitiveData = [
+    'ssn' => '123-45-6789',
+    'credit_card' => '4111-1111-1111-1111'
+];
+
+$encrypted = $encryption->encrypt(serialize($sensitiveData));
+// Store $encrypted in database
+
+// Decrypt when needed
+$decrypted = unserialize($encryption->decrypt($encrypted));
+```
+
+### User Authentication System
+
+```php
+use LengthOfRope\TreeHouse\Security\{Hash, Sanitizer};
+
+class UserAuth
+{
+    private Hash $hash;
+    private Sanitizer $sanitizer;
+    
+    public function __construct()
+    {
+        $this->hash = new Hash();
+        $this->sanitizer = new Sanitizer();
+    }
+    
+    public function register(array $data): bool
+    {
+        // Sanitize input
+        $rules = [
+            'username' => 'string',
+            'email' => 'email',
+            'password' => 'string'
+        ];
         
-        if ($payload['expires_at'] < time()) {
-            throw new \Exception('Token expired');
+        $clean = $this->sanitizer->sanitizeArray($data, $rules);
+        
+        // Hash password
+        $clean['password'] = $this->hash->make($clean['password']);
+        
+        // Save user
+        return $this->saveUser($clean);
+    }
+    
+    public function login(string $email, string $password): bool
+    {
+        // Sanitize input
+        $email = $this->sanitizer->sanitizeEmail($email);
+        $password = $this->sanitizer->sanitizeString($password);
+        
+        // Get user from database
+        $user = $this->getUserByEmail($email);
+        
+        if (!$user || !$this->hash->check($password, $user['password'])) {
+            return false;
         }
         
-        return $payload;
-    } catch (\Exception $e) {
-        throw new \Exception('Invalid token');
+        // Check if password needs rehashing
+        if ($this->hash->needsRehash($user['password'])) {
+            $newHash = $this->hash->make($password);
+            $this->updateUserPassword($user['id'], $newHash);
+        }
+        
+        return true;
     }
 }
 ```
 
-The TreeHouse Security System provides a comprehensive foundation for securing web applications, with excellent performance characteristics and seamless integration with other TreeHouse components.
+## Security Best Practices
+
+### CSRF Protection
+
+1. **Always validate tokens** for state-changing operations
+2. **Regenerate tokens** after successful authentication
+3. **Use HTTPS** to prevent token interception
+4. **Set appropriate token expiration** times
+
+### Encryption
+
+1. **Use strong keys** (32+ bytes for AES-256)
+2. **Store keys securely** (environment variables, key management)
+3. **Rotate keys regularly** for long-term security
+4. **Validate MAC** before decryption to prevent tampering
+
+### Password Security
+
+1. **Use appropriate cost factors** (10-12 for bcrypt)
+2. **Implement rehashing** when security parameters change
+3. **Never store plain text** passwords
+4. **Use timing-safe comparison** (provided by password_verify)
+
+### Input Sanitization
+
+1. **Sanitize all user input** before processing
+2. **Use type-specific sanitization** for different data types
+3. **Escape output** when displaying user content
+4. **Validate after sanitization** for business logic
+5. **Use prepared statements** for database queries
+
+### General Security
+
+1. **Layer security measures** (defense in depth)
+2. **Log security events** for monitoring
+3. **Keep dependencies updated** for security patches
+4. **Use HTTPS** for all sensitive operations
+5. **Implement rate limiting** for authentication attempts
+
+## Integration
+
+### With TreeHouse Framework
+
+The Security Layer integrates seamlessly with other TreeHouse components:
+
+```php
+// With HTTP Layer
+use LengthOfRope\TreeHouse\Http\Request;
+use LengthOfRope\TreeHouse\Security\{Csrf, Sanitizer};
+
+$request = new Request();
+$csrf = new Csrf();
+$sanitizer = new Sanitizer();
+
+// Validate CSRF in middleware
+if (!$csrf->validateToken($request->input('_token'))) {
+    throw new SecurityException('CSRF token mismatch');
+}
+
+// Sanitize request data
+$rules = ['name' => 'string', 'email' => 'email'];
+$clean = $sanitizer->sanitizeArray($request->all(), $rules);
+```
+
+```php
+// With Auth Layer
+use LengthOfRope\TreeHouse\Auth\AuthManager;
+use LengthOfRope\TreeHouse\Security\Hash;
+
+$auth = new AuthManager();
+$hash = new Hash();
+
+// Custom user provider with secure hashing
+class SecureUserProvider extends DatabaseUserProvider
+{
+    private Hash $hash;
+    
+    public function validateCredentials($user, array $credentials): bool
+    {
+        return $this->hash->check($credentials['password'], $user->password);
+    }
+}
+```
+
+### Environment Configuration
+
+```php
+// .env configuration
+APP_KEY=base64:your-32-byte-encryption-key-here
+CSRF_TOKEN_LENGTH=32
+PASSWORD_COST=12
+```
+
+### Service Registration
+
+```php
+// Register security services
+$container->singleton(Csrf::class, function() {
+    return new Csrf();
+});
+
+$container->singleton(Encryption::class, function() {
+    return new Encryption($_ENV['APP_KEY']);
+});
+
+$container->singleton(Hash::class, function() {
+    return new Hash();
+});
+
+$container->singleton(Sanitizer::class, function() {
+    return new Sanitizer();
+});
+```
+
+The Security Layer provides essential security utilities that work together to create a comprehensive security framework for web applications, ensuring data protection, user authentication security, and protection against common web vulnerabilities.
