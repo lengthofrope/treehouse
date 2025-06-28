@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace LengthOfRope\TreeHouse\Auth;
 
+use LengthOfRope\TreeHouse\Auth\Contracts\Authorizable;
+
 /**
  * Generic User
  *
@@ -11,15 +13,19 @@ namespace LengthOfRope\TreeHouse\Auth;
  * Provides basic user functionality including authentication identifier and
  * password retrieval, as well as remember token management.
  *
+ * Now includes authorization capabilities through the Authorizable interface,
+ * making it a complete user implementation for both authentication and authorization.
+ *
  * This class can be used as a base for custom user implementations or
- * as a standalone user class for simple authentication scenarios.
+ * as a standalone user class for authentication and authorization scenarios.
  *
  * @package LengthOfRope\TreeHouse\Auth
  * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
-class GenericUser
+class GenericUser implements Authorizable
 {
+    use AuthorizableUser;
     /**
      * User attributes
      */
@@ -43,6 +49,31 @@ class GenericUser
     public function getAuthIdentifier(): mixed
     {
         return $this->attributes['id'] ?? null;
+    }
+
+    /**
+     * Get the user's current role(s)
+     *
+     * Overrides the AuthorizableUser trait method to use the attribute system
+     *
+     * @return string|array
+     */
+    public function getRole(): string|array
+    {
+        return $this->attributes['role'] ?? $this->getDefaultRole();
+    }
+
+    /**
+     * Set the user's role(s)
+     *
+     * Overrides the AuthorizableUser trait method to use the attribute system
+     *
+     * @param string|array $role Role(s) to set
+     * @return void
+     */
+    protected function setRole(string|array $role): void
+    {
+        $this->attributes['role'] = $role;
     }
 
     /**
