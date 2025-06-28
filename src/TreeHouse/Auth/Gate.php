@@ -194,19 +194,20 @@ class Gate
      */
     private static function checkUser(Authorizable $user, string $ability, mixed $arguments = []): bool
     {
-        // First, check if the user has the permission through role-based config
-        if ($user->can($ability)) {
-            return true;
-        }
-
-        // Check if there's a custom callback defined
+        // Check if there's a custom callback defined first
         if (isset(static::$callbacks[$ability])) {
             $callback = static::$callbacks[$ability];
             
-            // Ensure arguments is always an array
-            $args = is_array($arguments) ? $arguments : [$arguments];
+            // Build arguments array for callback safely
+            // Always pass user as first argument, then treat arguments as a single parameter
+            $callArgs = [$user];
             
-            return (bool) $callback($user, ...$args);
+            if (!empty($arguments)) {
+                // Add arguments as single parameter to avoid PHP 8+ named parameter issues
+                $callArgs[] = $arguments;
+            }
+            
+            return (bool) call_user_func_array($callback, $callArgs);
         }
 
         // Check policy-based authorization if arguments contain a resource
@@ -217,6 +218,11 @@ class Gate
             if (isset(static::$policies[$resourceClass])) {
                 return static::checkPolicy($user, $ability, $resource);
             }
+        }
+
+        // Fall back to checking if the user has the permission through role-based config
+        if (method_exists($user, 'can')) {
+            return $user->can($ability);
         }
 
         return false;
