@@ -129,9 +129,9 @@ class MigrateRunCommand extends Command
             $paths[] = $frameworkPath;
         }
         
-        // 2. Application migrations (only if directory exists)
+        // 2. Application migrations (only if directory exists and different from framework)
         $appPath = getcwd() . '/database/migrations';
-        if (is_dir($appPath)) {
+        if (is_dir($appPath) && !in_array($appPath, $paths)) {
             $paths[] = $appPath;
         }
         
@@ -145,18 +145,49 @@ class MigrateRunCommand extends Command
     {
         // Try different possible locations for framework migrations
         $possiblePaths = [
-            // If framework is installed via Composer
-            getcwd() . '/vendor/lengthofRope/treehouse-framework/database/migrations',
+            // If framework is installed via Composer (correct package name)
+            getcwd() . '/vendor/lengthofrope/treehouse/database/migrations',
             // If running from within the framework itself
             __DIR__ . '/../../../../database/migrations',
-            // Alternative Composer location
-            getcwd() . '/vendor/lengthofRope/treehouse/database/migrations',
+            // Try using reflection to find where the TreeHouse classes are loaded from
+            $this->getFrameworkPathViaReflection(),
+            // Legacy/alternative paths for backward compatibility
+            getcwd() . '/vendor/lengthofRope/treehouse-framework/database/migrations',
         ];
+        
+        // Filter out null values and check each path
+        $possiblePaths = array_filter($possiblePaths);
         
         foreach ($possiblePaths as $path) {
             if (is_dir($path)) {
                 return $path;
             }
+        }
+        
+        return null;
+    }
+
+
+    /**
+     * Get framework path using reflection on TreeHouse classes
+     */
+    private function getFrameworkPathViaReflection(): ?string
+    {
+        try {
+            $reflectionClass = new \ReflectionClass('LengthOfRope\TreeHouse\Database\Migration');
+            $classPath = $reflectionClass->getFileName();
+            
+            if ($classPath) {
+                // From src/TreeHouse/Database/Migration.php, go up to framework root
+                // Path structure: [framework]/src/TreeHouse/Database/Migration.php
+                // We need to go up 4 levels: Database -> TreeHouse -> src -> [framework root]
+                $frameworkRoot = dirname($classPath, 4);
+                $migrationsPath = $frameworkRoot . '/database/migrations';
+                
+                return $migrationsPath;
+            }
+        } catch (\Exception $e) {
+            // Ignore reflection errors
         }
         
         return null;
