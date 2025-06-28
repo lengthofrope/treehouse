@@ -1,268 +1,256 @@
-# TreeHouse View Layer
+# TreeHouse Framework - View Layer
 
-Modern template engine with HTML-valid syntax, universal th: attributes, automatic text processing, and deep Support class integration. Built for developer experience with zero external dependencies.
+The View Layer provides a powerful template engine with HTML-valid syntax, component support, layout management, and deep integration with the TreeHouse Support classes. This layer enables clean separation of presentation logic from business logic while maintaining developer productivity.
 
-## Revolutionary Features
+## Table of Contents
 
-### Universal th: Attributes
-**Any HTML attribute can be prefixed with `th:` for dynamic content:**
+- [Overview](#overview)
+- [Components](#components)
+- [Basic Usage](#basic-usage)
+- [Template Syntax](#template-syntax)
+- [Layout System](#layout-system)
+- [Components](#components-1)
+- [Template Compilation](#template-compilation)
+- [Helper Functions](#helper-functions)
+- [Advanced Features](#advanced-features)
+- [Integration](#integration)
 
-```html
-<!-- Clean universal attributes with brace syntax -->
-<a th:href="/user/{user.id}" 
-   th:title="View {user.name}" 
-   th:data-role="{user.role}">
-   
-<input th:id="field-{user.id}" 
-       th:value="{user.email}"
-       th:disabled="{!user.canEdit}">
-```
+## Overview
 
-### Automatic Text Processing
-**Brace expressions in text content are automatically processed:**
+The View Layer consists of five main components:
 
-```html
-<!-- Natural text interpolation - no th:text needed -->
-<h1>Welcome, {user.name}!</h1>
-<p>You have {notifications.count} unread messages</p>
-<button>Delete {user.name}</button>
-```
+- **ViewEngine**: Main template engine coordinator
+- **Template**: Individual template handler with rendering capabilities
+- **ViewFactory**: Factory for creating view instances with configuration
+- **TreeHouseCompiler**: Template compiler for `.th.html` and `.th.php` files
+- **Helper Functions**: Global utility functions for templates
 
-### Dot Notation Support
-**Clean object property access:**
+### Key Features
 
-```html
-<!-- Intuitive dot syntax instead of PHP array notation -->
-<span th:text="user.profile.settings.theme">Theme</span>
-<p>Current theme: {user.profile.settings.theme}</p>
-```
+- **HTML-Valid Syntax**: Use `th:` attributes that validate as HTML
+- **Template Compilation**: Compile templates to optimized PHP code
+- **Layout System**: Master layouts with sections and inheritance
+- **Component System**: Reusable template components
+- **Caching**: Compiled template caching for performance
+- **Support Integration**: Deep integration with Support classes
+- **Authentication Integration**: Built-in auth context and helpers
 
-## Core Features
+## Components
 
-- **HTML-Valid Syntax**: `th:` attributes work in any HTML editor/IDE with full validation
-- **Universal th: Attributes**: ANY HTML attribute can be prefixed with `th:` for dynamic content
-- **Automatic Text Processing**: `{variable}` syntax in text nodes processed automatically
-- **Dot Notation**: Clean `user.name` syntax instead of `$user['name']`
-- **Support Integration**: Collection, Arr, Str, Carbon, Uuid classes available everywhere
-- **Component System**: Reusable components with props, state, and lifecycle hooks
-- **Layout System**: Template inheritance with section management
-- **Smart Compilation**: Efficient caching with DOM-based compilation
-- **Zero Dependencies**: Pure PHP solution, no external template engines
-
-## Quick Start
+### Core Classes
 
 ```php
-// Create and render templates
-$view = view('user.profile', ['user' => $user]);
-$html = render('user.profile', ['user' => $user]);
-$view = layout('app', 'user.profile', ['user' => $user]);
+// Main view engine
+LengthOfRope\TreeHouse\View\ViewEngine
+
+// Individual template
+LengthOfRope\TreeHouse\View\Template
+
+// View factory
+LengthOfRope\TreeHouse\View\ViewFactory
+
+// Template compiler
+LengthOfRope\TreeHouse\View\Compilers\TreeHouseCompiler
 ```
 
-### Basic Template Example
+## Basic Usage
 
-```html
-<!-- resources/views/user/profile.th.html -->
-<div class="profile">
-    <!-- Universal th: attributes with brace syntax -->
-    <img th:src="/avatars/{user.id}.jpg" 
-         th:alt="Avatar for {user.name}">
-    
-    <!-- Automatic text content processing -->
-    <h1>Welcome back, {user.name}!</h1>
-    <p>Status: {user.active ? 'Online' : 'Offline'}</p>
-    
-    <!-- Dot notation for clean property access -->
-    <span th:text="user.profile.settings.theme">Theme</span>
-    
-    <!-- Boolean attributes work perfectly -->
-    <input type="checkbox" th:checked="{user.active}"> Active User
-    
-    <!-- Collection operations with Support classes -->
-    <div th:if="user.posts.isNotEmpty">
-        <h2>Recent Posts ({user.posts.count} total)</h2>
-        <article th:repeat="post user.posts.take(5)" class="post">
-            <h3>{post.title}</h3>
-            <time>{post.created_at.format('F j, Y')}</time>
-            <p>{Str::limit(post.excerpt, 100)}</p>
-            <a th:href="/posts/{post.id}" th:class="btn btn-{post.status}">
-                Read More
-            </a>
-        </article>
-    </div>
-</div>
+### Creating Views
+
+```php
+use LengthOfRope\TreeHouse\View\ViewEngine;
+
+// Create view engine
+$viewEngine = new ViewEngine([
+    '/path/to/templates',
+    '/path/to/views'
+]);
+
+// Create template
+$template = $viewEngine->make('welcome', ['name' => 'John']);
+
+// Render template
+$html = $template->render();
+
+// Or render directly
+$html = $viewEngine->render('welcome', ['name' => 'John']);
 ```
+
+### Using Helper Functions
+
+```php
+// Global view helper
+$template = view('welcome', ['name' => 'John']);
+$html = $template->render();
+
+// Direct rendering
+$html = render('welcome', ['name' => 'John']);
+
+// Partial templates
+$html = partial('header', ['title' => 'Welcome']);
+
+// Components
+$html = component('button', ['text' => 'Click me', 'type' => 'primary']);
+```
+
+### Template File Extensions
+
+The view system supports multiple file extensions in order of preference:
+
+1. `.th.html` - TreeHouse HTML templates (compiled)
+2. `.th.php` - TreeHouse PHP templates (compiled)
+3. `.php` - Raw PHP templates (included directly)
+4. `.html` - Static HTML templates
 
 ## Template Syntax
 
-### Universal th: Attributes
-
-Any HTML attribute can be prefixed with `th:` for dynamic content:
+### Basic Output
 
 ```html
-<!-- Dynamic attributes with brace expressions -->
-<a th:href="/posts/{post.id}" th:title="Edit {post.title}">Edit</a>
-<input th:id="field-{user.id}" th:value="{user.email}" th:placeholder="Enter email for {user.name}">
-<div th:class="card {user.role} {user.active ? 'active' : 'inactive'}" th:data-user-id="{user.id}">
+<!-- Escaped output -->
+<h1>{title}</h1>
+<p>Welcome, {user.name}!</p>
 
-<!-- Boolean attributes -->
-<input type="checkbox" th:checked="{user.active}">
-<button th:disabled="{user.isProcessing}">Save</button>
-<option th:selected="{user.role == 'admin'}">Admin</option>
-```
+<!-- Raw HTML output -->
+<div th:html="content"></div>
 
-### Automatic Text Processing
-
-Brace expressions in text are processed automatically:
-
-```html
-<!-- Simple interpolation -->
-<h1>Welcome, {user.name}!</h1>
-<p>You have {notifications.count} unread messages</p>
-
-<!-- Complex expressions -->
-<span>Status: {user.active ? 'Online' : 'Offline'}</span>
-<p>Last seen: {user.lastSeen ? user.lastSeen.diffForHumans : 'Never'}</p>
-```
-
-### Dot Notation
-
-Clean object property access:
-
-```html
-<!-- Nested property access -->
-<span th:text="user.profile.settings.theme">Theme</span>
-<p>Company: {company.info.details.name}</p>
-<img th:src="/uploads/{user.avatar.filename}" th:alt="{user.profile.displayName}">
+<!-- Text content (escaped) -->
+<span th:text="user.email"></span>
 ```
 
 ### Conditionals
 
 ```html
+<!-- Simple conditionals -->
 <div th:if="user.isActive">User is active</div>
-<div th:unless="errors.isEmpty">Show errors</div>
-<div th:if="{user.role == 'admin'}">Admin content</div>
-```
+<div th:unless="user.isActive">User is inactive</div>
 
-### Authorization Directives
-
-TreeHouse includes built-in authorization directives for controlling content based on user authentication and permissions:
-
-```html
-<!-- Authentication-based content -->
-<div th:auth>
-    Welcome back, {user.name}!
-</div>
+<!-- Authentication conditionals -->
+<nav th:auth>
+    <a href="/dashboard">Dashboard</a>
+</nav>
 
 <div th:guest>
-    Please <a href="/login">log in</a> to continue.
+    <a href="/login">Login</a>
 </div>
 
-<!-- Role-based content -->
-<div th:role="admin">
-    <a href="/admin">Administrator Panel</a>
-</div>
+<!-- Role-based conditionals -->
+<button th:role="admin">Admin Panel</button>
+<button th:role="admin,editor">Content Management</button>
 
-<div th:role="admin,editor">
-    <a href="/posts/manage">Manage Posts</a>
-</div>
-
-<!-- Permission-based content -->
-<div th:permission="manage-users">
-    <button>Add User</button>
-</div>
-
-<div th:permission="edit-posts,delete-posts">
-    <button>Manage Posts</button>
-</div>
-
-<!-- Mixed authorization -->
-<div th:auth>
-    <h2>User Panel</h2>
-    
-    <div th:role="admin">
-        <h3>Admin Tools</h3>
-        <a href="/admin/settings">Settings</a>
-    </div>
-    
-    <div th:permission="view-analytics">
-        <h3>Analytics</h3>
-        <a href="/analytics">View Stats</a>
-    </div>
-    
-    <div th:unless="user.hasRole('admin')">
-        <p>Some features require administrator privileges.</p>
-    </div>
-</div>
+<!-- Permission-based conditionals -->
+<button th:permission="manage-users">Manage Users</button>
+<button th:permission="edit-posts,publish-posts">Edit Posts</button>
 ```
 
 ### Loops
 
 ```html
-<!-- Simple iteration -->
-<li th:repeat="item items" th:text="item.name">Item</li>
+<!-- Simple loop -->
+<ul>
+    <li th:repeat="item items" th:text="item.name"></li>
+</ul>
 
-<!-- Key-value iteration -->
-<li th:repeat="key,item items">{key}: {item}</li>
+<!-- Loop with key -->
+<ul>
+    <li th:repeat="key,item items">
+        <strong>{key}</strong>: {item.value}
+    </li>
+</ul>
 
-<!-- With repeat status -->
-<li th:repeat="item items" th:class="th_repeat.first ? 'first' : ''">
-    <span th:text="th_repeat.index + 1">1</span>. {item.name}
-</li>
+<!-- Loop with array variable -->
+<div th:repeat="user $users">
+    <h3>{user.name}</h3>
+    <p>{user.email}</p>
+</div>
 ```
 
-### Content
+### Attributes
 
 ```html
-<!-- Escaped text (explicit) -->
-<h1 th:text="user.name">User Name</h1>
+<!-- Dynamic attributes -->
+<input th:value="user.name" th:placeholder="Enter your name">
+<img th:src="user.avatar" th:alt="user.name">
 
-<!-- Escaped text (automatic) -->
-<h1>Welcome, {user.name}!</h1>
+<!-- Class attributes -->
+<div th:class="user.status">Content</div>
+<div th:class="'btn btn-' + button.type">Button</div>
 
-<!-- Raw HTML -->
-<div th:html="content">Content</div>
+<!-- Multiple attributes -->
+<input th:attr="id='user-' + user.id, class=user.role">
+
+<!-- Boolean attributes -->
+<input th:checked="user.isActive" type="checkbox">
+<button th:disabled="!user.canEdit">Edit</button>
 ```
 
-## Support Class Integration
+### Universal th: Attributes
 
-All Support classes are automatically available in templates:
+Any HTML attribute can be prefixed with `th:` for dynamic values:
 
 ```html
-<!-- Collection methods -->
-<p>{users.count} users found</p>
-<div th:if="products.where('featured', true).isNotEmpty()">Featured products</div>
+<!-- Standard attributes -->
+<a th:href="'/users/' + user.id">View User</a>
+<input th:name="'field_' + index" th:id="'input_' + index">
 
-<!-- String utilities -->
-<h1 th:text="Str::title(category.name)">Category</h1>
-<p>{Str::limit(description, 150, '...')}</p>
+<!-- Data attributes -->
+<div th:data-user-id="user.id" th:data-role="user.role">Content</div>
 
-<!-- Array utilities -->
-<span th:text="Arr::join(tags.pluck('name').toArray(), ', ')">Tags</span>
+<!-- Custom attributes -->
+<element th:custom-attr="someValue" th:another-attr="anotherValue">
+```
 
-<!-- Date handling -->
-<time>{post.created_at.format('F j, Y')}</time>
-<span>{post.created_at.diffForHumans()}</span>
+### Expressions
 
-<!-- UUID generation -->
-<input th:id="field-{Uuid::generate()}" type="text">
+```html
+<!-- Variable access -->
+{title}
+{user.name}
+{config.app.name}
+
+<!-- Array access -->
+{users[0].name}
+{data['key']}
+
+<!-- Method calls -->
+{user.getFullName()}
+{Str::title(user.name)}
+
+<!-- Arithmetic -->
+{price * quantity}
+{total + tax}
+
+<!-- Comparisons -->
+{user.age >= 18}
+{status == 'active'}
+
+<!-- Mixed expressions -->
+{'Hello ' + user.name + '!'}
+{user.isActive ? 'Active' : 'Inactive'}
 ```
 
 ## Layout System
 
-### Parent Layout
+### Master Layout
 
 ```html
-<!-- resources/views/layouts/app.th.html -->
+<!-- layouts/app.th.html -->
 <!DOCTYPE html>
 <html>
 <head>
-    <title th:text="title ?? 'My App'">My App</title>
-    <link rel="stylesheet" href="/css/app.css">
+    <title th:text="title">Default Title</title>
 </head>
 <body>
-    <nav><!-- Navigation --></nav>
-    <main><?php echo $this->yieldSection('content'); ?></main>
-    <footer><!-- Footer --></footer>
+    <header th:yield="header">
+        <h1>Default Header</h1>
+    </header>
+    
+    <main th:yield="content">
+        Default content
+    </main>
+    
+    <footer th:yield="footer, 'Default Footer'">
+    </footer>
 </body>
 </html>
 ```
@@ -270,628 +258,420 @@ All Support classes are automatically available in templates:
 ### Child Template
 
 ```html
-<!-- resources/views/user/profile.th.html -->
+<!-- pages/welcome.th.html -->
 <div th:extend="layouts.app">
+    <div th:section="header">
+        <h1>Welcome Page</h1>
+        <nav>Navigation here</nav>
+    </div>
+    
     <div th:section="content">
-        <h1>{user.name}</h1>
-        <!-- Profile content -->
+        <h2>Welcome, {user.name}!</h2>
+        <p>This is the main content.</p>
     </div>
 </div>
 ```
 
-## Components
-
-### Component Class
+### Programmatic Layout Usage
 
 ```php
-<?php
-namespace App\View\Components;
+// In PHP code
+$template = view('welcome', ['user' => $user]);
+$template->extend('layouts.app');
+$template->startSection('content');
+echo '<h1>Dynamic Content</h1>';
+$template->endSection();
 
-use LengthOfRope\TreeHouse\View\Components\Component;
-
-class UserCard extends Component
-{
-    public function template(): string
-    {
-        return 'components.user-card';
-    }
-    
-    protected function getInitialState(): array
-    {
-        return [
-            'showDetails' => $this->prop('expanded', false),
-        ];
-    }
-    
-    public function getIsActiveProperty(): bool
-    {
-        return $this->prop('user')->isActive();
-    }
-}
+$html = $template->render();
 ```
 
-### Component Template
+## Components
+
+### Defining Components
 
 ```html
-<!-- resources/views/components/user-card.th.html -->
-<div class="user-card" th:attr="attributes">
-    <img th:src="{user.avatar}" th:alt="{user.name}" class="avatar">
-    <h3>{user.name}</h3>
-    <p th:if="showDetails">{user.bio}</p>
-    <span th:if="computed('isActive')" class="badge active">Active</span>
-    <div th:html="slot">Default content</div>
-</div>
+<!-- components/button.th.html -->
+<button 
+    th:class="'btn btn-' + (type ?: 'default')" 
+    th:disabled="disabled"
+    th:onclick="onclick">
+    {text ?: 'Button'}
+</button>
 ```
 
 ### Using Components
 
 ```html
 <!-- In templates -->
-<div th:component="user-card" th:props-user="user" th:props-expanded="true">
-    <p>Additional content</p>
+<div th:component="button" 
+     th:props-text="'Save Changes'" 
+     th:props-type="'primary'"
+     th:props-onclick="'saveForm()'">
 </div>
 
-<!-- In PHP -->
-<?php echo UserCard::make(['user' => $user, 'expanded' => true]); ?>
+<!-- Or with helper function -->
+<?php echo component('button', [
+    'text' => 'Save Changes',
+    'type' => 'primary',
+    'onclick' => 'saveForm()'
+]); ?>
 ```
 
-## Configuration
-
-### Basic Setup
+### Registering Components
 
 ```php
-use LengthOfRope\TreeHouse\View\ViewFactory;
+// Register component
+$viewEngine->component('alert', 'components.alert');
+$viewEngine->component('card', 'components.card');
 
-$factory = new ViewFactory([
-    'paths' => [
-        __DIR__ . '/resources/views',
-        __DIR__ . '/templates',
-    ],
-    'cache_path' => __DIR__ . '/storage/framework/views',
-    'cache_enabled' => true,
-    'extensions' => ['.th.html', '.th.php', '.php', '.html'],
+// Use registered component
+$html = $viewEngine->renderComponent('alert', [
+    'type' => 'success',
+    'message' => 'Operation completed!'
 ]);
-
-// Use the factory
-$view = $factory->make('welcome', ['name' => 'World']);
-echo $view->render();
 ```
+
+## Template Compilation
+
+### Compilation Process
+
+The TreeHouseCompiler transforms `.th.html` and `.th.php` templates:
+
+```html
+<!-- Input: welcome.th.html -->
+<div th:if="user.isActive">
+    <h1>Welcome, {user.name}!</h1>
+    <p th:text="user.email"></p>
+</div>
+
+<!-- Compiled Output: -->
+<?php if ($user['isActive']): ?>
+<div>
+    <h1>Welcome, <?php echo thEscape($user['name']); ?>!</h1>
+    <p><?php echo thEscape($user['email']); ?></p>
+</div>
+<?php endif; ?>
+```
+
+### Supported Attributes
+
+The compiler processes these `th:` attributes in order:
+
+1. **Conditionals**: `th:if`, `th:unless`, `th:auth`, `th:guest`
+2. **Authorization**: `th:role`, `th:permission`
+3. **Loops**: `th:repeat`
+4. **Content**: `th:text`, `th:html`
+5. **Attributes**: `th:attr`, `th:class`, `th:style`
+6. **Layout**: `th:extend`, `th:section`, `th:yield`
+7. **Components**: `th:component`
+8. **Removal**: `th:remove`
+9. **Universal**: Any `th:*` attribute
+
+### Caching
+
+```php
+// Templates are automatically cached
+$viewEngine = new ViewEngine($paths, $cache);
+
+// Clear cache
+$viewEngine->clearCache();
+
+// Check if template exists
+if ($viewEngine->exists('welcome')) {
+    $html = $viewEngine->render('welcome', $data);
+}
+```
+
+## Helper Functions
+
+### Template Helpers
+
+```php
+// Available in all templates as $th object
+$th->e($value)              // Escape HTML
+$th->collect($array)        // Convert to Collection
+$th->money($amount)         // Format money
+$th->number($number)        // Format number
+$th->date($date, $format)   // Format date
+$th->get($array, $key)      // Array access with dot notation
+$th->isEmpty($value)        // Check if empty
+$th->old($key, $default)    // Get old input
+$th->url($path)             // Generate URL
+$th->asset($path)           // Generate asset URL
+$th->route($name, $params)  // Generate route URL
+$th->csrfToken()            // Get CSRF token
+$th->csrfField()            // Generate CSRF field
+$th->limit($string, $limit) // Limit string length
+$th->title($string)         // Convert to title case
+```
+
+### Global Helper Functions
+
+```php
+// View creation
+view($template, $data)      // Create view
+render($template, $data)    // Render template
+partial($template, $data)   // Render partial
+component($name, $props)    // Render component
+
+// Template helpers
+thEscape($value)            // Escape HTML
+thRaw($value)               // Raw HTML output
+thCollect($array)           // Convert to Collection
+
+// URL helpers
+asset($path)                // Asset URL
+url($path)                  // Generate URL
+route($name, $params)       // Route URL
+
+// Form helpers
+old($key, $default)         // Old input value
+csrfToken()                 // CSRF token
+csrfField()                 // CSRF field HTML
+methodField($method)        // HTTP method field
+```
+
+## Advanced Features
 
 ### View Composers
 
 ```php
-// Register a view composer for automatic data injection
-view()->composer('user.*', function ($data) {
-    return array_merge($data, [
-        'currentUser' => getCurrentUser(),
-        'notifications' => getNotifications(),
-    ]);
+// Register view composer
+$viewEngine->composer('layouts.app', function($data) {
+    return [
+        'currentYear' => date('Y'),
+        'siteName' => 'My Application'
+    ];
+});
+
+// Multiple views
+$viewEngine->composer(['pages.*', 'admin.*'], function($data) {
+    return ['user' => auth()->user()];
 });
 ```
 
-### Helper Functions
-
-Global helper functions available everywhere:
+### Shared Data
 
 ```php
-// Template creation and rendering
-view('template', $data)          // Create template instance
-render('template', $data)        // Render template directly  
-partial('name', $data)           // Render partial template
-component('name', $props)        // Render component
+// Share data with all views
+$viewEngine->share('appName', 'TreeHouse Framework');
+$viewEngine->share([
+    'version' => '1.0.0',
+    'environment' => 'production'
+]);
 
-// Security helpers
-csrfToken()                      // Get CSRF token
-csrfField()                      // Generate CSRF hidden field
-methodField('PUT')               // Generate method override field
-
-// URL and asset helpers
-asset('css/app.css')             // Generate asset URL
-url('/dashboard')                // Generate application URL  
-route('user.show', ['id' => 1])  // Generate route URL
+// Access in templates
+<title>{appName} - {title}</title>
 ```
 
-## Architecture
+### Template Aliases
 
-### Core Classes
+```php
+// Register aliases
+$viewEngine->alias('home', 'pages.welcome');
+$viewEngine->alias('login', 'auth.login');
 
-#### ViewEngine
-Main template engine coordinator:
-- Template path resolution across multiple directories
-- Template compilation and caching with CacheInterface integration
-- Global shared data management across all templates  
-- Component and layout registration
-- View composer registration for automatic data injection
+// Use aliases
+$html = $viewEngine->render('home', $data);
+```
 
-#### Template  
-Individual template handler:
-- Template rendering with layout inheritance
-- Section management (startSection, endSection, yieldSection)
-- Recursive rendering depth protection (max 10 levels)
-- Rich template helper functions
-- Component rendering within templates
+### Multiple View Engines
 
-#### TreeHouseCompiler
-Advanced template compiler:
-- Universal th: attribute processing (ANY HTML attribute can be prefixed)
-- Intelligent brace expression compilation `{variable}`
-- Dot notation conversion (`user.name` → `$user['name']`)
-- Automatic text node processing for brace expressions
-- Boolean attribute handling (checked, selected, disabled, etc.)
-- Support class integration (Collection, Arr, Str, Carbon, Uuid)
+```php
+$factory = new ViewFactory();
 
-#### ViewFactory
-Multi-engine factory:
-- Multiple view engine instances
-- Configuration management (paths, caching, extensions)
-- Template existence checking across engines
-- Cache management across all engines
+// Register custom engine
+$customEngine = new ViewEngine(['/custom/templates']);
+$factory->extend('custom', $customEngine);
 
-### File Extensions
+// Use specific engine
+$template = $factory->make('template', $data, 'custom');
+```
 
-- `.th.html` - TreeHouse HTML templates with th: attributes (preferred)
-- `.th.php` - TreeHouse PHP templates with full PHP support
-- `.php` - Raw PHP templates (no compilation, direct inclusion)
-- `.html` - Static HTML files
+### Error Handling
 
-## Best Practices
+```php
+try {
+    $html = view('template', $data)->render();
+} catch (InvalidArgumentException $e) {
+    // Template not found
+    $html = view('errors.404')->render();
+} catch (RuntimeException $e) {
+    // Rendering error
+    $html = view('errors.500', ['error' => $e->getMessage()])->render();
+}
+```
 
-### Template Organization
-1. **Use meaningful template paths** - Organize templates by feature/controller
-2. **Leverage universal th: attributes** with brace syntax for cleaner, more maintainable code
-3. **Prefer automatic text processing** - Use `{variable}` in text instead of `th:text` when possible
-4. **Use dot notation** for cleaner object property access (`user.name` vs `$user['name']`)
-5. **Create reusable components** for common UI patterns (cards, forms, buttons)
-6. **Use layouts consistently** for page structure and maintain design consistency
-7. **Organize partials** in dedicated directories (`components/`, `partials/`, `widgets/`)
+## Integration
+
+### HTTP Response Integration
+
+```php
+use LengthOfRope\TreeHouse\Http\Response;
+
+class PageController
+{
+    public function welcome()
+    {
+        $template = view('welcome', ['user' => auth()->user()]);
+        return $template->toResponse();
+        
+        // Or directly
+        return new Response($template->render());
+    }
+}
+```
+
+### Router Integration
+
+```php
+use LengthOfRope\TreeHouse\Router\Router;
+
+$router = new Router();
+
+$router->get('/welcome', function() {
+    return view('welcome', ['title' => 'Welcome']);
+});
+
+$router->get('/users/{id}', function($id) {
+    $user = User::find($id);
+    return view('users.show', compact('user'));
+});
+```
+
+### Authentication Integration
+
+```php
+// Auth context is automatically shared
+// Available in all templates:
+// - $auth: AuthManager instance
+// - $user: Current user (lazy-loaded)
+// - $gate: Gate instance
+// - can(): Permission check function
+// - cannot(): Inverse permission check
+
+// In templates:
+<div th:auth>
+    Welcome, {user.name}!
+    <div th:role="admin">Admin Panel</div>
+    <div th:permission="edit-posts">Edit Posts</div>
+</div>
+```
+
+### Cache Integration
+
+```php
+use LengthOfRope\TreeHouse\Cache\FileCache;
+
+$cache = new FileCache('/path/to/cache');
+$viewEngine = new ViewEngine($paths, $cache);
+
+// Templates are automatically cached
+// Cache keys: 'view_' + md5(templatePath)
+```
+
+### Configuration
+
+```php
+// config/view.php
+return [
+    'paths' => [
+        __DIR__ . '/../resources/views',
+        __DIR__ . '/../templates',
+    ],
+    'cache_path' => __DIR__ . '/../storage/views',
+    'cache_enabled' => env('VIEW_CACHE', true),
+    'extensions' => ['.th.html', '.th.php', '.php', '.html'],
+];
+```
+
+### Testing Views
+
+```php
+use PHPUnit\Framework\TestCase;
+
+class ViewTest extends TestCase
+{
+    public function testWelcomeView()
+    {
+        $html = render('welcome', ['name' => 'John']);
+        
+        $this->assertStringContains('Welcome, John!', $html);
+        $this->assertStringContains('<h1>', $html);
+    }
+    
+    public function testConditionalRendering()
+    {
+        $html = render('profile', ['user' => ['isActive' => true]]);
+        $this->assertStringContains('User is active', $html);
+        
+        $html = render('profile', ['user' => ['isActive' => false]]);
+        $this->assertStringNotContains('User is active', $html);
+    }
+    
+    public function testComponentRendering()
+    {
+        $html = component('button', ['text' => 'Test', 'type' => 'primary']);
+        $this->assertStringContains('btn-primary', $html);
+        $this->assertStringContains('Test', $html);
+    }
+}
+```
 
 ### Performance Optimization
-8. **Enable template caching** in production environments for optimal performance
-9. **Use view composers** for shared template data instead of passing same data everywhere
-10. **Minimize complex logic** in templates - move business logic to controllers or components
-11. **Cache expensive operations** - Don't perform database queries in templates
-12. **Use lazy loading** for components that may not always render
 
-### Code Quality
-13. **Validate template data** before passing to views to prevent undefined variable errors
-14. **Use type hints** in component classes for better IDE support and error detection
-15. **Test your templates** - Create unit tests for complex components and view composers
-16. **Document complex templates** - Add comments for intricate template logic
-17. **Use consistent naming** - Follow naming conventions for variables, templates, and components
-
-### Security Practices
-18. **Always escape user input** - The `{variable}` syntax automatically escapes, use `th:html` only when needed
-19. **Use CSRF protection** - Include `csrfField()` in all forms
-20. **Sanitize file paths** - Never trust user input for template paths
-21. **Validate component props** - Check and sanitize component properties
-22. **Use proper HTTP methods** - Include `methodField()` for PUT/DELETE operations
-
-### Development Workflow
-23. **Disable caching in development** for immediate template updates
-24. **Use HTML-valid syntax** to leverage IDE features (autocomplete, validation, formatting)
-25. **Test in multiple browsers** - Ensure th: attributes don't cause issues
-26. **Use version control** - Track template changes and maintain template history
-27. **Code reviews** - Review template changes for security and performance issues
-
-### Template Structure
-```html
-<!-- ✅ Good template structure -->
-<div th:extend="layouts.app">
-    <div th:section="content">
-        <!-- Main content with clean syntax -->
-        <h1>{page.title}</h1>
-        
-        <!-- Component usage -->
-        <div th:component="user-card" th:props-user="user">
-            Additional content
-        </div>
-        
-        <!-- Collection operations -->
-        <div th:if="items.isNotEmpty()">
-            <article th:repeat="item items" class="item">
-                <h2>{item.title}</h2>
-                <p>{Str::limit(item.description, 100)}</p>
-            </article>
-        </div>
-    </div>
-    
-    <div th:section="scripts">
-        <script src="/js/page-specific.js"></script>
-    </div>
-</div>
-```
-
-### Component Design
 ```php
-// ✅ Good component structure
-class UserCard extends Component
-{
-    public function template(): string
-    {
-        return 'components.user-card';
-    }
-    
-    protected function getInitialState(): array
-    {
-        return [
-            'showDetails' => $this->prop('expanded', false),
-            'avatar' => $this->prop('user')->avatar ?? '/images/default-avatar.svg',
-        ];
-    }
-    
-    // Computed properties for complex logic
-    public function getIsActiveProperty(): bool
-    {
-        $user = $this->prop('user');
-        return $user && $user->active && !$user->suspended;
-    }
-    
-    public function shouldUpdate(array $newProps): bool
-    {
-        return $newProps['user']->id !== $this->prop('user')->id;
+// Enable template caching
+$viewEngine->setCache($cache);
+
+// Precompile templates
+$templates = ['welcome', 'layout.app', 'components.button'];
+foreach ($templates as $template) {
+    if ($viewEngine->exists($template)) {
+        $viewEngine->compile($viewEngine->findTemplate($template));
     }
 }
+
+// Clear cache when needed
+$viewEngine->clearCache();
 ```
 
-## Migration Guide
-
-### Upgrading to Universal th: Attributes
-
-The new features are **100% backwards compatible**. You can upgrade gradually:
-
-```html
-<!-- OLD: Complex th:attr syntax -->
-<a th:attr="href='/user/' . $user['id'], title='View ' . $user['name']">
-    Link
-</a>
-
-<!-- NEW: Clean universal attributes -->
-<a th:href="/user/{user.id}" th:title="View {user.name}">
-    Link  
-</a>
-
-<!-- OLD: PHP syntax in text -->
-<h1 th:text="'Welcome, ' . $user['name'] . '!'">Welcome</h1>
-
-<!-- NEW: Automatic text processing -->
-<h1>Welcome, {user.name}!</h1>
-
-<!-- OLD: Complex array access -->
-<span th:text="$user['profile']['settings']['theme']">Theme</span>
-
-<!-- NEW: Dot notation -->
-<span th:text="user.profile.settings.theme">Theme</span>
-<p>Current theme: {user.profile.settings.theme}</p>
-```
-
-## Migration Guide
-
-### Upgrading to Universal th: Attributes
-
-The revolutionary new features are **100% backwards compatible**. You can upgrade gradually:
-
-```html
-<!-- PHASE 1: Keep existing templates working -->
-<a th:attr="href='/user/' . $user['id'], title='View ' . $user['name']">Link</a>
-<h1 th:text="'Welcome, ' . $user['name'] . '!'">Welcome</h1>
-<span th:text="$user['profile']['settings']['theme']">Theme</span>
-
-<!-- PHASE 2: Start using new syntax for new templates -->
-<a th:href="/user/{user.id}" th:title="View {user.name}">Link</a>
-<h1>Welcome, {user.name}!</h1>
-<span th:text="user.profile.settings.theme">Theme</span>
-
-<!-- PHASE 3: Gradually refactor existing templates -->
-<div th:class="card {user.role} {user.active ? 'active' : 'inactive'}">
-    <img th:src="/avatars/{user.id}.jpg" th:alt="Avatar for {user.name}">
-    <h2>{user.name}</h2>
-    <p>Status: {user.active ? 'Online' : 'Offline'}</p>
-    <button th:data-user-id="{user.id}" th:disabled="{user.isProcessing}">
-        Save Changes
-    </button>
-</div>
-```
-
-### Migration Strategy
-
-**Immediate Benefits (No Changes Required):**
-- All existing templates continue to work exactly as before
-- No breaking changes to existing `th:attr`, `th:text`, or other attributes
-- Existing Support class usage remains unchanged
-- Component system backwards compatible
-
-**Gradual Adoption Approach:**
-1. **New Templates First** - Use new syntax for all new template development
-2. **High-Traffic Templates** - Refactor templates that are frequently modified
-3. **Component Templates** - Update component templates for better maintainability
-4. **Layout Templates** - Modernize layouts for consistent new syntax usage
-
-**Feature-by-Feature Migration:**
-
-```html
-<!-- Attributes: Old → New -->
-<!-- OLD -->
-<input th:attr="id='user-' + $user['id'], name='user[' + $user['id'] + '][email]', value=$user['email']">
-
-<!-- NEW -->
-<input th:id="user-{user.id}" th:name="user[{user.id}][email]" th:value="{user.email}">
-
-<!-- Text Content: Old → New -->
-<!-- OLD -->
-<h1 th:text="'Welcome back, ' . $user['name'] . '!'">Welcome</h1>
-
-<!-- NEW -->
-<h1>Welcome back, {user.name}!</h1>
-
-<!-- Object Access: Old → New -->
-<!-- OLD -->
-<span th:text="$user['profile']['settings']['theme']">Theme</span>
-
-<!-- NEW -->
-<span>{user.profile.settings.theme}</span>
-
-<!-- Boolean Attributes: Old → New -->
-<!-- OLD -->
-<option th:attr="selected=$user['role'] == 'admin' ? 'selected' : null">Admin</option>
-
-<!-- NEW -->
-<option th:selected="{user.role == 'admin'}">Admin</option>
-```
-
-### Testing During Migration
-
-**Verify Template Compatibility:**
-```php
-// Test that old and new syntax work together
-$html = render('mixed-syntax-test', [
-    'user' => $user,
-    'items' => $collection,
-]);
-
-// Check for compilation errors
-try {
-    view()->clearCache();
-    $compiled = view()->getCompiler()->compile($templateContent);
-} catch (\Exception $e) {
-    echo "Compilation error: " . $e->getMessage();
-}
-```
-
-**Template Validation:**
-```php
-// Validate that templates render correctly
-$oldTemplate = render('old-syntax-template', $data);
-$newTemplate = render('new-syntax-template', $data);
-
-// Compare essential content (ignoring whitespace differences)
-assert(trim($oldTemplate) === trim($newTemplate));
-```
-
-## Troubleshooting
-
-### Common Issues with Universal th: Attributes
-
-**Attribute not rendering:**
-```html
-<!-- ❌ Wrong: Missing quotes -->
-<div th:data-id={user.id}>Content</div>
-
-<!-- ✅ Correct: Proper quotes -->
-<div th:data-id="{user.id}">Content</div>
-```
-
-**Brace expressions in code blocks:**
-```html
-<!-- ❌ Problem: Braces processed in code -->
-<code>Use {user.name} syntax</code>
-
-<!-- ✅ Solution: Use HTML entities or escape -->
-<code>Use &#123;user.name&#125; syntax</code>
-```
-
-**Complex expressions:**
-```html
-<!-- ❌ Wrong: Complex logic in template -->
-<div th:class="{user.roles.contains('admin') && user.active && !user.suspended ? 'admin-active' : 'regular'}">
-
-<!-- ✅ Better: Move logic to controller/component -->
-<div th:class="{user.cssClass}">
-```
-
-**Variable not found:**
-```html
-<!-- ❌ Common mistake: Typo in variable name -->
-<span>{usr.name}</span>
-
-<!-- ✅ Correct: Check variable name -->
-<span>{user.name}</span>
-```
-
-**Boolean attributes not working:**
-```html
-<!-- ❌ Wrong: Using ternary with string values -->
-<option th:selected="{user.role == 'admin' ? 'selected' : null}">
-
-<!-- ✅ Correct: Use simple boolean condition -->
-<option th:selected="{user.role == 'admin'}">
-
-<!-- ❌ Wrong: Setting boolean to string -->
-<input th:disabled="'disabled'">
-
-<!-- ✅ Correct: Use boolean expression -->
-<input th:disabled="{!user.canEdit}">
-```
-
-### Debugging and Troubleshooting
-
-#### Template Errors
-```php
-// Enable debugging in development
-$factory = new ViewFactory([
-    'cache_enabled' => false,  // Disable cache for immediate updates
-    'debug' => true,
-]);
-
-// Check template existence
-if (!view()->exists('user.profile')) {
-    throw new \Exception('Template not found');
-}
-
-// Get template paths for debugging
-$paths = view()->getPaths();
-var_dump($paths);
-```
-
-#### Common Issues with Universal th: Attributes
-
-**Attribute not rendering:**
-```html
-<!-- ❌ Wrong: Missing quotes around brace expression -->
-<div th:data-id={user.id}>Content</div>
-
-<!-- ✅ Correct: Proper quotes -->
-<div th:data-id="{user.id}">Content</div>
-```
-
-**Brace expressions in code blocks:**
-```html
-<!-- ❌ Problem: Braces processed in code examples -->
-<code>Use {user.name} syntax</code>
-
-<!-- ✅ Solution: Use HTML entities -->
-<code>Use &#123;user.name&#125; syntax</code>
-
-<!-- ✅ Alternative: Use <pre> tags (automatically excluded) -->
-<pre>function example() { return {data: 'preserved'}; }</pre>
-```
-
-**Boolean attributes not working:**
-```html
-<!-- ❌ Wrong: Using ternary with string values -->
-<option th:selected="{user.role == 'admin' ? 'selected' : null}">
-
-<!-- ✅ Correct: Use simple boolean condition -->
-<option th:selected="{user.role == 'admin'}">
-
-<!-- ❌ Wrong: Setting boolean to string -->
-<input th:disabled="'disabled'">
-
-<!-- ✅ Correct: Use boolean expression -->
-<input th:disabled="{!user.canEdit}">
-```
-
-**Variable not found:**
-```html
-<!-- ❌ Common mistake: Typo in variable name -->
-<span>{usr.name}</span>
-
-<!-- ✅ Correct: Check variable name -->
-<span>{user.name}</span>
-
-<!-- ✅ Debug: Check available variables -->
-<pre th:text="var_export(get_defined_vars(), true)"></pre>
-```
-
-**Complex expressions in templates:**
-```html
-<!-- ❌ Wrong: Too complex for template -->
-<div th:class="{user.roles.contains('admin') && user.active && !user.suspended ? 'admin-active' : 'regular'}">
-
-<!-- ✅ Better: Move logic to controller/component -->
-<div th:class="{user.cssClass}">
-```
-
-#### Performance Issues
-
-**Template cache not working:**
-```php
-// Check cache configuration
-$cache = view()->getCache();
-if (!$cache) {
-    echo "Cache not configured\n";
-}
-
-// Manual cache clear
-view()->clearCache();
-
-// Check cache directory permissions
-$cachePath = '/path/to/cache';
-if (!is_writable($cachePath)) {
-    throw new \Exception("Cache directory not writable: {$cachePath}");
-}
-```
-
-**Template compilation errors:**
-```html
-<!-- Check template syntax with simple test -->
-<div th:if="true">Test content</div>
-
-<!-- Validate HTML structure -->
-<!-- Templates must be valid HTML for DOM parsing -->
-<div>
-    <p>Valid structure</p>
-</div>
-
-<!-- ❌ Invalid: Unclosed tags -->
-<div><p>Invalid structure</div>
-```
-
-#### Template Cache Issues
-
-If template changes aren't appearing:
-
-```php
-// Clear cache programmatically
-view()->clearCache();
-
-// Or delete cache files manually
-// rm -rf storage/views/*.cache
-
-// Check file modification times
-$templatePath = '/path/to/template.th.html';
-$cacheKey = 'view_' . md5($templatePath);
-$cacheTime = cache()->get($cacheKey . '_time');
-$fileTime = filemtime($templatePath);
-
-if ($cacheTime < $fileTime) {
-    echo "Template newer than cache - should recompile\n";
-}
-```
-
-## Performance & Deployment
-
-### Template Compilation
-- Templates are compiled once and cached for optimal performance
-- Compilation checks file modification time for automatic cache invalidation
-- Support for both file-based and memory-based caching systems
-- Minimal overhead for raw PHP templates (no compilation needed)
-
-### Optimization Features
-- Efficient DOM parsing using libxml for th: attribute processing
-- Smart attribute processing order to minimize compilation passes
-- Universal th: attributes add minimal runtime overhead
-- Dot notation compilation happens once at template compile time
-- Support class method calls are optimized for performance
-
-### Production Deployment
-- Enable template caching in production for best performance
-- Pre-compile templates during deployment for zero cold-start time
-- Cache compiled templates with proper file permissions
-- Monitor cache directory disk space usage
-
-```php
-// Production configuration
-$factory = new ViewFactory([
-    'cache_enabled' => true,
-    'cache_path' => '/var/cache/views',
-    'paths' => ['/app/resources/views'],
-]);
-
-// Clear cache during deployment
-$factory->clearCache();
-```
-
-### Development vs Production
-- Development: Cache disabled for immediate template changes
-- Production: Cache enabled with proper invalidation
-- Staging: Cache enabled with shorter TTL for testing
+## Key Methods
+
+### ViewEngine Class
+
+- [`make(string $template, array $data = []): Template`](src/TreeHouse/View/ViewEngine.php:119) - Create template instance
+- [`render(string $template, array $data = []): string`](src/TreeHouse/View/ViewEngine.php:151) - Render template
+- [`addPath(string $path): self`](src/TreeHouse/View/ViewEngine.php:85) - Add template search path
+- [`share(string|array $key, mixed $value = null): self`](src/TreeHouse/View/ViewEngine.php:97) - Share global data
+- [`alias(string $alias, string $template): self`](src/TreeHouse/View/ViewEngine.php:110) - Register template alias
+- [`exists(string $template): bool`](src/TreeHouse/View/ViewEngine.php:276) - Check if template exists
+- [`compile(string $templatePath): string`](src/TreeHouse/View/ViewEngine.php:179) - Compile template
+- [`composer(string|array $views, callable $callback): self`](src/TreeHouse/View/ViewEngine.php:297) - Register view composer
+
+### Template Class
+
+- [`render(): string`](src/TreeHouse/View/Template.php:71) - Render template
+- [`with(string|array $key, mixed $value = null): self`](src/TreeHouse/View/Template.php:398) - Add template data
+- [`extend(string $layout): void`](src/TreeHouse/View/Template.php:192) - Extend layout
+- [`startSection(string $name): void`](src/TreeHouse/View/Template.php:161) - Start section capture
+- [`endSection(): void`](src/TreeHouse/View/Template.php:170) - End section capture
+- [`yieldSection(string $name, string $default = ''): string`](src/TreeHouse/View/Template.php:184) - Yield section content
+- [`include(string $template, array $data = []): string`](src/TreeHouse/View/Template.php:200) - Include partial
+- [`toResponse(): Response`](src/TreeHouse/View/Template.php:382) - Convert to HTTP response
+
+### ViewFactory Class
+
+- [`make(string $template, array $data = [], ?string $engine = null): Template`](src/TreeHouse/View/ViewFactory.php:95) - Create view
+- [`render(string $template, array $data = [], ?string $engine = null): string`](src/TreeHouse/View/ViewFactory.php:103) - Render view
+- [`engine(?string $name = null): ViewEngine`](src/TreeHouse/View/ViewFactory.php:72) - Get view engine
+- [`extend(string $name, ViewEngine $engine): self`](src/TreeHouse/View/ViewFactory.php:86) - Register engine
+- [`clearCache(?string $engine = null): self`](src/TreeHouse/View/ViewFactory.php:164) - Clear cache
+
+### TreeHouseCompiler Class
+
+- [`compile(string $template): string`](src/TreeHouse/View/Compilers/TreeHouseCompiler.php:66) - Compile template
+- [`getSupportedAttributes(): array`](src/TreeHouse/View/Compilers/TreeHouseCompiler.php:834) - Get supported attributes
+- [`isAttributeSupported(string $attribute): bool`](src/TreeHouse/View/Compilers/TreeHouseCompiler.php:842) - Check attribute support
+
+The View Layer provides a powerful, flexible template system that maintains HTML validity while offering advanced features like compilation, caching, components, and deep framework integration.
