@@ -195,9 +195,9 @@ class CreateUserCommandTest extends TestCase
 
     public function testEmailUniquenessCheck(): void
     {
-        // Mock getDatabaseConnection method
+        // Mock getDatabaseConnection method and stdin methods
         $command = $this->getMockBuilder(CreateUserCommand::class)
-            ->onlyMethods(['getDatabaseConnection'])
+            ->onlyMethods(['getDatabaseConnection', 'ask', 'confirm', 'askForPassword'])
             ->getMock();
 
         $mockConnection = $this->createMock(Connection::class);

@@ -305,6 +305,11 @@ abstract class Command
      */
     protected function confirm(OutputInterface $output, string $question, bool $default = false): bool
     {
+        // Return default value in testing environment to avoid hanging
+        if ($this->isTestingEnvironment()) {
+            return $default;
+        }
+        
         $defaultText = $default ? 'Y/n' : 'y/N';
         $output->write("<question>{$question}</question> <comment>[{$defaultText}]</comment> ");
         
@@ -324,6 +329,11 @@ abstract class Command
      */
     protected function ask(OutputInterface $output, string $question, ?string $default = null): string
     {
+        // Return default value in testing environment to avoid hanging
+        if ($this->isTestingEnvironment()) {
+            return $default ?? '';
+        }
+        
         $defaultText = $default ? " <comment>[{$default}]</comment>" : '';
         $output->write("<question>{$question}</question>{$defaultText} ");
         
@@ -332,6 +342,16 @@ abstract class Command
         fclose($handle);
         
         return empty($response) ? ($default ?? '') : $response;
+    }
+
+    /**
+     * Check if we're in a testing environment
+     */
+    protected function isTestingEnvironment(): bool
+    {
+        return defined('TESTING') ||
+               (isset($_ENV['APP_ENV']) && $_ENV['APP_ENV'] === 'testing') ||
+               (php_sapi_name() === 'cli' && strpos($_SERVER['argv'][0] ?? '', 'phpunit') !== false);
     }
 }
 

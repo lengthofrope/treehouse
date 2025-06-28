@@ -87,7 +87,7 @@ class UserRoleCommandTest extends TestCase
         ];
 
         $command = $this->getMockBuilder(UserRoleCommand::class)
-            ->onlyMethods(['findUser', 'updateUserRole'])
+            ->onlyMethods(['findUser', 'updateUserRole', 'confirm', 'ask'])
             ->getMock();
 
         $command->method('findUser')->willReturn($existingUser);
@@ -361,7 +361,7 @@ class UserRoleCommandTest extends TestCase
         ];
 
         $command = $this->getMockBuilder(UserRoleCommand::class)
-            ->onlyMethods(['getDatabaseConnection'])
+            ->onlyMethods(['getDatabaseConnection', 'confirm', 'ask'])
             ->getMock();
 
         $mockConnection = $this->createMock(Connection::class);
