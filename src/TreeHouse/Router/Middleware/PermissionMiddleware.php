@@ -41,10 +41,21 @@ class PermissionMiddleware implements MiddlewareInterface
      *
      * @param array $config Auth configuration
      */
-    public function __construct(array $config = [])
+    public function __construct(...$args)
     {
-        $this->config = $config;
-        $this->checker = new PermissionChecker($config);
+        // Handle both old array config and new parameter-based config
+        if (count($args) === 1 && is_array($args[0])) {
+            // Old style: config array
+            $this->config = $args[0];
+        } else {
+            // New style: permissions as parameters
+            $this->config = [];
+            if (!empty($args)) {
+                $this->config['required_permissions'] = $args;
+            }
+        }
+        
+        $this->checker = new PermissionChecker($this->config);
     }
 
     /**
@@ -56,11 +67,6 @@ class PermissionMiddleware implements MiddlewareInterface
      */
     public function handle(Request $request, callable $next): Response
     {
-        // Extract permissions from the middleware configuration
-        // For now, we'll get this from query params or headers for testing
-        // In production, this would be configured when the middleware is registered
-        $permissions = $request->query('_permissions', '');
-        
         // Get the current user
         $user = $this->getCurrentUser($request);
 
@@ -69,10 +75,17 @@ class PermissionMiddleware implements MiddlewareInterface
             return $this->unauthorized($request);
         }
 
-        // Parse the permissions parameter
-        $requiredPermissions = $this->parsePermissions($permissions);
+        // Get required permissions from constructor parameters or config
+        $requiredPermissions = $this->config['required_permissions'] ?? [];
+        
+        // If permissions were passed via constructor, use those
+        // Otherwise fall back to query params for backward compatibility
+        if (empty($requiredPermissions)) {
+            $permissions = $request->query('_permissions', '');
+            $requiredPermissions = $this->parsePermissions($permissions);
+        }
 
-        // If no permissions specified, allow access (this middleware wasn't configured properly)
+        // If no permissions specified, this is just auth middleware - allow access
         if (empty($requiredPermissions)) {
             return $next($request);
         }

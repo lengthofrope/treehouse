@@ -186,6 +186,9 @@ class MiddlewareStack
         // Parse middleware with parameters (e.g., "throttle:60,1")
         [$className, $parameters] = $this->parseMiddleware($middleware);
 
+        // Handle built-in middleware aliases
+        $className = $this->resolveBuiltInMiddleware($className);
+
         if (!class_exists($className)) {
             throw new \InvalidArgumentException("Middleware class '{$className}' not found");
         }
@@ -199,6 +202,22 @@ class MiddlewareStack
         }
 
         return $instance;
+    }
+
+    /**
+     * Resolve built-in middleware aliases to their full class names
+     *
+     * @param string $middleware Middleware name
+     * @return string Full class name
+     */
+    protected function resolveBuiltInMiddleware(string $middleware): string
+    {
+        $builtInMiddleware = [
+            'role' => 'LengthOfRope\TreeHouse\Router\Middleware\RoleMiddleware',
+            'permission' => 'LengthOfRope\TreeHouse\Router\Middleware\PermissionMiddleware',
+        ];
+
+        return $builtInMiddleware[$middleware] ?? $middleware;
     }
 
     /**

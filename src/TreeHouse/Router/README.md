@@ -82,8 +82,8 @@ $router->group(['prefix' => 'api/v1'], function($router) {
     $router->post('/users', 'Api\UserController@store');
 });
 
-// Group with middleware
-$router->group(['middleware' => 'auth'], function($router) {
+// Group with middleware (permission without parameters = authentication only)
+$router->group(['middleware' => 'permission'], function($router) {
     $router->get('/dashboard', 'DashboardController@index');
     $router->get('/profile', 'ProfileController@show');
 });
@@ -91,7 +91,7 @@ $router->group(['middleware' => 'auth'], function($router) {
 // Group with multiple attributes
 $router->group([
     'prefix' => 'admin',
-    'middleware' => ['auth', 'admin'],
+    'middleware' => ['permission', 'role:admin'],
     'name' => 'admin.'
 ], function($router) {
     $router->get('/users', 'Admin\UserController@index')
@@ -106,9 +106,9 @@ $router->group([
 $router->middleware('cors');
 $router->middleware(['throttle', 'auth']);
 
-// Route-specific middleware
+// Route-specific middleware (permission without parameters = authentication only)
 $router->get('/admin', 'AdminController@index')
-    ->middleware('auth');
+    ->middleware('permission');
 
 // Middleware with parameters
 $router->get('/api/data', 'ApiController@data')
@@ -126,7 +126,6 @@ $router->get('/users/create', 'UserController@create')
 
 // Middleware aliases
 $router->middlewareAliases([
-    'auth' => 'App\Middleware\AuthMiddleware',
     'role' => 'LengthOfRope\TreeHouse\Router\Middleware\RoleMiddleware',
     'permission' => 'LengthOfRope\TreeHouse\Router\Middleware\PermissionMiddleware',
     'throttle' => 'App\Middleware\ThrottleMiddleware',
@@ -259,7 +258,8 @@ $router->middleware(['cors', 'throttle:1000,60']);
 
 // Register middleware aliases
 $router->middlewareAliases([
-    'auth' => 'App\Middleware\AuthMiddleware',
+    'permission' => 'LengthOfRope\TreeHouse\Router\Middleware\PermissionMiddleware',
+    'role' => 'LengthOfRope\TreeHouse\Router\Middleware\RoleMiddleware',
     'guest' => 'App\Middleware\GuestMiddleware',
     'admin' => 'App\Middleware\AdminMiddleware',
 ]);
@@ -283,13 +283,13 @@ $router->group(['prefix' => 'api/v1', 'middleware' => 'api'], function($router) 
     $router->post('/auth/login', 'Api\AuthController@login');
     $router->post('/auth/register', 'Api\AuthController@register');
     
-    // Protected routes
-    $router->group(['middleware' => 'auth:api'], function($router) {
+    // Protected routes (permission without parameters = authentication only)
+    $router->group(['middleware' => 'permission'], function($router) {
         $router->get('/user', 'Api\UserController@profile');
         $router->put('/user', 'Api\UserController@update');
         
         // Admin routes
-        $router->group(['middleware' => 'admin', 'prefix' => 'admin'], function($router) {
+        $router->group(['middleware' => 'role:admin', 'prefix' => 'admin'], function($router) {
             $router->get('/users', 'Api\Admin\UserController@index');
             $router->delete('/users/{id}', 'Api\Admin\UserController@destroy')
                 ->where('id', '\d+');
@@ -345,7 +345,7 @@ $router->delete('/users/{id}', 'UserController@destroy')
 ```php
 // Multiple middleware layers
 $router->group([
-    'middleware' => ['auth', 'role:admin'],
+    'middleware' => ['permission', 'role:admin'],
     'prefix' => 'admin'
 ], function($router) {
     $router->get('/dashboard', 'AdminController@dashboard');
@@ -373,10 +373,13 @@ Register the authorization middleware aliases in your router setup:
 
 ```php
 $router->middlewareAliases([
-    'auth' => 'App\Middleware\AuthMiddleware',
     'role' => 'LengthOfRope\TreeHouse\Router\Middleware\RoleMiddleware',
     'permission' => 'LengthOfRope\TreeHouse\Router\Middleware\PermissionMiddleware',
 ]);
 ```
+
+**Note:** The `permission` middleware can be used in two ways:
+- `permission` (without parameters) - performs authentication checking only
+- `permission:manage-users,edit-posts` (with parameters) - checks authentication AND specific permissions
 
 The TreeHouse Router System provides a robust foundation for handling HTTP routing in web applications, with excellent performance characteristics, comprehensive authorization capabilities, and seamless integration with other TreeHouse components.
