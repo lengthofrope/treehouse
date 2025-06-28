@@ -243,14 +243,16 @@ class PermissionCheckerTest extends DatabaseTestCase
     public function testGetAllPermissions(): void
     {
         $allPermissions = $this->checker->getAllPermissions();
-        $expected = ['manage-users', 'edit-posts', 'delete-posts', 'view-posts', 'special-permission'];
+        sort($allPermissions); // Sort to ensure consistent ordering
+        $expected = ['delete-posts', 'edit-posts', 'manage-users', 'special-permission', 'view-posts'];
         $this->assertEquals($expected, $allPermissions);
     }
 
     public function testGetAllRoles(): void
     {
         $allRoles = $this->checker->getAllRoles();
-        $expected = ['admin', 'editor', 'viewer', 'guest'];
+        sort($allRoles); // Sort to ensure consistent ordering
+        $expected = ['admin', 'editor', 'guest', 'viewer'];
         $this->assertEquals($expected, $allRoles);
     }
 

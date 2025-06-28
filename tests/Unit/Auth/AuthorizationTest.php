@@ -292,6 +292,11 @@ class TestUser implements Authorizable
         $this->authConfig = $config;
     }
 
+    protected function getAuthConfigFromFile(): array
+    {
+        return $this->authConfig;
+    }
+
     public function save(): bool
     {
         // Mock save method
