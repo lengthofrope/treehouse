@@ -515,8 +515,8 @@ class TreeHouseCompiler
      */
     protected function wrapWithLoop(DOMElement $node, string $expression): void
     {
-        // Parse repeat expression: "item $items" or "key,item $items"
-        if (preg_match('/^(\w+)(?:,(\w+))?\s+\$(\w+)$/', trim($expression), $matches)) {
+        // Parse repeat expression: "item $items", "item items", "key,item $items", or "key,item items"
+        if (preg_match('/^(\w+)(?:,(\w+))?\s+\$?(\w+)$/', trim($expression), $matches)) {
             $first = $matches[1];
             $second = $matches[2] ?? null;
             $array = $matches[3];
