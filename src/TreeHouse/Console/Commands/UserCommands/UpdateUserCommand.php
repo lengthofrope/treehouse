@@ -100,32 +100,13 @@ class UpdateUserCommand extends Command
         }
     }
 
-    /**
-     * Get database connection
-     */
-    private function getDatabaseConnection(): Connection
-    {
-        Env::loadIfNeeded();
-        
-        $config = [
-            'driver' => Env::get('DB_CONNECTION', Env::get('DB_DRIVER', 'mysql')),
-            'host' => Env::get('DB_HOST', 'localhost'),
-            'port' => (int) Env::get('DB_PORT', 3306),
-            'database' => Env::get('DB_DATABASE', ''),
-            'username' => Env::get('DB_USERNAME', ''),
-            'password' => Env::get('DB_PASSWORD', ''),
-            'charset' => Env::get('DB_CHARSET', 'utf8mb4'),
-        ];
-        
-        return new Connection($config);
-    }
 
     /**
      * Find user by ID or email
      */
     private function findUser(string $identifier): ?array
     {
-        $connection = $this->getDatabaseConnection();
+        $connection = db();
         
         // Try by ID first (if numeric)
         if (is_numeric($identifier)) {
@@ -301,7 +282,7 @@ class UpdateUserCommand extends Command
     private function emailExistsForOtherUser(string $email, int $userId): bool
     {
         try {
-            $connection = $this->getDatabaseConnection();
+            $connection = db();
             $result = $connection->select(
                 'SELECT id FROM users WHERE email = ? AND id != ?',
                 [$email, $userId]
@@ -354,7 +335,7 @@ class UpdateUserCommand extends Command
     private function updateUser(int $userId, array $updates, OutputInterface $output): bool
     {
         try {
-            $connection = $this->getDatabaseConnection();
+            $connection = db();
             
             // Build update query
             $fields = [];

@@ -138,29 +138,9 @@ class UserRoleCommand extends Command
     /**
      * List users by role
      */
-    /**
-     * Get database connection
-     */
-    private function getDatabaseConnection(): Connection
-    {
-        Env::loadIfNeeded();
-        
-        $config = [
-            'driver' => Env::get('DB_CONNECTION', Env::get('DB_DRIVER', 'mysql')),
-            'host' => Env::get('DB_HOST', 'localhost'),
-            'port' => (int) Env::get('DB_PORT', 3306),
-            'database' => Env::get('DB_DATABASE', ''),
-            'username' => Env::get('DB_USERNAME', ''),
-            'password' => Env::get('DB_PASSWORD', ''),
-            'charset' => Env::get('DB_CHARSET', 'utf8mb4'),
-        ];
-        
-        return new Connection($config);
-    }
-
     private function listUserRoles(InputInterface $input, OutputInterface $output): int
     {
-        $connection = $this->getDatabaseConnection();
+        $connection = db();
         $format = $input->getOption('format');
         
         $users = $connection->select(
@@ -211,7 +191,7 @@ class UserRoleCommand extends Command
         }
         
         // Find affected users
-        $connection = $this->getDatabaseConnection();
+        $connection = db();
         $affectedUsers = $connection->select(
             'SELECT id, name, email FROM users WHERE role = ?',
             [$fromRole]
@@ -254,7 +234,7 @@ class UserRoleCommand extends Command
      */
     private function showRoleStats(InputInterface $input, OutputInterface $output): int
     {
-        $connection = $this->getDatabaseConnection();
+        $connection = db();
         
         $stats = $connection->select(
             'SELECT role, COUNT(*) as count FROM users GROUP BY role ORDER BY count DESC'
@@ -290,7 +270,7 @@ class UserRoleCommand extends Command
      */
     private function findUser(string $identifier): ?array
     {
-        $connection = $this->getDatabaseConnection();
+        $connection = db();
         
         if (is_numeric($identifier)) {
             $result = $connection->select(
@@ -313,7 +293,7 @@ class UserRoleCommand extends Command
     private function updateUserRole(int $userId, string $role, OutputInterface $output): bool
     {
         try {
-            $connection = $this->getDatabaseConnection();
+            $connection = db();
             
             $affectedRows = $connection->update(
                 'UPDATE users SET role = ?, updated_at = ? WHERE id = ?',

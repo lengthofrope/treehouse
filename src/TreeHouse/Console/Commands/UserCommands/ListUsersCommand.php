@@ -77,32 +77,13 @@ class ListUsersCommand extends Command
         }
     }
 
-    /**
-     * Get database connection
-     */
-    private function getDatabaseConnection(): Connection
-    {
-        Env::loadIfNeeded();
-        
-        $config = [
-            'driver' => Env::get('DB_CONNECTION', Env::get('DB_DRIVER', 'mysql')),
-            'host' => Env::get('DB_HOST', 'localhost'),
-            'port' => (int) Env::get('DB_PORT', 3306),
-            'database' => Env::get('DB_DATABASE', ''),
-            'username' => Env::get('DB_USERNAME', ''),
-            'password' => Env::get('DB_PASSWORD', ''),
-            'charset' => Env::get('DB_CHARSET', 'utf8mb4'),
-        ];
-        
-        return new Connection($config);
-    }
 
     /**
      * Get users from database with filters
      */
     private function getUsers(InputInterface $input): array
     {
-        $connection = $this->getDatabaseConnection();
+        $connection = db();
         
         $sql = 'SELECT id, name, email, role, email_verified, email_verified_at, created_at FROM users';
         $params = [];

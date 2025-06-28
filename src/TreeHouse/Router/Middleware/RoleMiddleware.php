@@ -41,10 +41,21 @@ class RoleMiddleware implements MiddlewareInterface
      *
      * @param array $config Auth configuration
      */
-    public function __construct(array $config = [])
+    public function __construct(...$args)
     {
-        $this->config = $config;
-        $this->checker = new PermissionChecker($config);
+        // Handle both old array config and new parameter-based config
+        if (count($args) === 1 && is_array($args[0])) {
+            // Old style: config array
+            $this->config = $args[0];
+        } else {
+            // New style: roles as parameters (e.g., 'admin', 'editor')
+            $this->config = [];
+            if (!empty($args)) {
+                $this->config['required_roles'] = $args;
+            }
+        }
+        
+        $this->checker = new PermissionChecker($this->config);
     }
 
     /**
@@ -56,11 +67,6 @@ class RoleMiddleware implements MiddlewareInterface
      */
     public function handle(Request $request, callable $next): Response
     {
-        // Extract roles from the middleware configuration
-        // For now, we'll get this from query params or headers for testing
-        // In production, this would be configured when the middleware is registered
-        $roles = $request->query('_roles', '');
-        
         // Get the current user
         $user = $this->getCurrentUser($request);
 
@@ -69,10 +75,17 @@ class RoleMiddleware implements MiddlewareInterface
             return $this->unauthorized($request);
         }
 
-        // Parse the roles parameter
-        $requiredRoles = $this->parseRoles($roles);
+        // Get required roles from constructor parameters or config
+        $requiredRoles = $this->config['required_roles'] ?? [];
+        
+        // If roles were passed via constructor, use those
+        // Otherwise fall back to query params for backward compatibility
+        if (empty($requiredRoles)) {
+            $roles = $request->query('_roles', '');
+            $requiredRoles = $this->parseRoles($roles);
+        }
 
-        // If no roles specified, allow access (this middleware wasn't configured properly)
+        // If no roles specified, this is just auth middleware - allow access
         if (empty($requiredRoles)) {
             return $next($request);
         }

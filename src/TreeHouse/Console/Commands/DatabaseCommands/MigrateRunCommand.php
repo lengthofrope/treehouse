@@ -63,7 +63,7 @@ class MigrateRunCommand extends Command
                 $migrations = $this->getAllPendingMigrationsForDryRun($output);
             } else {
                 // Get database connection once and reuse it
-                $connection = $this->getDatabaseConnection();
+                $connection = db();
                 $migrations = $this->getAllPendingMigrations($connection, $output);
             }
             
@@ -326,26 +326,6 @@ class MigrateRunCommand extends Command
         }
     }
 
-    /**
-     * Get database connection
-     */
-    private function getDatabaseConnection(): Connection
-    {
-        // Load environment variables
-        Env::loadIfNeeded();
-        
-        $config = [
-            'driver' => Env::get('DB_CONNECTION', Env::get('DB_DRIVER', 'mysql')),
-            'host' => Env::get('DB_HOST', 'localhost'),
-            'port' => (int) Env::get('DB_PORT', 3306),
-            'database' => Env::get('DB_DATABASE', ''),
-            'username' => Env::get('DB_USERNAME', ''),
-            'password' => Env::get('DB_PASSWORD', ''),
-            'charset' => Env::get('DB_CHARSET', 'utf8mb4'),
-        ];
-        
-        return new Connection($config);
-    }
     
     /**
      * Ensure migrations table exists
