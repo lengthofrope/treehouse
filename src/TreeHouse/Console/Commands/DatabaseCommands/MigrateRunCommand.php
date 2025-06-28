@@ -52,17 +52,10 @@ class MigrateRunCommand extends Command
                 return 1;
             }
             
-            $migrationsPath = getcwd() . '/database/migrations';
-            
-            if (!is_dir($migrationsPath)) {
-                $this->error($output, "Migrations directory not found: {$migrationsPath}");
-                return 1;
-            }
-            
             // Get database connection once and reuse it
             $connection = $this->getDatabaseConnection();
             
-            $migrations = $this->getPendingMigrations($migrationsPath, $connection);
+            $migrations = $this->getAllPendingMigrations($connection);
             
             if (empty($migrations)) {
                 $this->info($output, 'No pending migrations found.');
@@ -96,7 +89,81 @@ class MigrateRunCommand extends Command
     }
 
     /**
-     * Get pending migrations
+     * Get all pending migrations from both framework and application directories
+     */
+    private function getAllPendingMigrations(Connection $connection): array
+    {
+        $migrationPaths = $this->getMigrationPaths();
+        $allMigrations = [];
+        
+        foreach ($migrationPaths as $path) {
+            if (is_dir($path)) {
+                $migrations = $this->getPendingMigrations($path, $connection);
+                $allMigrations = array_merge($allMigrations, $migrations);
+            }
+        }
+        
+        // Sort all migrations by filename to ensure proper execution order
+        sort($allMigrations);
+        
+        // Filter out already run migrations
+        $this->ensureMigrationsTableExists($connection);
+        $runMigrations = $this->getRunMigrations($connection);
+        
+        return array_filter($allMigrations, function($migrationFile) use ($runMigrations) {
+            $filename = basename($migrationFile, '.php');
+            return !in_array($filename, $runMigrations);
+        });
+    }
+
+    /**
+     * Get migration directory paths in priority order
+     */
+    private function getMigrationPaths(): array
+    {
+        $paths = [];
+        
+        // 1. Framework migrations (highest priority)
+        $frameworkPath = $this->getFrameworkMigrationsPath();
+        if ($frameworkPath) {
+            $paths[] = $frameworkPath;
+        }
+        
+        // 2. Application migrations (only if directory exists)
+        $appPath = getcwd() . '/database/migrations';
+        if (is_dir($appPath)) {
+            $paths[] = $appPath;
+        }
+        
+        return $paths;
+    }
+
+    /**
+     * Get framework migrations path
+     */
+    private function getFrameworkMigrationsPath(): ?string
+    {
+        // Try different possible locations for framework migrations
+        $possiblePaths = [
+            // If framework is installed via Composer
+            getcwd() . '/vendor/lengthofRope/treehouse-framework/database/migrations',
+            // If running from within the framework itself
+            __DIR__ . '/../../../../database/migrations',
+            // Alternative Composer location
+            getcwd() . '/vendor/lengthofRope/treehouse/database/migrations',
+        ];
+        
+        foreach ($possiblePaths as $path) {
+            if (is_dir($path)) {
+                return $path;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Get pending migrations from a specific directory
      */
     private function getPendingMigrations(string $migrationsPath, Connection $connection): array
     {
@@ -113,15 +180,7 @@ class MigrateRunCommand extends Command
         
         sort($migrations);
         
-        // Filter out already run migrations
-        $this->ensureMigrationsTableExists($connection);
-        
-        $runMigrations = $this->getRunMigrations($connection);
-        
-        return array_filter($migrations, function($migrationFile) use ($runMigrations) {
-            $filename = basename($migrationFile, '.php');
-            return !in_array($filename, $runMigrations);
-        });
+        return $migrations;
     }
 
     /**
@@ -282,4 +341,5 @@ class MigrateRunCommand extends Command
         
         return implode('', array_map('ucfirst', $parts));
     }
+
 }
