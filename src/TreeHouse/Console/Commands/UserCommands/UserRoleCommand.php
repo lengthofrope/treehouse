@@ -139,9 +139,31 @@ class UserRoleCommand extends Command
      * List users by role
      */
     /**
-     * Get database connection
+     * Get database connection from application container
      */
     private function getDatabaseConnection(): Connection
+    {
+        return $this->db();
+    }
+
+    /**
+     * Get database connection using the db() helper pattern
+     */
+    private function db(): Connection
+    {
+        // In testing environment, fall back to manual connection creation
+        if (!isset($GLOBALS['app'])) {
+            return $this->createTestDatabaseConnection();
+        }
+        
+        $app = $GLOBALS['app'];
+        return $app->make('db');
+    }
+
+    /**
+     * Create database connection for testing environment
+     */
+    private function createTestDatabaseConnection(): Connection
     {
         Env::loadIfNeeded();
         

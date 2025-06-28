@@ -2,80 +2,352 @@
 
 declare(strict_types=1);
 
-/**
- * TreeHouse Auth Helper Functions
- *
- * Global helper functions for the authentication and authorization system.
- *
- * @package LengthOfRope\TreeHouse\Auth
- * @author  Bas de Kort <bdekort@proton.me>
- * @since   1.0.0
- */
+use LengthOfRope\TreeHouse\Auth\Contracts\Authorizable;
+use LengthOfRope\TreeHouse\Database\Connection;
 
-use LengthOfRope\TreeHouse\Auth\Gate;
-
-if (!function_exists('auth')) {
+if (!function_exists('db')) {
     /**
-     * Get the authentication manager instance
-     *
-     * @param string|null $guard Guard name
-     * @return \LengthOfRope\TreeHouse\Auth\AuthManager|\LengthOfRope\TreeHouse\Auth\Guard|null
+     * Get database connection from application container
+     * 
+     * @return Connection Database connection instance
+     * @throws RuntimeException If application instance is not available
      */
-    function auth(?string $guard = null)
+    function db(): Connection
     {
-        static $authManager = null;
+        if (!isset($GLOBALS['app'])) {
+            throw new \RuntimeException('Application instance not available');
+        }
         
-        if ($authManager === null) {
-            // Try to get from global variable or registry if available
-            if (isset($GLOBALS['auth_manager'])) {
-                $authManager = $GLOBALS['auth_manager'];
+        $app = $GLOBALS['app'];
+        return $app->make('db');
+    }
+}
+
+if (!function_exists('hasRole')) {
+    /**
+     * Check if the current user has a specific role
+     *
+     * @param string $role Role name to check
+     * @return bool
+     */
+    function hasRole(string $role): bool
+    {
+        $user = getCurrentUser();
+        return $user ? $user->hasRole($role) : false;
+    }
+}
+
+if (!function_exists('hasAnyRole')) {
+    /**
+     * Check if the current user has any of the given roles
+     *
+     * @param array $roles Array of role names
+     * @return bool
+     */
+    function hasAnyRole(array $roles): bool
+    {
+        $user = getCurrentUser();
+        return $user ? $user->hasAnyRole($roles) : false;
+    }
+}
+
+if (!function_exists('hasAllRoles')) {
+    /**
+     * Check if the current user has all of the given roles
+     *
+     * @param array $roles Array of role names
+     * @return bool
+     */
+    function hasAllRoles(array $roles): bool
+    {
+        $user = getCurrentUser();
+        if (!$user) {
+            return false;
+        }
+
+        foreach ($roles as $role) {
+            if (!$user->hasRole($role)) {
+                return false;
             }
         }
-        
-        if ($authManager === null) {
-            return null;
+
+        return true;
+    }
+}
+
+if (!function_exists('hasPermission')) {
+    /**
+     * Check if the current user has a specific permission
+     *
+     * @param string $permission Permission name to check
+     * @return bool
+     */
+    function hasPermission(string $permission): bool
+    {
+        $user = getCurrentUser();
+        return $user ? $user->can($permission) : false;
+    }
+}
+
+if (!function_exists('hasAnyPermission')) {
+    /**
+     * Check if the current user has any of the given permissions
+     *
+     * @param array $permissions Array of permission names
+     * @return bool
+     */
+    function hasAnyPermission(array $permissions): bool
+    {
+        $user = getCurrentUser();
+        if (!$user) {
+            return false;
         }
-        
-        return $guard ? $authManager->guard($guard) : $authManager;
+
+        foreach ($permissions as $permission) {
+            if ($user->can($permission)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 
-if (!function_exists('gate')) {
+if (!function_exists('hasAllPermissions')) {
     /**
-     * Get the Gate instance
+     * Check if the current user has all of the given permissions
      *
-     * @return \LengthOfRope\TreeHouse\Auth\Gate
-     */
-    function gate(): Gate
-    {
-        return new Gate();
-    }
-}
-
-if (!function_exists('can')) {
-    /**
-     * Check if the current user can perform an ability
-     *
-     * @param string $ability The permission to check
-     * @param mixed $arguments Additional arguments for the callback
+     * @param array $permissions Array of permission names
      * @return bool
      */
-    function can(string $ability, mixed $arguments = []): bool
+    function hasAllPermissions(array $permissions): bool
     {
-        return Gate::allows($ability, $arguments);
+        $user = getCurrentUser();
+        if (!$user) {
+            return false;
+        }
+
+        foreach ($permissions as $permission) {
+            if (!$user->can($permission)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 
-if (!function_exists('cannot')) {
+if (!function_exists('getCurrentUser')) {
     /**
-     * Check if the current user cannot perform an ability
+     * Get the currently authenticated user
      *
-     * @param string $ability The permission to check
-     * @param mixed $arguments Additional arguments for the callback
+     * @return Authorizable|null
+     */
+    function getCurrentUser(): ?Authorizable
+    {
+        // Try to get user from global auth helper
+        if (function_exists('auth')) {
+            $authManager = auth();
+            if ($authManager) {
+                $user = $authManager->user();
+                if ($user instanceof Authorizable) {
+                    return $user;
+                }
+            }
+        }
+
+        // Try to get from session if available
+        if (isset($_SESSION['user_id'])) {
+            // Try to use User model if available
+            if (class_exists('\App\Models\User')) {
+                try {
+                    $userClass = '\App\Models\User';
+                    $user = $userClass::find($_SESSION['user_id']);
+                    if ($user instanceof Authorizable) {
+                        return $user;
+                    }
+                } catch (\Exception $e) {
+                    // Ignore errors and return null
+                }
+            }
+        }
+
+        return null;
+    }
+}
+
+if (!function_exists('userHasRole')) {
+    /**
+     * Check if a specific user has a role
+     *
+     * @param Authorizable $user User to check
+     * @param string $role Role name
      * @return bool
      */
-    function cannot(string $ability, mixed $arguments = []): bool
+    function userHasRole(Authorizable $user, string $role): bool
     {
-        return Gate::denies($ability, $arguments);
+        return $user->hasRole($role);
+    }
+}
+
+if (!function_exists('userHasPermission')) {
+    /**
+     * Check if a specific user has a permission
+     *
+     * @param Authorizable $user User to check
+     * @param string $permission Permission name
+     * @return bool
+     */
+    function userHasPermission(Authorizable $user, string $permission): bool
+    {
+        return $user->can($permission);
+    }
+}
+
+if (!function_exists('isAdmin')) {
+    /**
+     * Check if the current user is an administrator
+     *
+     * @return bool
+     */
+    function isAdmin(): bool
+    {
+        return hasRole('administrator');
+    }
+}
+
+if (!function_exists('isEditor')) {
+    /**
+     * Check if the current user is an editor
+     *
+     * @return bool
+     */
+    function isEditor(): bool
+    {
+        return hasRole('editor');
+    }
+}
+
+if (!function_exists('isAuthor')) {
+    /**
+     * Check if the current user is an author
+     *
+     * @return bool
+     */
+    function isAuthor(): bool
+    {
+        return hasRole('author');
+    }
+}
+
+if (!function_exists('isMember')) {
+    /**
+     * Check if the current user is a member
+     *
+     * @return bool
+     */
+    function isMember(): bool
+    {
+        return hasRole('member');
+    }
+}
+
+if (!function_exists('canManageUsers')) {
+    /**
+     * Check if the current user can manage users
+     *
+     * @return bool
+     */
+    function canManageUsers(): bool
+    {
+        return hasAnyPermission(['manage-users', 'create-users', 'edit-users', 'delete-users']);
+    }
+}
+
+if (!function_exists('canManageContent')) {
+    /**
+     * Check if the current user can manage content
+     *
+     * @return bool
+     */
+    function canManageContent(): bool
+    {
+        return hasAnyPermission(['create-posts', 'edit-posts', 'delete-posts', 'publish-posts']);
+    }
+}
+
+if (!function_exists('canAccessAdmin')) {
+    /**
+     * Check if the current user can access admin areas
+     *
+     * @return bool
+     */
+    function canAccessAdmin(): bool
+    {
+        return hasAnyPermission(['access-admin', 'manage-system']);
+    }
+}
+
+if (!function_exists('requireRole')) {
+    /**
+     * Require a specific role or throw an exception
+     *
+     * @param string $role Role name required
+     * @param string $message Custom error message
+     * @throws \Exception
+     */
+    function requireRole(string $role, string $message = 'Access denied'): void
+    {
+        if (!hasRole($role)) {
+            throw new \Exception($message);
+        }
+    }
+}
+
+if (!function_exists('requirePermission')) {
+    /**
+     * Require a specific permission or throw an exception
+     *
+     * @param string $permission Permission name required
+     * @param string $message Custom error message
+     * @throws \Exception
+     */
+    function requirePermission(string $permission, string $message = 'Access denied'): void
+    {
+        if (!hasPermission($permission)) {
+            throw new \Exception($message);
+        }
+    }
+}
+
+if (!function_exists('requireAnyRole')) {
+    /**
+     * Require any of the given roles or throw an exception
+     *
+     * @param array $roles Array of role names
+     * @param string $message Custom error message
+     * @throws \Exception
+     */
+    function requireAnyRole(array $roles, string $message = 'Access denied'): void
+    {
+        if (!hasAnyRole($roles)) {
+            throw new \Exception($message);
+        }
+    }
+}
+
+if (!function_exists('requireAnyPermission')) {
+    /**
+     * Require any of the given permissions or throw an exception
+     *
+     * @param array $permissions Array of permission names
+     * @param string $message Custom error message
+     * @throws \Exception
+     */
+    function requireAnyPermission(array $permissions, string $message = 'Access denied'): void
+    {
+        if (!hasAnyPermission($permissions)) {
+            throw new \Exception($message);
+        }
     }
 }
