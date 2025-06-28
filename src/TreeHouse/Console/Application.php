@@ -15,6 +15,11 @@ use LengthOfRope\TreeHouse\Console\Commands\CacheCommands\CacheWarmCommand;
 use LengthOfRope\TreeHouse\Console\Commands\DatabaseCommands\MigrateRunCommand;
 use LengthOfRope\TreeHouse\Console\Commands\DevelopmentCommands\ServeCommand;
 use LengthOfRope\TreeHouse\Console\Commands\DevelopmentCommands\TestRunCommand;
+use LengthOfRope\TreeHouse\Console\Commands\UserCommands\CreateUserCommand;
+use LengthOfRope\TreeHouse\Console\Commands\UserCommands\ListUsersCommand;
+use LengthOfRope\TreeHouse\Console\Commands\UserCommands\UpdateUserCommand;
+use LengthOfRope\TreeHouse\Console\Commands\UserCommands\DeleteUserCommand;
+use LengthOfRope\TreeHouse\Console\Commands\UserCommands\UserRoleCommand;
 use LengthOfRope\TreeHouse\Console\Helpers\ConfigLoader;
 use Throwable;
 
@@ -99,6 +104,13 @@ class Application
         // Development commands
         $this->register(new ServeCommand());
         $this->register(new TestRunCommand());
+        
+        // User management commands
+        $this->register(new CreateUserCommand());
+        $this->register(new ListUsersCommand());
+        $this->register(new UpdateUserCommand());
+        $this->register(new DeleteUserCommand());
+        $this->register(new UserRoleCommand());
     }
 
     /**
