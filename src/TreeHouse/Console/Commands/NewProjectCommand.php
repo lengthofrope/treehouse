@@ -34,6 +34,7 @@ class NewProjectCommand extends Command
              ->addOption('existing', 'e', InputOption::VALUE_NONE, 'Install framework in existing directory')
              ->addOption('force', 'f', InputOption::VALUE_NONE, 'Force installation even if directory exists')
              ->addOption('no-init', null, InputOption::VALUE_NONE, 'Skip automatic initialization (composer install, npm install, .env setup)')
+             ->addOption('no-interaction', null, InputOption::VALUE_NONE, 'Skip interactive prompts and use defaults')
              ->setHelp('This command creates a new TreeHouse application with the standard directory structure and configuration files.');
     }
 
@@ -48,6 +49,7 @@ class NewProjectCommand extends Command
         $isExisting = $input->hasOption('existing');
         $force = $input->hasOption('force');
         $noInit = $input->hasOption('no-init');
+        $noInteraction = $input->hasOption('no-interaction');
 
         // Determine installation path
         if ($isExisting) {
@@ -88,7 +90,7 @@ class NewProjectCommand extends Command
             
             // Initialize project (unless --no-init is specified)
             if (!$noInit) {
-                $this->initializeProject($installPath, $projectName, $output);
+                $this->initializeProject($installPath, $projectName, $output, $input, !$noInteraction);
             }
             
             $output->writeln('');
@@ -244,19 +246,16 @@ class NewProjectCommand extends Command
     /**
      * Initialize the project by running composer install, npm install, and setting up .env
      */
-    private function initializeProject(string $installPath, string $projectName, OutputInterface $output): void
+    private function initializeProject(string $installPath, string $projectName, OutputInterface $output, InputInterface $input, bool $interactive = true): void
     {
         $output->writeln('');
         $output->writeln('<info>Initializing project...</info>');
         
-        // Copy .env.example to .env
-        $envExamplePath = $installPath . '/.env.example';
-        $envPath = $installPath . '/.env';
+        // Gather configuration
+        $config = $this->gatherProjectConfiguration($input, $output, $projectName, $interactive);
         
-        if (file_exists($envExamplePath)) {
-            copy($envExamplePath, $envPath);
-            $output->writeln('  <info>Created:</info> .env file');
-        }
+        // Create .env file with configuration
+        $this->createEnvFile($installPath, $config, $output);
         
         // Change to project directory for commands
         $originalDir = getcwd();
@@ -271,6 +270,13 @@ class NewProjectCommand extends Command
             
             if ($composerReturn === 0) {
                 $output->writeln('  <info>✓</info> Composer dependencies installed');
+                
+                // Run database migrations
+                $this->runMigrations($output, $config);
+                
+                // Create admin user
+                $this->createAdminUser($output, $config);
+                
             } else {
                 $output->writeln('  <error>✗</error> Composer install failed');
                 $output->writeln('    ' . implode("\n    ", $composerOutput));
@@ -294,6 +300,176 @@ class NewProjectCommand extends Command
         } finally {
             // Change back to original directory
             chdir($originalDir);
+        }
+    }
+
+    /**
+     * Gather project configuration through interactive prompts
+     */
+    private function gatherProjectConfiguration(InputInterface $input, OutputInterface $output, string $projectName, bool $interactive): array
+    {
+        $config = [
+            'app_name' => $projectName,
+            'app_url' => 'http://localhost:8000',
+            'db_connection' => 'mysql',
+            'db_database' => strtolower(preg_replace('/[^a-zA-Z0-9]/', '_', $projectName)),
+            'db_host' => '127.0.0.1',
+            'db_port' => '3306',
+            'db_username' => 'root',
+            'db_password' => '',
+            'admin_name' => 'Admin',
+            'admin_email' => 'admin@example.com',
+            'admin_password' => 'password'
+        ];
+
+        if (!$interactive) {
+            return $config;
+        }
+
+        $output->writeln('');
+        $output->writeln('<comment>Project Configuration</comment>');
+        $output->writeln('Press Enter to use default values in [brackets]');
+        $output->writeln('');
+
+        // Application name
+        $appName = $this->askQuestion($input, $output, "Application name [{$config['app_name']}]: ");
+        if ($appName) $config['app_name'] = $appName;
+
+        // Application URL
+        $appUrl = $this->askQuestion($input, $output, "Application URL [{$config['app_url']}]: ");
+        if ($appUrl) $config['app_url'] = $appUrl;
+
+        // Database configuration
+        $output->writeln('');
+        $output->writeln('<comment>Database Configuration</comment>');
+        
+        $dbHost = $this->askQuestion($input, $output, "Database host [{$config['db_host']}]: ");
+        if ($dbHost) $config['db_host'] = $dbHost;
+
+        $dbPort = $this->askQuestion($input, $output, "Database port [{$config['db_port']}]: ");
+        if ($dbPort) $config['db_port'] = $dbPort;
+
+        $dbDatabase = $this->askQuestion($input, $output, "Database name [{$config['db_database']}]: ");
+        if ($dbDatabase) $config['db_database'] = $dbDatabase;
+
+        $dbUsername = $this->askQuestion($input, $output, "Database username [{$config['db_username']}]: ");
+        if ($dbUsername) $config['db_username'] = $dbUsername;
+
+        $dbPassword = $this->askQuestion($input, $output, "Database password: ", true);
+        if ($dbPassword) $config['db_password'] = $dbPassword;
+
+        // Admin user configuration
+        $output->writeln('');
+        $output->writeln('<comment>Admin User Configuration</comment>');
+        
+        $adminName = $this->askQuestion($input, $output, "Admin name [{$config['admin_name']}]: ");
+        if ($adminName) $config['admin_name'] = $adminName;
+
+        $adminEmail = $this->askQuestion($input, $output, "Admin email [{$config['admin_email']}]: ");
+        if ($adminEmail) $config['admin_email'] = $adminEmail;
+
+        $adminPassword = $this->askQuestion($input, $output, "Admin password [password]: ", true);
+        if ($adminPassword) $config['admin_password'] = $adminPassword;
+
+        return $config;
+    }
+
+    /**
+     * Ask a question and get user input
+     */
+    private function askQuestion(InputInterface $input, OutputInterface $output, string $question, bool $hidden = false): string
+    {
+        $output->write($question);
+        
+        if ($hidden) {
+            // For password inputs, disable echo
+            system('stty -echo');
+            $answer = trim(fgets(STDIN));
+            system('stty echo');
+            $output->writeln('');
+        } else {
+            $answer = trim(fgets(STDIN));
+        }
+        
+        return $answer;
+    }
+
+    /**
+     * Create .env file with configuration
+     */
+    private function createEnvFile(string $installPath, array $config, OutputInterface $output): void
+    {
+        $envContent = "APP_NAME=\"{$config['app_name']}\"\n";
+        $envContent .= "APP_ENV=local\n";
+        $envContent .= "APP_DEBUG=true\n";
+        $envContent .= "APP_URL={$config['app_url']}\n";
+        $envContent .= "APP_KEY=\n\n";
+        
+        $envContent .= "DB_CONNECTION={$config['db_connection']}\n";
+        $envContent .= "DB_HOST={$config['db_host']}\n";
+        $envContent .= "DB_PORT={$config['db_port']}\n";
+        $envContent .= "DB_DATABASE={$config['db_database']}\n";
+        $envContent .= "DB_USERNAME={$config['db_username']}\n";
+        $envContent .= "DB_PASSWORD={$config['db_password']}\n";
+        
+        $envContent .= "\nCACHE_DRIVER=file\n";
+        $envContent .= "SESSION_DRIVER=file\n\n";
+        
+        $envContent .= "# Admin User Configuration\n";
+        $envContent .= "ADMIN_NAME=\"{$config['admin_name']}\"\n";
+        $envContent .= "ADMIN_EMAIL={$config['admin_email']}\n";
+        $envContent .= "ADMIN_PASSWORD={$config['admin_password']}\n";
+
+        $envPath = $installPath . '/.env';
+        file_put_contents($envPath, $envContent);
+        $output->writeln('  <info>Created:</info> .env file with configuration');
+    }
+
+    /**
+     * Run database migrations
+     */
+    private function runMigrations(OutputInterface $output, array $config): void
+    {
+        $output->writeln('  <comment>Running database migrations...</comment>');
+        
+        $migrateOutput = [];
+        $migrateReturn = 0;
+        exec('php ./bin/th migrate 2>&1', $migrateOutput, $migrateReturn);
+        
+        if ($migrateReturn === 0) {
+            $output->writeln('  <info>✓</info> Database migrations completed');
+        } else {
+            $output->writeln('  <error>✗</error> Database migrations failed');
+            $output->writeln('    ' . implode("\n    ", $migrateOutput));
+        }
+    }
+
+    /**
+     * Create admin user
+     */
+    private function createAdminUser(OutputInterface $output, array $config): void
+    {
+        $output->writeln('  <comment>Creating admin user...</comment>');
+        
+        $userOutput = [];
+        $userReturn = 0;
+        
+        $command = sprintf(
+            'php ./bin/th user:create "%s" "%s" "%s" --role=admin 2>&1',
+            addslashes($config['admin_name']),
+            addslashes($config['admin_email']),
+            addslashes($config['admin_password'])
+        );
+        
+        exec($command, $userOutput, $userReturn);
+        
+        if ($userReturn === 0) {
+            $output->writeln('  <info>✓</info> Admin user created successfully');
+            $output->writeln("    Email: {$config['admin_email']}");
+            $output->writeln("    Password: {$config['admin_password']}");
+        } else {
+            $output->writeln('  <error>✗</error> Failed to create admin user');
+            $output->writeln('    ' . implode("\n    ", $userOutput));
         }
     }
 
