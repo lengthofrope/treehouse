@@ -32,3 +32,14 @@ composer.phar
 # Coverage
 /coverage-html/
 .phpunit.cache/test-results
+.memory-bank/cls.md
+.memory-bank/abbr.md
+.memory-bank/config.md
+.memory-bank/core.md
+.memory-bank/dec.md
+.memory-bank/impl.md
+.memory-bank/method.md
+.memory-bank/param.md
+.memory-bank/schema.md
+.memory-bank/stub-status.md
+.memory-bank/xref.md
