@@ -13,6 +13,7 @@
 const TreeHouse = (() => {
     class TreeHouseFramework {
         constructor() {
+            console.groupCollapsed('🌳 TreeHouse Framework Initialization 🌳');
             this.modules = new Map();
             this.config = {};
             this.isReady = false;
@@ -163,6 +164,7 @@ const TreeHouse = (() => {
             } else {
                 this.readyCallbacks.push(callback);
             }
+            console.groupEnd();
             return this;
         }
 
