@@ -282,66 +282,7 @@
             </div>
         </div>
 
-        <!-- Template Code Examples -->
-        <div class="treehouse-card p-6">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-6">Template Code Examples</h2>
-            
-            <div class="space-y-6">
-                <div>
-                    <h3 class="text-lg font-medium text-gray-800 mb-3">User Card Component</h3>
-                    <div class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto">
-                        <pre class="text-sm"><code>&lt;div class="treehouse-card p-6"&gt;
-  &lt;div class="flex items-center space-x-4 mb-4"&gt;
-    &lt;img th:attr="src=users.john.avatar, alt=users.john.name + ' Avatar'" 
-         class="w-12 h-12 rounded-full border-2 border-gray-300"&gt;
-    &lt;div&gt;
-      &lt;h3 class="font-semibold text-gray-900"&gt;{users.john.name}&lt;/h3&gt;
-      &lt;p class="text-sm text-gray-600"&gt;{users.john.role}&lt;/p&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
-  
-  &lt;div class="space-y-2 mb-4"&gt;
-    &lt;div class="flex justify-between"&gt;
-      &lt;span class="text-sm text-gray-600"&gt;Status:&lt;/span&gt;
-      &lt;span th:attr="class='text-xs px-2 py-1 rounded-full ' + users.john.status.css"&gt;
-        {users.john.status.label}
-      &lt;/span&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
-  
-  &lt;button th:attr="onclick='viewProfile(' + users.john.id + ')'" 
-          class="bg-treehouse-600 text-white py-2 px-3 rounded"&gt;
-    View Profile
-  &lt;/button&gt;
-&lt;/div&gt;</code></pre>
-                    </div>
-                </div>
 
-                <div>
-                    <h3 class="text-lg font-medium text-gray-800 mb-3">Dynamic Form Fields</h3>
-                    <div class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto">
-                        <pre class="text-sm"><code>&lt;form th:attr="action=form.contact.action, method=form.contact.method"&gt;
-  &lt;div&gt;
-    &lt;label th:attr="for=form.contact.fields.name.id"&gt;
-      {form.contact.fields.name.label}
-    &lt;/label&gt;
-    &lt;input th:attr="id=form.contact.fields.name.id, 
-                    name=form.contact.fields.name.name, 
-                    placeholder=form.contact.fields.name.placeholder" 
-           type="text"&gt;
-  &lt;/div&gt;
-  
-  &lt;select th:attr="id=form.contact.fields.subject.id"&gt;
-    &lt;option th:repeat="option form.contact.fields.subject.options" 
-            th:attr="value=option.value"&gt;
-      {option.label}
-    &lt;/option&gt;
-  &lt;/select&gt;
-&lt;/form&gt;</code></pre>
-                    </div>
-                </div>
-            </div>
-        </div>
     </main>
 
 </div>
