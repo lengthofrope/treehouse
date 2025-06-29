@@ -1,0 +1,20 @@
+{
+  "name": "treehouse-framework",
+  "version": "1.0.0",
+  "description": "TreeHouse PHP Framework with modern frontend tooling",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "touch VITE_RUNNING && vite -m DEV && rm VITE_RUNNING",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.7",
+    "@tailwindcss/typography": "^0.5.10",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "vite": "^5.0.8"
+  }
+}

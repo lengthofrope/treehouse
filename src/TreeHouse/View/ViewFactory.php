@@ -39,15 +39,25 @@ class ViewFactory
      */
     public function __construct(array $config = [])
     {
-        $this->config = array_merge([
-            'paths' => [
-                getcwd() . '/resources/views',
-                getcwd() . '/templates',
-            ],
-            'cache_path' => getcwd() . '/storage/views',
+        // Set default configuration with proper fallbacks
+        $defaultConfig = [
             'cache_enabled' => true,
             'extensions' => ['.th.html', '.th.php', '.php', '.html'],
-        ], $config);
+        ];
+        
+        // Only set paths and cache_path as fallbacks if not provided
+        if (!isset($config['paths'])) {
+            $defaultConfig['paths'] = [
+                getcwd() . '/resources/views',
+                getcwd() . '/templates',
+            ];
+        }
+        
+        if (!isset($config['cache_path'])) {
+            $defaultConfig['cache_path'] = getcwd() . '/storage/views';
+        }
+        
+        $this->config = array_merge($defaultConfig, $config);
         
         $this->createDefaultEngine();
     }

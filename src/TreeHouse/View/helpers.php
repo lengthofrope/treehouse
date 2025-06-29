@@ -2,18 +2,9 @@
 
 declare(strict_types=1);
 
-/**
- * View helper functions
- * 
- * Global helper functions for the TreeHouse View system.
- * 
- * @package LengthOfRope\TreeHouse\View
- * @author  Bas de Kort <bdekort@proton.me>
- * @since   1.0.0
- */
-
-use LengthOfRope\TreeHouse\View\{ViewEngine, ViewFactory, Template};
+use LengthOfRope\TreeHouse\Support\Arr;
 use LengthOfRope\TreeHouse\Support\Collection;
+use LengthOfRope\TreeHouse\View\{ViewEngine, ViewFactory, Template};
 use LengthOfRope\TreeHouse\Security\Csrf;
 use LengthOfRope\TreeHouse\Http\Session;
 
@@ -32,7 +23,7 @@ if (!function_exists('view')) {
             }
             
             // Find application root directory
-            $appRoot = getcwd();
+            $appRoot = dirname(getcwd());
             
             // If we're in a vendor package, find the real app root
             if (strpos(__DIR__, 'vendor/lengthofrope/treehouse') !== false) {
@@ -396,23 +387,64 @@ if (!function_exists('treehouseAsset')) {
     }
 }
 
+if (!function_exists('treehouseConfig')) {
+    /**
+     * Generate configuration script for TreeHouse JavaScript library
+     *
+     * @param array|string|null $config Configuration options array, or legacy baseUrl string
+     * @param bool|null $debug Debug mode (legacy parameter)
+     * @return string HTML script tag with configuration
+     */
+    function treehouseConfig(array|string|null $config = [], ?bool $debug = null): string
+    {
+        // Handle legacy function signature: treehouseConfig($baseUrl, $debug)
+        if (is_string($config) || $config === null) {
+            $baseUrl = $config ?? '/_assets/treehouse';
+            $debug = $debug ?? (function_exists('env') ? env('APP_DEBUG', false) : false);
+            
+            $finalConfig = [
+                'csrf' => [
+                    'endpoint' => '/_csrf/token',
+                    'field' => '_token'
+                ],
+                'baseUrl' => $baseUrl,
+                'debug' => $debug
+            ];
+        } else {
+            // New array-based configuration
+            $defaultConfig = [
+                'csrf' => [
+                    'endpoint' => '/_csrf/token',
+                    'field' => '_token'
+                ],
+                'baseUrl' => url('_assets/treehouse'),
+                'debug' => function_exists('env') ? env('APP_DEBUG', false) : false
+            ];
+            
+            // Merge with provided configuration
+            $finalConfig = array_merge_recursive($defaultConfig, $config);
+        }
+        
+        // Convert to JSON
+        $configJson = json_encode($finalConfig, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+        
+        return '<script>if(window.TreeHouse){window.TreeHouse.configure(' . $configJson . ');}</script>';
+    }
+}
+
 if (!function_exists('treehouseJs')) {
     /**
-     * Generate script tags for TreeHouse JavaScript library and modules
-     *
-     * @param array $modules List of modules to load
-     * @param bool|null $minified Whether to use minified versions (null = auto-detect from environment)
-     * @return string HTML script tags
+     * Generate TreeHouse JavaScript includes
+     * 
+     * @param array $modules Modules to load
+     * @param bool|null $minified Use minified version
+     * @return string Script tags
      */
     function treehouseJs(array $modules = ['csrf'], ?bool $minified = null): string
     {
-        // Auto-detect minification based on environment
-        if ($minified === null) {
-            $minified = (function_exists('env') && env('APP_ENV') === 'production') ||
-                       (!function_exists('env') && !ini_get('display_errors'));
-        }
-        
+        $minified = $minified ?? (getenv('APP_ENV') === 'production');
         $suffix = $minified ? '.min' : '';
+        
         $scripts = [];
         
         // Core TreeHouse library (no defer to ensure it loads first)
@@ -426,10 +458,12 @@ if (!function_exists('treehouseJs')) {
         
         return implode("\n", $scripts);
     }
-    
+}
+
+if (!function_exists('treehouseLogo')) {
     /**
      * Get TreeHouse logo with application override support
-     *
+     * 
      * @param string $alt Alt text for the logo
      * @param array $attributes Additional HTML attributes
      * @return string Logo HTML tag
@@ -448,10 +482,12 @@ if (!function_exists('treehouseJs')) {
         
         return '<img src="' . htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8') . '"' . $attributeString . '>';
     }
-    
+}
+
+if (!function_exists('treehouseFavicons')) {
     /**
      * Get TreeHouse favicon links with application override support
-     *
+     * 
      * @return string Complete favicon HTML tags
      */
     function treehouseFavicons(): string
@@ -468,10 +504,12 @@ if (!function_exists('treehouseJs')) {
         
         return implode("\n", $favicons);
     }
-    
+}
+
+if (!function_exists('treehouseManifest')) {
     /**
      * Get TreeHouse web app manifest link with application override support
-     *
+     * 
      * @return string Web app manifest link tag
      */
     function treehouseManifest(): string
@@ -479,10 +517,12 @@ if (!function_exists('treehouseJs')) {
         $manifestUrl = '/_assets/treehouse/img/favicon/site.webmanifest';
         return '<link rel="manifest" href="' . htmlspecialchars($manifestUrl, ENT_QUOTES, 'UTF-8') . '">';
     }
-    
+}
+
+if (!function_exists('treehouseBranding')) {
     /**
      * Get complete TreeHouse branding package (logo + favicons)
-     *
+     * 
      * @param string $logoAlt Alt text for the logo
      * @param array $logoAttributes Additional logo attributes
      * @return array Array with 'logo' and 'favicons' keys
@@ -494,35 +534,6 @@ if (!function_exists('treehouseJs')) {
             'favicons' => treehouseFavicons(),
             'manifest' => treehouseManifest()
         ];
-    }
-}
-
-if (!function_exists('treehouseConfig')) {
-    /**
-     * Generate configuration script for TreeHouse JavaScript library
-     *
-     * @param array $config Configuration options
-     * @return string HTML script tag with configuration
-     */
-    function treehouseConfig(array $config = []): string
-    {
-        // Default configuration
-        $defaultConfig = [
-            'csrf' => [
-                'endpoint' => '/_csrf/token',
-                'field' => '_token'
-            ],
-            'baseUrl' => url('_assets/treehouse'),
-            'debug' => function_exists('env') ? env('APP_DEBUG', false) : false
-        ];
-        
-        // Merge with provided configuration
-        $finalConfig = array_merge_recursive($defaultConfig, $config);
-        
-        // Convert to JSON
-        $configJson = json_encode($finalConfig, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
-        
-        return '<script>if(window.TreeHouse){window.TreeHouse.configure(' . $configJson . ');}</script>';
     }
 }
 
@@ -592,5 +603,112 @@ if (!function_exists('treehouseSetup')) {
         $html .= treehouseJs($modules, $minified);
         
         return $html;
+    }
+}
+
+if (!function_exists('isViteDevServerRunning')) {
+    /**
+     * Check if Vite dev server is running using multiple methods
+     */
+    function isViteDevServerRunning(): bool
+    {
+        // Check if Vite dev server is running by checking the environment variable
+        if (file_exists(dirname(getcwd()) . '/VITE_RUNNING')) {
+            return true;
+        }
+        return false;
+    }
+}
+
+if (!function_exists('vite')) {
+    /**
+     * Generate Vite asset URLs
+     * 
+     * @param string $path Asset path
+     * @return string Asset URL
+     */
+    function vite(string $path): string
+    {
+        static $manifest = null;
+        static $isDev = null;
+        
+        if ($isDev === null) {
+            // Check if we're in development mode AND Vite dev server is running
+            $isDev = getenv('APP_ENV') !== 'production' && isViteDevServerRunning();
+        }
+        
+        if ($isDev) {
+            // Development mode - return Vite dev server URL
+            return "http://localhost:5173/{$path}";
+        }
+        
+        // Production mode - use manifest
+        if ($manifest === null) {
+            $manifestPath = getcwd() . '/public/build/.vite/manifest.json';
+            if (file_exists($manifestPath)) {
+                $manifest = json_decode(file_get_contents($manifestPath), true);
+            } else {
+                $manifest = [];
+            }
+        }
+        
+        if (isset($manifest[$path])) {
+            return "/build/" . $manifest[$path]['file'];
+        }
+        
+        // Fallback
+        return "/build/{$path}";
+    }
+}
+
+if (!function_exists('viteAssets')) {
+    /**
+     * Generate Vite script and CSS tags
+     * 
+     * @param string $entry Entry point (default: resources/js/app.js)
+     * @return string HTML tags
+     */
+    function viteAssets(string $entry = 'resources/js/app.js'): string
+    {
+        // Check if we're in development mode AND Vite dev server is actually running
+        $isDev = getenv('APP_ENV') !== 'production' && isViteDevServerRunning();
+        
+        if ($isDev) {
+            // Development mode - return Vite dev server assets
+            return 
+                '<script type="module" src="http://localhost:5173/@vite/client"></script>' . "\n" .
+                '<script type="module" src="http://localhost:5173/' . htmlspecialchars($entry, ENT_QUOTES, 'UTF-8') . '"></script>';
+        }
+        
+        // Production mode - use manifest to generate asset tags
+        $manifestPath = dirname(getcwd()) . '/public/build/.vite/manifest.json';
+
+        if (!file_exists($manifestPath)) {
+            // If no manifest exists, return empty (no assets)
+            return '<!-- Vite assets: No manifest found, run "npm run build" -->';
+        }
+        
+        $manifest = json_decode(file_get_contents($manifestPath), true);
+        if (!$manifest || !isset($manifest[$entry])) {
+            // If manifest is invalid or entry not found
+            return '<!-- Vite assets: Entry not found in manifest -->';
+        }
+        
+        $entryData = $manifest[$entry];
+        $tags = [];
+        
+        // Add CSS files first
+        if (isset($entryData['css'])) {
+            foreach ($entryData['css'] as $css) {
+                $tags[] = '<link rel="stylesheet" href="/build/' . htmlspecialchars($css, ENT_QUOTES, 'UTF-8') . '">';
+            }
+        }
+        
+        // Add JS file
+        if (isset($entryData['file'])) {
+            $tags[] = '<script type="module" src="/build/' . htmlspecialchars($entryData['file'], ENT_QUOTES, 'UTF-8') . '"></script>';
+        }
+        
+        return implode("\n", $tags);
     }
 }

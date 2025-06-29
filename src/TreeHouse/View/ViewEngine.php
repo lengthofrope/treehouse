@@ -65,14 +65,18 @@ class ViewEngine
      */
     public function __construct(array $paths = [], ?CacheInterface $cache = null)
     {
-        $this->paths = $paths;
         $this->cache = $cache;
         $this->compiler = new TreeHouseCompiler();
         
-        // Register default template search paths
-        if (empty($this->paths)) {
-            $this->addPath(getcwd() . '/resources/views');
-            $this->addPath(getcwd() . '/templates');
+        // Set paths - only use getcwd() fallback if no paths provided at all
+        if (!empty($paths)) {
+            $this->paths = $paths;
+        } else {
+            // Fallback paths when no configuration is provided
+            $this->paths = [
+                getcwd() . '/resources/views',
+                getcwd() . '/templates'
+            ];
         }
         
         // Auto-inject auth context and TreeHouse assets into all templates
@@ -381,16 +385,12 @@ class ViewEngine
             require_once __DIR__ . '/helpers.php';
         }
 
-        // Auto-inject TreeHouse JavaScript setup (return actual HTML content)
-        $this->share('__treehouse_js', treehouseJs(['csrf']));
-
+        // TreeHouse JavaScript is now bundled with Vite, so we only need configuration
         // Auto-inject TreeHouse configuration (return actual HTML content)
-        $this->share('__treehouse_config', treehouseConfig([
-            'csrf' => [
-                'endpoint' => '/_csrf/token',
-                'field' => '_token'
-            ]
-        ]));
+        $this->share('__treehouse_config', treehouseConfig('/_assets/treehouse'));
+
+        // Auto-inject Vite assets (return actual HTML content)
+        $this->share('__vite_assets', viteAssets('resources/js/app.js'));
 
         // Auto-inject complete TreeHouse setup helper
         $this->share('__treehouse_setup', function() {
@@ -411,8 +411,8 @@ class ViewEngine
             return treehouseJs($modules, $minified);
         });
 
-        $this->share('treehouseConfig', function(array $config = []) {
-            return treehouseConfig($config);
+        $this->share('treehouseConfig', function(string $baseUrl = null, bool $debug = null) {
+            return treehouseConfig($baseUrl, $debug);
         });
 
         $this->share('treehouseSetup', function(array $options = []) {
@@ -425,6 +425,15 @@ class ViewEngine
 
         $this->share('jsModule', function(string $module) {
             return jsModule($module);
+        });
+
+        // Make Vite helper functions available to templates
+        $this->share('viteAssets', function(string $entry = 'resources/js/app.js') {
+            return viteAssets($entry);
+        });
+
+        $this->share('vite', function(string $path) {
+            return vite($path);
         });
     }
 }

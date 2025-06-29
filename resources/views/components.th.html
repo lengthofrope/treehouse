@@ -1,0 +1,290 @@
+<div th:extend="layouts.app">
+    <div th:section="content">
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <!-- Page Header -->
+        <div class="mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">TreeHouse Components</h1>
+            <p class="text-xl text-gray-600">Reusable UI components with dynamic data binding</p>
+        </div>
+
+        <!-- User Cards Component Example -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-6">User Cards with Dynamic Data</h2>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- User Card 1 -->
+                <div class="treehouse-card p-6">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <img th:attr="src=users.john.avatar, alt=users.john.name + ' Avatar'" 
+                             class="w-12 h-12 rounded-full border-2 border-gray-300">
+                        <div>
+                            <h3 class="font-semibold text-gray-900">{users.john.name}</h3>
+                            <p class="text-sm text-gray-600">{users.john.role}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Email:</span>
+                            <span class="text-sm font-medium">{users.john.email}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Department:</span>
+                            <span class="text-sm font-medium">{users.john.department}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Status:</span>
+                            <span th:attr="class='text-xs px-2 py-1 rounded-full ' + users.john.status.css">{users.john.status.label}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button th:attr="onclick='viewProfile(' + users.john.id + ')'" 
+                                class="flex-1 bg-treehouse-600 text-white py-2 px-3 rounded text-sm hover:bg-treehouse-700 transition-colors">
+                            View Profile
+                        </button>
+                        <a th:attr="href='mailto:' + users.john.email" 
+                           class="flex-1 bg-gray-200 text-gray-700 py-2 px-3 rounded text-sm text-center hover:bg-gray-300 transition-colors">
+                            Email
+                        </a>
+                    </div>
+                </div>
+
+                <!-- User Card 2 -->
+                <div class="treehouse-card p-6">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <img th:attr="src=users.jane.avatar, alt=users.jane.name + ' Avatar'" 
+                             class="w-12 h-12 rounded-full border-2 border-gray-300">
+                        <div>
+                            <h3 class="font-semibold text-gray-900">{users.jane.name}</h3>
+                            <p class="text-sm text-gray-600">{users.jane.role}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Email:</span>
+                            <span class="text-sm font-medium">{users.jane.email}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Department:</span>
+                            <span class="text-sm font-medium">{users.jane.department}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Status:</span>
+                            <span th:attr="class='text-xs px-2 py-1 rounded-full ' + users.jane.status.css">{users.jane.status.label}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button th:attr="onclick='viewProfile(' + users.jane.id + ')'" 
+                                class="flex-1 bg-treehouse-600 text-white py-2 px-3 rounded text-sm hover:bg-treehouse-700 transition-colors">
+                            View Profile
+                        </button>
+                        <a th:attr="href='mailto:' + users.jane.email" 
+                           class="flex-1 bg-gray-200 text-gray-700 py-2 px-3 rounded text-sm text-center hover:bg-gray-300 transition-colors">
+                            Email
+                        </a>
+                    </div>
+                </div>
+
+                <!-- User Card 3 -->
+                <div class="treehouse-card p-6">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <img th:attr="src=users.mike.avatar, alt=users.mike.name + ' Avatar'" 
+                             class="w-12 h-12 rounded-full border-2 border-gray-300">
+                        <div>
+                            <h3 class="font-semibold text-gray-900">{users.mike.name}</h3>
+                            <p class="text-sm text-gray-600">{users.mike.role}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Email:</span>
+                            <span class="text-sm font-medium">{users.mike.email}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Department:</span>
+                            <span class="text-sm font-medium">{users.mike.department}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">Status:</span>
+                            <span th:attr="class='text-xs px-2 py-1 rounded-full ' + users.mike.status.css">{users.mike.status.label}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button th:attr="onclick='viewProfile(' + users.mike.id + ')'" 
+                                class="flex-1 bg-treehouse-600 text-white py-2 px-3 rounded text-sm hover:bg-treehouse-700 transition-colors">
+                            View Profile
+                        </button>
+                        <a th:attr="href='mailto:' + users.mike.email" 
+                           class="flex-1 bg-gray-200 text-gray-700 py-2 px-3 rounded text-sm text-center hover:bg-gray-300 transition-colors">
+                            Email
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Dashboard -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-6">Statistics Dashboard</h2>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Total Users -->
+                <div class="treehouse-card p-6 text-center">
+                    <div th:attr="class='w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center ' + stats.users.color">
+                        <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900">{stats.users.count}</h3>
+                    <p class="text-sm text-gray-600">Total Users</p>
+                    <p class="text-xs text-gray-500 mt-1">{stats.users.change} from last month</p>
+                </div>
+
+                <!-- Active Projects -->
+                <div class="treehouse-card p-6 text-center">
+                    <div th:attr="class='w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center ' + stats.projects.color">
+                        <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900">{stats.projects.count}</h3>
+                    <p class="text-sm text-gray-600">Active Projects</p>
+                    <p class="text-xs text-gray-500 mt-1">{stats.projects.change} from last month</p>
+                </div>
+
+                <!-- Revenue -->
+                <div class="treehouse-card p-6 text-center">
+                    <div th:attr="class='w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center ' + stats.revenue.color">
+                        <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900">{stats.revenue.amount}</h3>
+                    <p class="text-sm text-gray-600">Monthly Revenue</p>
+                    <p class="text-xs text-gray-500 mt-1">{stats.revenue.change} from last month</p>
+                </div>
+
+                <!-- Performance -->
+                <div class="treehouse-card p-6 text-center">
+                    <div th:attr="class='w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center ' + stats.performance.color">
+                        <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900">{stats.performance.score}%</h3>
+                    <p class="text-sm text-gray-600">Performance Score</p>
+                    <p class="text-xs text-gray-500 mt-1">{stats.performance.change} from last month</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Forms -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-6">Dynamic Forms</h2>
+            
+            <div class="grid lg:grid-cols-2 gap-8">
+                <!-- Contact Form -->
+                <div class="treehouse-card p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Contact Form</h3>
+                    
+                    <form th:attr="action=form.contact.action, method=form.contact.method">
+                        <?php echo csrfField(); ?>
+                        <div class="space-y-4">
+                            <div>
+                                <label th:attr="for=form.contact.fields.name.id" class="block text-sm font-medium text-gray-700 mb-1">
+                                    {form.contact.fields.name.label}
+                                </label>
+                                <input th:attr="id=form.contact.fields.name.id, name=form.contact.fields.name.name, placeholder=form.contact.fields.name.placeholder" 
+                                       type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-treehouse-500 focus:border-treehouse-500">
+                            </div>
+                            
+                            <div>
+                                <label th:attr="for=form.contact.fields.email.id" class="block text-sm font-medium text-gray-700 mb-1">
+                                    {form.contact.fields.email.label}
+                                </label>
+                                <input th:attr="id=form.contact.fields.email.id, name=form.contact.fields.email.name, placeholder=form.contact.fields.email.placeholder" 
+                                       type="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-treehouse-500 focus:border-treehouse-500">
+                            </div>
+                            
+                            <div>
+                                <label th:attr="for=form.contact.fields.subject.id" class="block text-sm font-medium text-gray-700 mb-1">
+                                    {form.contact.fields.subject.label}
+                                </label>
+                                <select th:attr="id=form.contact.fields.subject.id, name=form.contact.fields.subject.name" 
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-treehouse-500 focus:border-treehouse-500">
+                                    <option th:repeat="option form.contact.fields.subject.options" th:attr="value=option.value">
+                                        {option.label}
+                                    </option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label th:attr="for=form.contact.fields.message.id" class="block text-sm font-medium text-gray-700 mb-1">
+                                    {form.contact.fields.message.label}
+                                </label>
+                                <textarea th:attr="id=form.contact.fields.message.id, name=form.contact.fields.message.name, placeholder=form.contact.fields.message.placeholder" 
+                                          rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-treehouse-500 focus:border-treehouse-500"></textarea>
+                            </div>
+                            
+                            <button type="submit" th:attr="class='w-full py-2 px-4 rounded-lg text-white font-medium transition-colors ' + form.contact.submit.css">
+                                {form.contact.submit.text}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Settings Form -->
+                <div class="treehouse-card p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">User Settings</h3>
+                    
+                    <form th:attr="action=form.settings.action, method=form.settings.method">
+                        <div class="space-y-4">
+                            <div class="flex items-center">
+                                <input th:attr="id=form.settings.fields.notifications.id, name=form.settings.fields.notifications.name" 
+                                       type="checkbox" class="h-4 w-4 text-treehouse-600 focus:ring-treehouse-500 border-gray-300 rounded">
+                                <label th:attr="for=form.settings.fields.notifications.id" class="ml-2 block text-sm text-gray-700">
+                                    {form.settings.fields.notifications.label}
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <input th:attr="id=form.settings.fields.marketing.id, name=form.settings.fields.marketing.name" 
+                                       type="checkbox" class="h-4 w-4 text-treehouse-600 focus:ring-treehouse-500 border-gray-300 rounded">
+                                <label th:attr="for=form.settings.fields.marketing.id" class="ml-2 block text-sm text-gray-700">
+                                    {form.settings.fields.marketing.label}
+                                </label>
+                            </div>
+                            
+                            <div>
+                                <label th:attr="for=form.settings.fields.theme.id" class="block text-sm font-medium text-gray-700 mb-1">
+                                    {form.settings.fields.theme.label}
+                                </label>
+                                <select th:attr="id=form.settings.fields.theme.id, name=form.settings.fields.theme.name" 
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-treehouse-500 focus:border-treehouse-500">
+                                    <option th:repeat="theme form.settings.fields.theme.options" th:attr="value=theme.value">
+                                        {theme.label}
+                                    </option>
+                                </select>
+                            </div>
+                            
+                            <button type="submit" th:attr="class='w-full py-2 px-4 rounded-lg text-white font-medium transition-colors ' + form.settings.submit.css">
+                                {form.settings.submit.text}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+
+    </main>
+
+</div>
+</div>

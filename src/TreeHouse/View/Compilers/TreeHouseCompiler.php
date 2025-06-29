@@ -367,7 +367,7 @@ class TreeHouseCompiler
                 $expr = trim($matches[1]);
                 $expr = $this->compileDotNotation($expr);
                 $expr = $this->compileExpression($expr);
-                return "' . ({$expr}) . '";
+                return "' . (($expr) ?? '') . '";
             },
             "'" . addslashes($value) . "'"
         );
@@ -375,6 +375,10 @@ class TreeHouseCompiler
         // Clean up empty string concatenations
         $result = preg_replace("/^'' \. /", "", $result);
         $result = preg_replace("/ \. ''$/", "", $result);
+        
+        // Additional cleanup - remove unnecessary concatenations at start/end
+        $result = preg_replace("/^'' \. \(/", "(", $result);
+        $result = preg_replace("/\) \. ''$/", ")", $result);
         
         return $result;
     }
@@ -645,8 +649,16 @@ class TreeHouseCompiler
         foreach ($attributes as $attr) {
             if (preg_match('/^\s*(\w+)\s*=\s*(.+)$/', trim($attr), $matches)) {
                 $name = $matches[1];
-                $value = $matches[2];
-                $php = "<?php echo {$this->compileExpression($value)}; ?>";
+                $value = trim($matches[2]);
+                
+                // Handle concatenation expressions properly
+                if (strpos($value, '+') !== false) {
+                    // Replace + with proper PHP concatenation
+                    $value = preg_replace('/\s*\+\s*/', ' . ', $value);
+                }
+                
+                $compiledValue = $this->compileExpression($value);
+                $php = "<?php echo {$compiledValue}; ?>";
                 $node->setAttribute($name, $php);
             }
         }
@@ -917,6 +929,12 @@ class TreeHouseCompiler
                 // Check if this is a TreeHouse framework variable that should be raw
                 if (preg_match('/\{__treehouse_(?:config|js|favicons|logo|manifest)\}/', $content)) {
                     // Compile the brace expressions for raw output
+                    $compiledContent = $this->compileBraceExpressions($content);
+                    
+                    // Create PHP output with raw output (no escaping)
+                    $phpCode = "<?php echo thRaw({$compiledContent}); ?>";
+                } elseif (preg_match('/\{__vite_assets\}/', $content)) {
+                    // Handle vite assets variable
                     $compiledContent = $this->compileBraceExpressions($content);
                     
                     // Create PHP output with raw output (no escaping)
