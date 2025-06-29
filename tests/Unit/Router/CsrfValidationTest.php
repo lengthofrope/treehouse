@@ -51,7 +51,7 @@ class CsrfValidationTest extends TestCase
         $this->assertEquals('Success', $response->getContent());
     }
 
-    public function testPostRequestWithoutCsrfTokenSucceeds(): void
+    public function testPostRequestWithoutCsrfTokenFails(): void
     {
         $this->router->post('/test', function () {
             return new Response('Success');
@@ -63,8 +63,8 @@ class CsrfValidationTest extends TestCase
         ]);
 
         $response = $this->router->dispatch($request);
-        $this->assertEquals(200, $response->getStatusCode());
-        $this->assertEquals('Success', $response->getContent());
+        $this->assertEquals(419, $response->getStatusCode());
+        $this->assertEquals('CSRF Token Mismatch', $response->getContent());
     }
 
     public function testPostRequestWithValidCsrfTokenSucceeds(): void

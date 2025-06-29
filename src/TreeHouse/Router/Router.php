@@ -564,15 +564,10 @@ class Router
     {
         $method = $request->method();
         
-        // Only validate CSRF for state-changing methods
+        // Validate CSRF for all state-changing methods (mandatory)
         $stateMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
         
-        if (!in_array($method, $stateMethods)) {
-            return false;
-        }
-        
-        // Check if request contains a CSRF token
-        return $request->input('_token') !== null;
+        return in_array($method, $stateMethods);
     }
 
     /**
@@ -589,6 +584,11 @@ class Router
             
             // Get all request data (query + request data)
             $data = $request->input();
+            
+            // CSRF token is mandatory for state-changing requests
+            if (!isset($data['_token'])) {
+                return false;
+            }
             
             return $csrf->verifyRequest($data, '_token');
         } catch (\Exception $e) {

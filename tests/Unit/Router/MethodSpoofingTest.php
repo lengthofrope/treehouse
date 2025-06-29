@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\Router;
 
 use LengthOfRope\TreeHouse\Http\Request;
+use LengthOfRope\TreeHouse\Http\Session;
 use LengthOfRope\TreeHouse\Router\Router;
+use LengthOfRope\TreeHouse\Security\Csrf;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -14,10 +16,22 @@ use PHPUnit\Framework\TestCase;
 class MethodSpoofingTest extends TestCase
 {
     private Router $router;
+    private Session $session;
+    private Csrf $csrf;
 
     protected function setUp(): void
     {
         $this->router = new Router();
+        $this->session = new Session();
+        $this->csrf = new Csrf($this->session);
+    }
+
+    protected function tearDown(): void
+    {
+        // Clean up session
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
     }
 
     public function testMethodSpoofingWithPutMethod(): void
@@ -27,10 +41,13 @@ class MethodSpoofingTest extends TestCase
             return "PUT request for user {$id}";
         });
 
-        // Create a POST request with _method=PUT
+        // Generate a valid CSRF token
+        $token = $this->csrf->generateToken();
+
+        // Create a POST request with _method=PUT and CSRF token
         $request = new Request(
             query: [],
-            request: ['_method' => 'PUT', 'name' => 'John'],
+            request: ['_method' => 'PUT', 'name' => 'John', '_token' => $token],
             files: [],
             cookies: [],
             server: [
@@ -52,10 +69,13 @@ class MethodSpoofingTest extends TestCase
             return "DELETE request for post {$id}";
         });
 
-        // Create a POST request with _method=DELETE
+        // Generate a valid CSRF token
+        $token = $this->csrf->generateToken();
+
+        // Create a POST request with _method=DELETE and CSRF token
         $request = new Request(
             query: [],
-            request: ['_method' => 'DELETE'],
+            request: ['_method' => 'DELETE', '_token' => $token],
             files: [],
             cookies: [],
             server: [
@@ -77,10 +97,13 @@ class MethodSpoofingTest extends TestCase
             return "PATCH request for article {$id}";
         });
 
-        // Create a POST request with _method=PATCH
+        // Generate a valid CSRF token
+        $token = $this->csrf->generateToken();
+
+        // Create a POST request with _method=PATCH and CSRF token
         $request = new Request(
             query: [],
-            request: ['_method' => 'patch'], // Test case insensitivity
+            request: ['_method' => 'patch', '_token' => $token], // Test case insensitivity
             files: [],
             cookies: [],
             server: [
@@ -106,10 +129,13 @@ class MethodSpoofingTest extends TestCase
             return 'GET request';
         });
 
-        // Create a POST request with invalid _method
+        // Generate a valid CSRF token
+        $token = $this->csrf->generateToken();
+
+        // Create a POST request with invalid _method and CSRF token
         $request = new Request(
             query: [],
-            request: ['_method' => 'GET'], // GET is not allowed for spoofing
+            request: ['_method' => 'GET', '_token' => $token], // GET is not allowed for spoofing
             files: [],
             cookies: [],
             server: [
@@ -156,10 +182,13 @@ class MethodSpoofingTest extends TestCase
             return 'POST request';
         });
 
-        // Create a POST request with empty _method
+        // Generate a valid CSRF token
+        $token = $this->csrf->generateToken();
+
+        // Create a POST request with empty _method and CSRF token
         $request = new Request(
             query: [],
-            request: ['_method' => ''],
+            request: ['_method' => '', '_token' => $token],
             files: [],
             cookies: [],
             server: [
