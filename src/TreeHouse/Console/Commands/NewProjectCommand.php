@@ -33,6 +33,7 @@ class NewProjectCommand extends Command
              ->addOption('path', 'p', InputOption::VALUE_OPTIONAL, 'Custom installation path')
              ->addOption('existing', 'e', InputOption::VALUE_NONE, 'Install framework in existing directory')
              ->addOption('force', 'f', InputOption::VALUE_NONE, 'Force installation even if directory exists')
+             ->addOption('no-init', null, InputOption::VALUE_NONE, 'Skip automatic initialization (composer install, npm install, .env setup)')
              ->setHelp('This command creates a new TreeHouse application with the standard directory structure and configuration files.');
     }
 
@@ -46,6 +47,7 @@ class NewProjectCommand extends Command
         $customPath = $input->getOption('path');
         $isExisting = $input->hasOption('existing');
         $force = $input->hasOption('force');
+        $noInit = $input->hasOption('no-init');
 
         // Determine installation path
         if ($isExisting) {
@@ -84,15 +86,30 @@ class NewProjectCommand extends Command
             // Generate frontend assets
             $this->generateFrontendAssets($installPath, $projectName, $output);
             
+            // Initialize project (unless --no-init is specified)
+            if (!$noInit) {
+                $this->initializeProject($installPath, $projectName, $output);
+            }
+            
             $output->writeln('');
             $output->writeln('<info>✓ TreeHouse application created successfully!</info>');
-            $output->writeln('');
-            $output->writeln('<comment>Next steps:</comment>');
-            $output->writeln("  cd {$projectName}");
-            $output->writeln('  composer install');
-            $output->writeln('  npm install');
-            $output->writeln('  npm run dev');
-            $output->writeln('  ./bin/th serve');
+            
+            if ($noInit) {
+                $output->writeln('');
+                $output->writeln('<comment>Next steps:</comment>');
+                $output->writeln("  cd {$projectName}");
+                $output->writeln('  composer install');
+                $output->writeln('  npm install');
+                $output->writeln('  cp .env.example .env');
+                $output->writeln('  npm run dev');
+                $output->writeln('  ./bin/th serve');
+            } else {
+                $output->writeln('');
+                $output->writeln('<comment>Your project is ready! Next steps:</comment>');
+                $output->writeln("  cd {$projectName}");
+                $output->writeln('  npm run dev');
+                $output->writeln('  ./bin/th serve');
+            }
             $output->writeln('');
             
             return 0;
@@ -225,31 +242,101 @@ class NewProjectCommand extends Command
     }
 
     /**
+     * Initialize the project by running composer install, npm install, and setting up .env
+     */
+    private function initializeProject(string $installPath, string $projectName, OutputInterface $output): void
+    {
+        $output->writeln('');
+        $output->writeln('<info>Initializing project...</info>');
+        
+        // Copy .env.example to .env
+        $envExamplePath = $installPath . '/.env.example';
+        $envPath = $installPath . '/.env';
+        
+        if (file_exists($envExamplePath)) {
+            copy($envExamplePath, $envPath);
+            $output->writeln('  <info>Created:</info> .env file');
+        }
+        
+        // Change to project directory for commands
+        $originalDir = getcwd();
+        chdir($installPath);
+        
+        try {
+            // Run composer install
+            $output->writeln('  <comment>Running composer install...</comment>');
+            $composerOutput = [];
+            $composerReturn = 0;
+            exec('composer install --no-interaction 2>&1', $composerOutput, $composerReturn);
+            
+            if ($composerReturn === 0) {
+                $output->writeln('  <info>✓</info> Composer dependencies installed');
+            } else {
+                $output->writeln('  <error>✗</error> Composer install failed');
+                $output->writeln('    ' . implode("\n    ", $composerOutput));
+            }
+            
+            // Run npm install
+            $output->writeln('  <comment>Running npm install...</comment>');
+            $npmOutput = [];
+            $npmReturn = 0;
+            exec('npm install --silent 2>&1', $npmOutput, $npmReturn);
+            
+            if ($npmReturn === 0) {
+                $output->writeln('  <info>✓</info> NPM dependencies installed');
+            } else {
+                $output->writeln('  <error>✗</error> NPM install failed');
+                $output->writeln('    ' . implode("\n    ", array_slice($npmOutput, -5))); // Show last 5 lines
+            }
+            
+        } catch (\Exception $e) {
+            $output->writeln("  <error>Initialization error: {$e->getMessage()}</error>");
+        } finally {
+            // Change back to original directory
+            chdir($originalDir);
+        }
+    }
+
+    /**
      * Copy a file from the framework to the project location with placeholder replacement
      */
     private function copyFrameworkFile(string $frameworkPath, string $destPath, string $projectName, OutputInterface $output): void
     {
-        // Try multiple possible locations for framework files
-        $possibleSources = [
-            __DIR__ . '/../../../../' . $frameworkPath,  // From vendor perspective
-            __DIR__ . '/../../../' . $frameworkPath,     // From framework root
-            getcwd() . '/' . $frameworkPath,              // Current directory
+        // For frontend files, always generate templates instead of copying
+        $frontendFiles = [
+            'package.json',
+            'vite.config.js',
+            'postcss.config.js',
+            'tailwind.config.js',
+            'resources/js/app.js',
+            'resources/css/app.css'
         ];
         
-        $sourceFound = false;
-        $content = '';
-        
-        foreach ($possibleSources as $sourcePath) {
-            if (file_exists($sourcePath)) {
-                $content = file_get_contents($sourcePath);
-                $sourceFound = true;
-                break;
-            }
-        }
-        
-        // If file not found in framework, generate basic content
-        if (!$sourceFound) {
+        if (in_array($frameworkPath, $frontendFiles)) {
             $content = $this->generateBasicContent($frameworkPath, $projectName);
+        } else {
+            // Try multiple possible locations for framework files
+            $possibleSources = [
+                __DIR__ . '/../../../../' . $frameworkPath,  // From vendor perspective
+                __DIR__ . '/../../../' . $frameworkPath,     // From framework root
+                getcwd() . '/' . $frameworkPath,              // Current directory
+            ];
+            
+            $sourceFound = false;
+            $content = '';
+            
+            foreach ($possibleSources as $sourcePath) {
+                if (file_exists($sourcePath)) {
+                    $content = file_get_contents($sourcePath);
+                    $sourceFound = true;
+                    break;
+                }
+            }
+            
+            // If file not found in framework, generate basic content
+            if (!$sourceFound) {
+                $content = $this->generateBasicContent($frameworkPath, $projectName);
+            }
         }
         
         // Replace placeholders
@@ -351,7 +438,7 @@ class NewProjectCommand extends Command
                 'optimize-autoloader' => true,
                 'sort-packages' => true
             ],
-            'minimum-stability' => 'stable',
+            'minimum-stability' => 'dev',
             'prefer-stable' => true
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     }
@@ -446,6 +533,9 @@ PHP;
         }
     </style>
     
+    <!-- Vite Assets (Dynamic: Development vs Production) -->
+    <script th:raw="__vite_assets"></script>
+        
     <!-- TreeHouse Framework Assets (auto-injected) -->
     <script th:raw="__treehouse_config"></script>
     <script th:raw="__treehouse_js"></script>
@@ -1071,21 +1161,25 @@ JS;
         return <<<JS
 import '../css/app.css'
 
-// Import TreeHouse framework (now immediately available globally)
-import '../../assets/js/treehouse.js'
-
-// Import TreeHouse modules
-import '../../assets/js/modules/csrf.js'
-
 // TreeHouse Framework integration
 console.log('TreeHouse + Vite + Tailwind CSS loaded successfully!')
 
-// Initialize TreeHouse when ready
-TreeHouse.ready(() => {
-  console.log('TreeHouse Framework is ready!')
-  
-  // Add any custom initialization here
-  initializeComponents()
+// Initialize when DOM is ready since TreeHouse is loaded separately via PHP
+document.addEventListener('DOMContentLoaded', () => {
+  // Wait for TreeHouse to be available from the PHP-injected scripts
+  if (typeof window.TreeHouse !== 'undefined') {
+    // Initialize TreeHouse when ready
+    window.TreeHouse.ready(() => {
+      console.log('TreeHouse Framework is ready!')
+      
+      // Add any custom initialization here
+      initializeComponents()
+    })
+  } else {
+    // Fallback if TreeHouse isn't available
+    console.warn('TreeHouse not available, using fallback initialization')
+    initializeComponents()
+  }
 })
 
 function initializeComponents() {
