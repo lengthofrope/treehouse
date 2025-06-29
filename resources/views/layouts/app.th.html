@@ -98,7 +98,7 @@
                     <div class="mb-8">
                         <img src="/_assets/treehouse/img/treehouse-logo.svg" 
                              alt="TreeHouse Framework" 
-                             class="h-16 w-auto mx-auto mb-6 filter brightness-0 invert">
+                             class="h-16 w-auto mx-auto mb-6">
                     </div>
                     <h1 class="text-4xl lg:text-6xl font-bold mb-6">
                         TreeHouse Framework
@@ -126,93 +126,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="treehouse-card p-8 animate-fade-in">
                 <div th:yield="content">
-                    <!-- Demo Navigation -->
-                    <div class="grid md:grid-cols-3 gap-8 mb-12">
-                        <a href="/templating" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
-                            <div class="w-12 h-12 bg-treehouse-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-treehouse-200 transition-colors">
-                                <svg class="w-6 h-6 text-treehouse-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
-                                </svg>
-                            </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Templating Engine</h3>
-                            <p class="text-gray-600 text-center">Explore dot notation, dynamic attributes, and powerful template features.</p>
-                        </a>
-                        
-                        <a href="/components" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
-                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors">
-                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                                </svg>
-                            </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Dynamic Components</h3>
-                            <p class="text-gray-600 text-center">See reusable UI components with data binding and dynamic behavior.</p>
-                        </a>
-                        
-                        <a href="/layouts" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
-                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-200 transition-colors">
-                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path>
-                                </svg>
-                            </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Layout System</h3>
-                            <p class="text-gray-600 text-center">Learn about template inheritance and section management.</p>
-                        </a>
-                    </div>
 
-                    <!-- Features Grid -->
-                    <div class="grid md:grid-cols-3 gap-8 mb-12">
-                        <div class="text-center">
-                            <div class="w-12 h-12 bg-treehouse-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                                <svg class="w-6 h-6 text-treehouse-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                </svg>
-                            </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Lightning Fast</h3>
-                            <p class="text-gray-600">Optimized performance with modern PHP 8+ features and efficient routing.</p>
-                        </div>
-                        
-                        <div class="text-center">
-                            <div class="w-12 h-12 bg-treehouse-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                                <svg class="w-6 h-6 text-treehouse-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100 4m0-4a2 2 0 110 4m6-4a2 2 0 100 4m0-4a2 2 0 110 4m-6-4a2 2 0 100 4m0-4a2 2 0 110 4"></path>
-                                </svg>
-                            </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Modular Design</h3>
-                            <p class="text-gray-600">Clean architecture with dependency injection and service containers.</p>
-                        </div>
-                        
-                        <div class="text-center">
-                            <div class="w-12 h-12 bg-treehouse-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                                <svg class="w-6 h-6 text-treehouse-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                                </svg>
-                            </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Developer Friendly</h3>
-                            <p class="text-gray-600">Intuitive APIs, comprehensive documentation, and excellent tooling.</p>
-                        </div>
-                    </div>
-
-                    <!-- Technology Stack -->
-                    <div class="border-t border-gray-200 pt-12">
-                        <h2 class="text-2xl font-bold text-gray-900 text-center mb-8">Built with Modern Technologies</h2>
-                        <div class="flex flex-wrap justify-center items-center gap-8 text-gray-500">
-                            <div class="flex items-center space-x-2">
-                                <span class="text-sm font-medium">PHP 8+</span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-sm font-medium">Vite</span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-sm font-medium">Tailwind CSS</span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-sm font-medium">JavaScript ES6+</span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-sm font-medium">Modern Templates</span>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -225,11 +139,11 @@
                 <div class="flex items-center space-x-3 mb-4 md:mb-0">
                     <img src="/_assets/treehouse/img/treehouse-logo.svg" 
                          alt="TreeHouse Framework" 
-                         class="h-6 w-auto filter brightness-0 invert">
+                         class="h-6 w-auto">
                     <span class="text-sm">TreeHouse Framework</span>
                 </div>
                 <div class="text-sm text-gray-400">
-                    Built with ❤️ using TreeHouse, Vite, and Tailwind CSS
+                    Built using TreeHouse, Vite, and Tailwind CSS
                 </div>
             </div>
         </div>

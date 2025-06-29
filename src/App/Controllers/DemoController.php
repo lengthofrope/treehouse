@@ -18,7 +18,7 @@ class DemoController
     /**
      * Templating engine demonstration
      */
-    public function templating(Request $request): Response
+    public function templating(): Response
     {
         $data = [
             'title' => 'TreeHouse Templating Engine Demo',

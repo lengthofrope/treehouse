@@ -65,14 +65,18 @@ class ViewEngine
      */
     public function __construct(array $paths = [], ?CacheInterface $cache = null)
     {
-        $this->paths = $paths;
         $this->cache = $cache;
         $this->compiler = new TreeHouseCompiler();
         
-        // Register default template search paths
-        if (empty($this->paths)) {
-            $this->addPath(getcwd() . '/resources/views');
-            $this->addPath(getcwd() . '/templates');
+        // Set paths - only use getcwd() fallback if no paths provided at all
+        if (!empty($paths)) {
+            $this->paths = $paths;
+        } else {
+            // Fallback paths when no configuration is provided
+            $this->paths = [
+                getcwd() . '/resources/views',
+                getcwd() . '/templates'
+            ];
         }
         
         // Auto-inject auth context and TreeHouse assets into all templates
