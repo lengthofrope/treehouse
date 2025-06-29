@@ -134,12 +134,12 @@ class NewProjectCommand extends Command
      */
     private function generateConfigFiles(string $basePath, string $projectName, OutputInterface $output): void
     {
-        $this->copyStubFile('config/app.php', $basePath . '/config/app.php', $projectName, $output);
-        $this->copyStubFile('config/database.php', $basePath . '/config/database.php', $projectName, $output);
-        $this->copyStubFile('config/cache.php', $basePath . '/config/cache.php', $projectName, $output);
-        $this->copyStubFile('config/view.php', $basePath . '/config/view.php', $projectName, $output);
-        $this->copyStubFile('config/auth.php', $basePath . '/config/auth.php', $projectName, $output);
-        $this->copyStubFile('config/routes/web.php', $basePath . '/config/routes/web.php', $projectName, $output);
+        $this->copyFrameworkFile('config/app.php', $basePath . '/config/app.php', $projectName, $output);
+        $this->copyFrameworkFile('config/database.php', $basePath . '/config/database.php', $projectName, $output);
+        $this->copyFrameworkFile('config/cache.php', $basePath . '/config/cache.php', $projectName, $output);
+        $this->copyFrameworkFile('config/view.php', $basePath . '/config/view.php', $projectName, $output);
+        $this->copyFrameworkFile('config/auth.php', $basePath . '/config/auth.php', $projectName, $output);
+        $this->copyFrameworkFile('config/routes/web.php', $basePath . '/config/routes/web.php', $projectName, $output);
     }
 
     /**
@@ -147,28 +147,27 @@ class NewProjectCommand extends Command
      */
     private function generateApplicationFiles(string $basePath, string $projectName, OutputInterface $output): void
     {
-        $this->copyStubFile('public/index.php', $basePath . '/public/index.php', $projectName, $output);
-        $this->copyStubFile('public/.htaccess', $basePath . '/public/.htaccess', $projectName, $output);
-        $this->copyStubFile('src/App/Controllers/HomeController.php', $basePath . '/src/App/Controllers/HomeController.php', $projectName, $output);
+        $this->copyFrameworkFile('public/index.php', $basePath . '/public/index.php', $projectName, $output);
+        $this->copyFrameworkFile('public/.htaccess', $basePath . '/public/.htaccess', $projectName, $output);
+        $this->copyFrameworkFile('src/App/Controllers/HomeController.php', $basePath . '/src/App/Controllers/HomeController.php', $projectName, $output);
         
         // Models
-        $this->copyStubFile('src/App/Models/User.php', $basePath . '/src/App/Models/User.php', $projectName, $output);
+        $this->copyFrameworkFile('src/App/Models/User.php', $basePath . '/src/App/Models/User.php', $projectName, $output);
         
-        // Views
-        $this->copyStubFile('resources/views/layouts/app.th.html', $basePath . '/resources/views/layouts/app.th.html', $projectName, $output);
-        $this->copyStubFile('resources/views/home.th.html', $basePath . '/resources/views/home.th.html', $projectName, $output);
-        $this->copyStubFile('resources/views/about.th.html', $basePath . '/resources/views/about.th.html', $projectName, $output);
-        
-        // Database migrations - framework migrations will be discovered automatically by the migrate command
-        // No need to copy framework migrations as stubs since they should be loaded from the vendor directory
+        // Views - use existing framework views as templates
+        $this->copyFrameworkFile('resources/views/layouts/app.th.html', $basePath . '/resources/views/layouts/app.th.html', $projectName, $output);
+        $this->copyFrameworkFile('resources/views/home.th.html', $basePath . '/resources/views/home.th.html', $projectName, $output);
+        $this->copyFrameworkFile('resources/views/about.th.html', $basePath . '/resources/views/about.th.html', $projectName, $output);
         
         // Environment file
-        $this->copyStubFile('.env.example', $basePath . '/.env.example', $projectName, $output);
+        $this->copyFrameworkFile('.env.example', $basePath . '/.env.example', $projectName, $output);
         
-        $this->copyStubFile('bin/th', $basePath . '/bin/th', $projectName, $output);
+        // Console script
+        $this->copyFrameworkFile('bin/th', $basePath . '/bin/th', $projectName, $output);
         chmod($basePath . '/bin/th', 0755);
         
-        $this->copyStubFile('README.md', $basePath . '/README.md', $projectName, $output);
+        // Documentation
+        $this->copyFrameworkFile('README.md', $basePath . '/README.md', $projectName, $output);
     }
 
     /**
@@ -176,21 +175,38 @@ class NewProjectCommand extends Command
      */
     private function generateComposerJson(string $basePath, string $projectName, OutputInterface $output): void
     {
-        $this->copyStubFile('composer.json', $basePath . '/composer.json', $projectName, $output);
+        $content = $this->getComposerJsonTemplate($projectName);
+        file_put_contents($basePath . '/composer.json', $content);
+        $output->writeln("  <info>Created:</info> composer.json");
     }
 
     /**
-     * Copy a stub file from the framework to the project location with placeholder replacement
+     * Copy a file from the framework to the project location with placeholder replacement
      */
-    private function copyStubFile(string $stubPath, string $destPath, string $projectName, OutputInterface $output): void
+    private function copyFrameworkFile(string $frameworkPath, string $destPath, string $projectName, OutputInterface $output): void
     {
-        $frameworkStubPath = __DIR__ . '/../../../../resources/stubs/new-project/' . $stubPath;
+        // Try multiple possible locations for framework files
+        $possibleSources = [
+            __DIR__ . '/../../../../' . $frameworkPath,  // From vendor perspective
+            __DIR__ . '/../../../' . $frameworkPath,     // From framework root
+            getcwd() . '/' . $frameworkPath,              // Current directory
+        ];
         
-        if (!file_exists($frameworkStubPath)) {
-            throw new \RuntimeException("Stub file not found: {$frameworkStubPath}");
+        $sourceFound = false;
+        $content = '';
+        
+        foreach ($possibleSources as $sourcePath) {
+            if (file_exists($sourcePath)) {
+                $content = file_get_contents($sourcePath);
+                $sourceFound = true;
+                break;
+            }
         }
         
-        $content = file_get_contents($frameworkStubPath);
+        // If file not found in framework, generate basic content
+        if (!$sourceFound) {
+            $content = $this->generateBasicContent($frameworkPath, $projectName);
+        }
         
         // Replace placeholders
         $replacements = [
@@ -208,8 +224,654 @@ class NewProjectCommand extends Command
         }
         
         file_put_contents($destPath, $content);
-        $output->writeln("  <info>Created:</info> " . str_replace($destDir . '/', '', $destPath));
+        $fileName = basename($frameworkPath);
+        $output->writeln("  <info>Created:</info> {$fileName}");
     }
 
-    // Template methods for generating file contents (DEPRECATED - now using stub files)
+    /**
+     * Generate basic content when framework file is not found
+     */
+    private function generateBasicContent(string $filePath, string $projectName): string
+    {
+        switch ($filePath) {
+            case 'resources/views/layouts/app.th.html':
+                return $this->getLayoutTemplate($projectName);
+            case 'resources/views/home.th.html':
+                return $this->getHomeTemplate($projectName);
+            case 'resources/views/about.th.html':
+                return $this->getAboutTemplate();
+            case 'src/App/Controllers/HomeController.php':
+                return $this->getHomeControllerTemplate();
+            case 'config/routes/web.php':
+                return $this->getWebRoutesTemplate();
+            case 'public/index.php':
+                return $this->getPublicIndexTemplate();
+            case 'public/.htaccess':
+                return $this->getHtaccessTemplate();
+            case 'bin/th':
+                return $this->getBinThTemplate($projectName);
+            case '.env.example':
+                return $this->getEnvExampleTemplate();
+            case 'README.md':
+                return $this->getReadmeTemplate($projectName);
+            default:
+                return "<?php\n\n// Generated file for {$projectName}\n";
+        }
+    }
+
+    /**
+     * Get composer.json template
+     */
+    private function getComposerJsonTemplate(string $projectName): string
+    {
+        $packageName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '-', $projectName));
+        
+        return json_encode([
+            'name' => "vendor/{$packageName}",
+            'description' => "A TreeHouse application: {$projectName}",
+            'type' => 'project',
+            'require' => [
+                'php' => '^8.1',
+                'lengthofrope/treehouse' => '*'
+            ],
+            'require-dev' => [
+                'phpunit/phpunit' => '^11.0'
+            ],
+            'autoload' => [
+                'psr-4' => [
+                    'App\\' => 'src/App/'
+                ]
+            ],
+            'autoload-dev' => [
+                'psr-4' => [
+                    'Tests\\' => 'tests/'
+                ]
+            ],
+            'scripts' => [
+                'test' => 'phpunit',
+                'serve' => './bin/th serve'
+            ],
+            'config' => [
+                'optimize-autoloader' => true,
+                'sort-packages' => true
+            ],
+            'minimum-stability' => 'stable',
+            'prefer-stable' => true
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    }
+
+    /**
+     * Get app.php config template
+     */
+    private function getAppConfigTemplate(string $projectName): string
+    {
+        return <<<PHP
+<?php
+
+declare(strict_types=1);
+
+return [
+    'name' => '{$projectName}',
+    'env' => env('APP_ENV', 'local'),
+    'debug' => env('APP_DEBUG', true),
+    'url' => env('APP_URL', 'http://localhost:8000'),
+    'timezone' => 'UTC',
+    'locale' => 'en',
+    'fallback_locale' => 'en',
+    'key' => env('APP_KEY', ''),
+    'cipher' => 'AES-256-CBC',
+];
+PHP;
+    }
+
+    /**
+     * Get layout template with TreeHouse JavaScript auto-injection
+     */
+    private function getLayoutTemplate(string $projectName): string
+    {
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="title" th:if="title">{$projectName}</title>
+    <title th:unless="title">{$projectName}</title>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            color: #1a202c;
+            margin: 0 0 10px 0;
+        }
+        .header p {
+            color: #718096;
+            margin: 0;
+        }
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        code {
+            background: #f7fafc;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.9em;
+        }
+        ul li { margin: 8px 0; }
+        .nav {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .nav a {
+            margin: 0 15px;
+            color: #3182ce;
+            text-decoration: none;
+        }
+        .nav a:hover {
+            text-decoration: underline;
+        }
+    </style>
+    
+    <!-- TreeHouse Framework Assets (auto-injected) -->
+    <script th:raw="__treehouse_config"></script>
+    <script th:raw="__treehouse_js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{$projectName}</h1>
+            <p>Powered by TreeHouse Framework</p>
+            <div class="nav">
+                <a href="/">Home</a>
+                <a href="/about">About</a>
+            </div>
+        </div>
+        <div class="content">
+            <div th:yield="content"></div>
+        </div>
+    </div>
+</body>
+</html>
+HTML;
+    }
+
+    /**
+     * Get home page template
+     */
+    private function getHomeTemplate(string $projectName): string
+    {
+        return <<<HTML
+<th:extends="layouts.app">
+<th:block name="content">
+    <h1>Welcome to {$projectName}!</h1>
+    
+    <p>Your TreeHouse application is up and running. This page demonstrates the new vendor-first asset system.</p>
+    
+    <h2>🚀 What's Working</h2>
+    <ul>
+        <li><strong>TreeHouse JavaScript Library:</strong> Automatically loaded from vendor package</li>
+        <li><strong>CSRF Protection:</strong> Dynamic token injection for cache-friendly pages</li>
+        <li><strong>Module System:</strong> Load only the JavaScript modules you need</li>
+        <li><strong>Template Engine:</strong> Powerful templating with inheritance and components</li>
+    </ul>
+    
+    <h2>🔧 Test the JavaScript Framework</h2>
+    <p>Open your browser's developer console to see TreeHouse in action:</p>
+    
+    <form method="post" action="/test" data-ajax="true" style="margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 4px;">
+        <h3>AJAX Form with CSRF Protection</h3>
+        <input type="text" name="name" placeholder="Your name" required style="display: block; margin: 10px 0; padding: 8px; width: 200px;">
+        <input type="email" name="email" placeholder="Your email" required style="display: block; margin: 10px 0; padding: 8px; width: 200px;">
+        <button type="submit" style="margin: 10px 0; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px;">Submit</button>
+        <p><small>This form automatically includes CSRF protection and will submit via AJAX.</small></p>
+    </form>
+    
+    <h2>📁 Asset System</h2>
+    <p>JavaScript assets are served directly from the TreeHouse vendor package:</p>
+    <ul>
+        <li><code>/_assets/treehouse/js/treehouse.js</code> - Core framework</li>
+        <li><code>/_assets/treehouse/js/modules/csrf.js</code> - CSRF protection</li>
+        <li><code>/_assets/treehouse/js/modules/forms.js</code> - Enhanced forms</li>
+        <li><code>/_assets/treehouse/js/modules/utils.js</code> - Utility functions</li>
+    </ul>
+    
+    <p>You can override any asset by placing a file in <code>public/assets/treehouse/</code></p>
+    
+    <h2>🛠️ Next Steps</h2>
+    <ul>
+        <li>Edit <code>config/routes/web.php</code> to add your routes</li>
+        <li>Create controllers in <code>src/App/Controllers/</code></li>
+        <li>Add models in <code>src/App/Models/</code></li>
+        <li>Customize templates in <code>resources/views/</code></li>
+    </ul>
+    
+    <p>
+        <a href="/about">Learn more about TreeHouse</a> or
+        <a href="https://github.com/lengthofrope/treehouse-framework" target="_blank">view the documentation</a>
+    </p>
+</th:block>
+</th:extends>
+HTML;
+    }
+
+    /**
+     * Get about page template
+     */
+    private function getAboutTemplate(): string
+    {
+        return <<<HTML
+<th:extends="layouts.app">
+<th:block name="content">
+    <h1>About TreeHouse Framework</h1>
+    
+    <p>TreeHouse is a modern PHP framework that emphasizes simplicity, performance, and developer experience.</p>
+    
+    <h2>🌟 Key Features</h2>
+    <ul>
+        <li><strong>Vendor-First Assets:</strong> JavaScript and CSS served directly from the framework package</li>
+        <li><strong>Enhanced Security:</strong> Built-in CSRF protection with same-origin validation</li>
+        <li><strong>Modular JavaScript:</strong> Load only the modules you need</li>
+        <li><strong>Template Engine:</strong> Powerful templating with inheritance and components</li>
+        <li><strong>Modern Router:</strong> Fast routing with middleware support</li>
+        <li><strong>Database ORM:</strong> Elegant database interactions</li>
+        <li><strong>Authentication:</strong> Built-in user authentication and authorization</li>
+        <li><strong>Console Commands:</strong> CLI tools for development and deployment</li>
+    </ul>
+    
+    <h2>🚀 Performance</h2>
+    <ul>
+        <li>Optimized autoloading and caching</li>
+        <li>Efficient template compilation</li>
+        <li>Smart asset caching with ETags</li>
+        <li>Minimal memory footprint</li>
+    </ul>
+    
+    <h2>🔧 Developer Experience</h2>
+    <ul>
+        <li>Zero configuration for common tasks</li>
+        <li>Comprehensive error reporting</li>
+        <li>Hot reloading in development</li>
+        <li>Excellent IDE support</li>
+    </ul>
+    
+    <p><a href="/">← Back to Home</a></p>
+</th:block>
+</th:extends>
+HTML;
+    }
+
+    /**
+     * Get other template files
+     */
+    private function getHomeControllerTemplate(): string
+    {
+        return <<<PHP
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use LengthOfRope\TreeHouse\Http\Request;
+use LengthOfRope\TreeHouse\Http\Response;
+
+class HomeController
+{
+    public function index(Request \$request): string
+    {
+        return view('home', [
+            'title' => 'Home'
+        ]);
+    }
+    
+    public function about(Request \$request): string
+    {
+        return view('about', [
+            'title' => 'About TreeHouse'
+        ]);
+    }
+}
+PHP;
+    }
+
+    private function getWebRoutesTemplate(): string
+    {
+        return <<<PHP
+<?php
+
+declare(strict_types=1);
+
+use LengthOfRope\TreeHouse\Router\Router;
+
+return function (Router \$router) {
+    \$router->get('/', 'App\\Controllers\\HomeController@index')->name('home');
+    \$router->get('/about', 'App\\Controllers\\HomeController@about')->name('about');
+};
+PHP;
+    }
+
+    private function getPublicIndexTemplate(): string
+    {
+        return <<<PHP
+<?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use LengthOfRope\TreeHouse\Foundation\Application;
+
+\$app = new Application(__DIR__ . '/..');
+\$app->run();
+PHP;
+    }
+
+    private function getHtaccessTemplate(): string
+    {
+        return <<<HTACCESS
+RewriteEngine On
+
+# Handle Angular and other front-end framework routing
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [L,QSA]
+HTACCESS;
+    }
+
+    private function getBinThTemplate(string $projectName): string
+    {
+        return <<<PHP
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use LengthOfRope\TreeHouse\Console\Application;
+
+\$app = new Application('{$projectName}');
+\$app->run();
+PHP;
+    }
+
+    private function getEnvExampleTemplate(): string
+    {
+        return <<<ENV
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://localhost:8000
+APP_KEY=
+
+DB_CONNECTION=sqlite
+DB_DATABASE=database.sqlite
+
+CACHE_DRIVER=file
+SESSION_DRIVER=file
+ENV;
+    }
+
+    private function getReadmeTemplate(string $projectName): string
+    {
+        return <<<MD
+# {$projectName}
+
+A TreeHouse Framework application with vendor-first asset management.
+
+## Features
+
+- 🚀 **Vendor-First Assets** - JavaScript and CSS served directly from framework
+- 🔐 **Enhanced Security** - Built-in CSRF protection with same-origin validation
+- 📦 **Modular JavaScript** - Load only the modules you need
+- 🎨 **Template Engine** - Powerful templating with inheritance
+- ⚡ **Performance** - Optimized caching and asset delivery
+
+## Getting Started
+
+1. Install dependencies:
+   ```bash
+   composer install
+   ```
+
+2. Start the development server:
+   ```bash
+   ./bin/th serve
+   ```
+
+3. Visit http://localhost:8000
+
+## JavaScript Framework
+
+TreeHouse includes a modular JavaScript framework that's automatically injected into your templates:
+
+```javascript
+// Framework ready
+TreeHouse.ready(() => {
+    console.log('TreeHouse loaded!');
+});
+
+// Load modules
+TreeHouse.use('forms').then(forms => {
+    // Enhanced form handling with CSRF protection
+});
+
+// Utilities
+TreeHouse.utils.debounce(fn, 500);
+TreeHouse.utils.formatNumber(1234567);
+```
+
+## Asset Override
+
+Override any framework asset by placing files in `public/assets/treehouse/`:
+
+```
+public/assets/treehouse/
+├── js/
+│   ├── treehouse.js          # Override core
+│   └── modules/
+│       └── csrf.js           # Override CSRF module
+└── css/
+    └── treehouse.css         # Override styles
+```
+
+## Directory Structure
+
+```
+{$projectName}/
+├── src/App/                  # Application code
+├── config/                   # Configuration files
+├── resources/views/          # Templates
+├── public/                   # Web root
+├── storage/                  # Cache and logs
+├── tests/                    # Tests
+└── vendor/                   # Dependencies (includes TreeHouse assets)
+```
+
+## Commands
+
+```bash
+# Development server
+./bin/th serve
+
+# Run tests
+./bin/th test
+
+# Database migrations
+./bin/th migrate
+
+# Clear cache
+./bin/th cache:clear
+```
+
+## Learn More
+
+- [TreeHouse Documentation](https://github.com/lengthofrope/treehouse-framework)
+- [Template Engine Guide](https://github.com/lengthofrope/treehouse-framework/docs/templates)
+- [JavaScript Framework API](https://github.com/lengthofrope/treehouse-framework/docs/javascript)
+MD;
+    }
+
+    private function getDatabaseConfigTemplate(): string
+    {
+        return <<<PHP
+<?php
+
+declare(strict_types=1);
+
+return [
+    'default' => env('DB_CONNECTION', 'sqlite'),
+    
+    'connections' => [
+        'sqlite' => [
+            'driver' => 'sqlite',
+            'database' => env('DB_DATABASE', database_path('database.sqlite')),
+            'prefix' => '',
+            'foreign_key_constraints' => true,
+        ],
+        
+        'mysql' => [
+            'driver' => 'mysql',
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('DB_DATABASE', 'treehouse'),
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => env('DB_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'strict' => true,
+            'engine' => null,
+        ],
+    ],
+];
+PHP;
+    }
+
+    private function getCacheConfigTemplate(): string
+    {
+        return <<<PHP
+<?php
+
+declare(strict_types=1);
+
+return [
+    'default' => env('CACHE_DRIVER', 'file'),
+    
+    'stores' => [
+        'file' => [
+            'driver' => 'file',
+            'path' => storage_path('cache'),
+        ],
+    ],
+    
+    'prefix' => env('CACHE_PREFIX', 'treehouse_cache'),
+];
+PHP;
+    }
+
+    private function getViewConfigTemplate(): string
+    {
+        return <<<PHP
+<?php
+
+declare(strict_types=1);
+
+return [
+    'paths' => [
+        resource_path('views'),
+    ],
+    
+    'compiled' => env('VIEW_COMPILED_PATH', storage_path('views')),
+    
+    'cache' => env('VIEW_CACHE', true),
+    
+    'extensions' => ['.th.html', '.th.php', '.php', '.html'],
+];
+PHP;
+    }
+
+    private function getAuthConfigTemplate(): string
+    {
+        return <<<PHP
+<?php
+
+declare(strict_types=1);
+
+return [
+    'defaults' => [
+        'guard' => 'web',
+        'provider' => 'users',
+    ],
+    
+    'guards' => [
+        'web' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
+    ],
+    
+    'providers' => [
+        'users' => [
+            'driver' => 'database',
+            'model' => App\Models\User::class,
+            'table' => 'users',
+        ],
+    ],
+];
+PHP;
+    }
+
+    private function getUserModelTemplate(): string
+    {
+        return <<<PHP
+<?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+use LengthOfRope\TreeHouse\Database\Model;
+use LengthOfRope\TreeHouse\Auth\AuthorizableUser;
+
+class User extends Model
+{
+    use AuthorizableUser;
+    
+    protected string \$table = 'users';
+    
+    protected array \$fillable = [
+        'name',
+        'email',
+        'password',
+    ];
+    
+    protected array \$hidden = [
+        'password',
+        'remember_token',
+    ];
+    
+    protected array \$casts = [
+        'email_verified_at' => 'datetime',
+    ];
+}
+PHP;
+    }
 }

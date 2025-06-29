@@ -64,6 +64,16 @@
             "dev-main": "1.0-dev"
         }
     },
+    "archive": {
+        "exclude": [
+            "tests/",
+            "coverage-html/",
+            "phpunit.xml",
+            ".gitignore",
+            "demo-treehouse-js.html",
+            "test-csrf-demo.html"
+        ]
+    },
     "minimum-stability": "stable",
     "prefer-stable": true
 }

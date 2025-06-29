@@ -75,8 +75,9 @@ class ViewEngine
             $this->addPath(getcwd() . '/templates');
         }
         
-        // Auto-inject auth context into all templates
+        // Auto-inject auth context and TreeHouse assets into all templates
         $this->shareAuthContext();
+        $this->shareTreeHouseAssets();
     }
 
     /**
@@ -368,5 +369,62 @@ class ViewEngine
     public function refreshAuthContext(): void
     {
         $this->shareAuthContext();
+    }
+
+    /**
+     * Share TreeHouse framework assets with all templates
+     */
+    protected function shareTreeHouseAssets(): void
+    {
+        // Load view helpers if not already loaded
+        if (!function_exists('treehouseJs')) {
+            require_once __DIR__ . '/helpers.php';
+        }
+
+        // Auto-inject TreeHouse JavaScript setup (return actual HTML content)
+        $this->share('__treehouse_js', treehouseJs(['csrf']));
+
+        // Auto-inject TreeHouse configuration (return actual HTML content)
+        $this->share('__treehouse_config', treehouseConfig([
+            'csrf' => [
+                'endpoint' => '/_csrf/token',
+                'field' => '_token'
+            ]
+        ]));
+
+        // Auto-inject complete TreeHouse setup helper
+        $this->share('__treehouse_setup', function() {
+            return treehouseSetup([
+                'modules' => ['csrf'],
+                'css' => false,
+                'config' => [
+                    'csrf' => [
+                        'endpoint' => '/_csrf/token',
+                        'field' => '_token'
+                    ]
+                ]
+            ]);
+        });
+
+        // Make individual helper functions available to templates
+        $this->share('treehouseJs', function(array $modules = ['csrf'], ?bool $minified = null) {
+            return treehouseJs($modules, $minified);
+        });
+
+        $this->share('treehouseConfig', function(array $config = []) {
+            return treehouseConfig($config);
+        });
+
+        $this->share('treehouseSetup', function(array $options = []) {
+            return treehouseSetup($options);
+        });
+
+        $this->share('treehouseAsset', function(string $path) {
+            return treehouseAsset($path);
+        });
+
+        $this->share('jsModule', function(string $module) {
+            return jsModule($module);
+        });
     }
 }

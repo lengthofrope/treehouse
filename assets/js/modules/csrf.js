@@ -1,10 +1,10 @@
 /**
- * TreeHouse CSRF Token Management
+ * TreeHouse CSRF Token Management Module
  * 
  * Provides JavaScript utilities for dynamic CSRF token injection,
  * making pages cache-friendly while maintaining security.
  * 
- * @package LengthOfRope\TreeHouse\View
+ * @package LengthOfRope\TreeHouse\Assets
  * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
@@ -228,6 +228,9 @@ class TreeHouseCsrf {
      * Setup automatic AJAX request interceptor
      */
     setupAjaxInterceptor() {
+        // Store reference to the CSRF instance for XMLHttpRequest
+        window._treehouseCsrf = this;
+        
         // Intercept fetch requests
         const originalFetch = window.fetch;
         window.fetch = async (url, options = {}) => {
@@ -251,9 +254,9 @@ class TreeHouseCsrf {
         };
         
         XMLHttpRequest.prototype.send = async function(data) {
-            if (this._method && this.shouldAddCsrfToken(this._method)) {
+            if (this._method && window._treehouseCsrf.shouldAddCsrfToken(this._method)) {
                 try {
-                    const token = await window.treehouseCsrf.fetchToken();
+                    const token = await window._treehouseCsrf.fetchToken();
                     this.setRequestHeader('X-CSRF-TOKEN', token);
                 } catch (error) {
                     console.warn('Failed to add CSRF token to XMLHttpRequest:', error);
@@ -294,13 +297,48 @@ class TreeHouseCsrf {
     }
 }
 
-// Auto-initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    window.treehouseCsrf = new TreeHouseCsrf();
-    window.treehouseCsrf.initialize();
+// Register CSRF module with TreeHouse
+TreeHouse.register('csrf', {
+    name: 'csrf',
+    dependencies: [],
+    
+    async init(config) {
+        this.csrf = new TreeHouseCsrf(config.csrf || {});
+        
+        // Initialize CSRF protection
+        await this.csrf.initialize();
+        
+        // Emit events for other modules
+        TreeHouse.emit('csrf:ready', this.csrf);
+        
+        return this;
+    },
+    
+    // Export main methods for easy access
+    getToken() {
+        return this.csrf ? this.csrf.getToken() : Promise.reject(new Error('CSRF module not initialized'));
+    },
+    
+    injectForms() {
+        return this.csrf ? this.csrf.injectIntoForms() : Promise.reject(new Error('CSRF module not initialized'));
+    },
+    
+    addToHeaders(headers) {
+        return this.csrf ? this.csrf.addToHeaders(headers) : Promise.reject(new Error('CSRF module not initialized'));
+    },
+    
+    addToFormData(data) {
+        return this.csrf ? this.csrf.addToFormData(data) : Promise.reject(new Error('CSRF module not initialized'));
+    },
+    
+    clearCache() {
+        if (this.csrf) {
+            this.csrf.clearCache();
+        }
+    }
 });
 
-// Export for module systems
+// Export class for direct usage
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = TreeHouseCsrf;
 }

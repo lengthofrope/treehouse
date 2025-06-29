@@ -41,7 +41,7 @@ class TreeHouseCompiler
         'th:auth', 'th:guest',                   // Auth conditionals
         'th:role', 'th:permission',              // Authorization conditionals
         'th:repeat',                             // Loops next
-        'th:text', 'th:html',                   // Content modifications
+        'th:text', 'th:html', 'th:raw',         // Content modifications
         'th:attr', 'th:class', 'th:style',      // Attribute modifications
         'th:extend', 'th:section', 'th:yield',  // Layout directives
         'th:component',                         // Components
@@ -74,6 +74,12 @@ class TreeHouseCompiler
             // Reset boolean attribute placeholders for each compilation
             $this->booleanAttributePlaceholders = [];
             
+            // Store original template for DOCTYPE preservation
+            $originalTemplate = $template;
+            $hasDoctype = preg_match('/^\s*<!DOCTYPE/i', $template);
+            $hasHtmlTag = preg_match('/<html\b[^>]*>/i', $template);
+            $isFullDocument = $hasDoctype && $hasHtmlTag;
+            
             // Parse HTML with libxml
             $dom = $this->parseTemplate($template);
             $xpath = new DOMXPath($dom);
@@ -85,7 +91,7 @@ class TreeHouseCompiler
             $this->processTextContent($dom, $xpath);
             
             // Generate final PHP
-            $compiled = $this->generatePhp($dom);
+            $compiled = $this->generatePhp($dom, $originalTemplate, $isFullDocument);
             
             return $this->wrapWithHelpers($compiled);
             
@@ -104,8 +110,19 @@ class TreeHouseCompiler
         $dom->preserveWhiteSpace = true;
         $dom->formatOutput = false;
         
-        // Wrap template content to ensure proper parsing with UTF-8 declaration
-        $wrappedTemplate = '<?xml encoding="UTF-8"?><div>' . $template . '</div>';
+        // Check if this is a full HTML document (has DOCTYPE and html tag) or just a fragment
+        $hasDoctype = preg_match('/^\s*<!DOCTYPE/i', $template);
+        $hasHtmlTag = preg_match('/<html\b[^>]*>/i', $template);
+        $isFullDocument = $hasDoctype && $hasHtmlTag;
+        
+        if ($isFullDocument) {
+            // For full HTML documents, parse directly but strip DOCTYPE first for DOM parsing
+            $templateForParsing = preg_replace('/^\s*<!DOCTYPE[^>]+>\s*/i', '', $template);
+            $wrappedTemplate = '<?xml encoding="UTF-8"?>' . $templateForParsing;
+        } else {
+            // For fragments, wrap in a div as before
+            $wrappedTemplate = '<?xml encoding="UTF-8"?><div>' . $template . '</div>';
+        }
         
         // Load HTML with error suppression and proper UTF-8 handling
         libxml_use_internal_errors(true);
@@ -234,6 +251,10 @@ class TreeHouseCompiler
                 
             case 'th:html':
                 $this->setHtmlContent($node, $this->compileHtmlExpression($expression));
+                break;
+                
+            case 'th:raw':
+                $this->setRawContent($node, $this->compileRawExpression($expression));
                 break;
                 
             case 'th:class':
@@ -563,6 +584,32 @@ class TreeHouseCompiler
     }
 
     /**
+     * Set raw content (replaces the entire element with raw PHP output)
+     */
+    protected function setRawContent(DOMElement $node, string $php): void
+    {
+        // Create a text node with the PHP code and replace the entire element
+        $textNode = $node->ownerDocument->createTextNode($php);
+        $node->parentNode->insertBefore($textNode, $node);
+        $this->removeNode($node);
+    }
+
+    /**
+     * Compile raw expression (unescaped, replaces entire element)
+     */
+    protected function compileRawExpression(string $expression): string
+    {
+        // Handle brace expressions in raw content
+        if (str_contains($expression, '{')) {
+            $compiledValue = $this->compileBraceExpressions($expression);
+        } else {
+            $compiledValue = $this->compileExpression($expression);
+        }
+        
+        return "<?php echo thRaw({$compiledValue}); ?>";
+    }
+
+    /**
      * Add class attribute
      */
     protected function addClassAttribute(DOMElement $node, string $expression): void
@@ -776,13 +823,23 @@ class TreeHouseCompiler
     /**
      * Generate final PHP from DOM
      */
-    protected function generatePhp(DOMDocument $dom): string
+    protected function generatePhp(DOMDocument $dom, string $originalTemplate = '', bool $isFullDocument = false): string
     {
         $html = $dom->saveHTML();
         
-        // Remove the wrapper div we added
-        if (preg_match('/<div>(.*)<\/div>$/s', $html, $matches)) {
+        // Only remove the wrapper div if this was a fragment (not a full document)
+        if (!$isFullDocument && preg_match('/<div>(.*)<\/div>$/s', $html, $matches)) {
             $html = $matches[1];
+        }
+        
+        // Remove XML declaration that was added for DOM parsing
+        $html = preg_replace('/^<\?xml[^>]*\?>\s*/', '', $html);
+        
+        // Preserve DOCTYPE if it existed in the original template
+        if ($originalTemplate && preg_match('/^(\s*<!DOCTYPE[^>]+>)/i', $originalTemplate, $doctypeMatch)) {
+            $doctype = $doctypeMatch[1];
+            // Add DOCTYPE back to the beginning
+            $html = $doctype . "\n" . $html;
         }
         
         // Decode PHP tags that were encoded by saveHTML
@@ -857,11 +914,20 @@ class TreeHouseCompiler
             
             // Only process if it contains brace expressions
             if (preg_match('/\{[^}]+\}/', $content)) {
-                // Compile the brace expressions
-                $compiledContent = $this->compileBraceExpressions($content);
-                
-                // Create PHP output
-                $phpCode = "<?php echo thEscape({$compiledContent}); ?>";
+                // Check if this is a TreeHouse framework variable that should be raw
+                if (preg_match('/\{__treehouse_(?:config|js|favicons|logo|manifest)\}/', $content)) {
+                    // Compile the brace expressions for raw output
+                    $compiledContent = $this->compileBraceExpressions($content);
+                    
+                    // Create PHP output with raw output (no escaping)
+                    $phpCode = "<?php echo thRaw({$compiledContent}); ?>";
+                } else {
+                    // Compile the brace expressions for escaped output
+                    $compiledContent = $this->compileBraceExpressions($content);
+                    
+                    // Create PHP output with escaped output
+                    $phpCode = "<?php echo thEscape({$compiledContent}); ?>";
+                }
                 
                 // Replace the text node with the PHP code
                 $newTextNode = $dom->createTextNode($phpCode);

@@ -375,3 +375,222 @@ if (!function_exists('csrfSetup')) {
         return $html;
     }
 }
+
+if (!function_exists('treehouseAsset')) {
+    /**
+     * Generate URL for TreeHouse framework assets
+     *
+     * @param string $path Asset path relative to TreeHouse assets directory
+     * @return string Asset URL
+     */
+    function treehouseAsset(string $path): string
+    {
+        // Check if override exists in application public directory
+        $publicPath = getcwd() . "/public/assets/treehouse/{$path}";
+        if (file_exists($publicPath)) {
+            return asset("assets/treehouse/{$path}");
+        }
+        
+        // Use vendor asset route
+        return url("_assets/treehouse/{$path}");
+    }
+}
+
+if (!function_exists('treehouseJs')) {
+    /**
+     * Generate script tags for TreeHouse JavaScript library and modules
+     *
+     * @param array $modules List of modules to load
+     * @param bool|null $minified Whether to use minified versions (null = auto-detect from environment)
+     * @return string HTML script tags
+     */
+    function treehouseJs(array $modules = ['csrf'], ?bool $minified = null): string
+    {
+        // Auto-detect minification based on environment
+        if ($minified === null) {
+            $minified = (function_exists('env') && env('APP_ENV') === 'production') ||
+                       (!function_exists('env') && !ini_get('display_errors'));
+        }
+        
+        $suffix = $minified ? '.min' : '';
+        $scripts = [];
+        
+        // Core TreeHouse library (no defer to ensure it loads first)
+        $scripts[] = '<script src="' . htmlspecialchars(treehouseAsset("js/treehouse{$suffix}.js"), ENT_QUOTES, 'UTF-8') . '"></script>';
+        
+        // Load requested modules (with defer to load after core)
+        foreach ($modules as $module) {
+            $modulePath = "js/modules/{$module}.js";
+            $scripts[] = '<script src="' . htmlspecialchars(treehouseAsset($modulePath), ENT_QUOTES, 'UTF-8') . '" defer></script>';
+        }
+        
+        return implode("\n", $scripts);
+    }
+    
+    /**
+     * Get TreeHouse logo with application override support
+     *
+     * @param string $alt Alt text for the logo
+     * @param array $attributes Additional HTML attributes
+     * @return string Logo HTML tag
+     */
+    function treehouseLogo(string $alt = 'TreeHouse Framework', array $attributes = []): string
+    {
+        // Check for application override first
+        $publicLogoPath = 'assets/treehouse/img/treehouse-logo.svg';
+        $logoUrl = '/_assets/treehouse/img/treehouse-logo.svg';
+        
+        // Build attributes string
+        $attributeString = '';
+        foreach ($attributes as $key => $value) {
+            $attributeString .= ' ' . htmlspecialchars($key, ENT_QUOTES, 'UTF-8') . '="' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '"';
+        }
+        
+        return '<img src="' . htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8') . '"' . $attributeString . '>';
+    }
+    
+    /**
+     * Get TreeHouse favicon links with application override support
+     *
+     * @return string Complete favicon HTML tags
+     */
+    function treehouseFavicons(): string
+    {
+        $baseUrl = '/_assets/treehouse/img/favicon';
+        
+        $favicons = [
+            '<link rel="icon" type="image/x-icon" href="' . $baseUrl . '/favicon.ico">',
+            '<link rel="icon" type="image/svg+xml" href="' . $baseUrl . '/favicon.svg">',
+            '<link rel="apple-touch-icon" sizes="180x180" href="' . $baseUrl . '/apple-touch-icon.png">',
+            '<link rel="icon" type="image/png" sizes="96x96" href="' . $baseUrl . '/favicon-96x96.png">',
+            '<link rel="manifest" href="' . $baseUrl . '/site.webmanifest">'
+        ];
+        
+        return implode("\n", $favicons);
+    }
+    
+    /**
+     * Get TreeHouse web app manifest link with application override support
+     *
+     * @return string Web app manifest link tag
+     */
+    function treehouseManifest(): string
+    {
+        $manifestUrl = '/_assets/treehouse/img/favicon/site.webmanifest';
+        return '<link rel="manifest" href="' . htmlspecialchars($manifestUrl, ENT_QUOTES, 'UTF-8') . '">';
+    }
+    
+    /**
+     * Get complete TreeHouse branding package (logo + favicons)
+     *
+     * @param string $logoAlt Alt text for the logo
+     * @param array $logoAttributes Additional logo attributes
+     * @return array Array with 'logo' and 'favicons' keys
+     */
+    function treehouseBranding(string $logoAlt = 'TreeHouse Framework', array $logoAttributes = []): array
+    {
+        return [
+            'logo' => treehouseLogo($logoAlt, $logoAttributes),
+            'favicons' => treehouseFavicons(),
+            'manifest' => treehouseManifest()
+        ];
+    }
+}
+
+if (!function_exists('treehouseConfig')) {
+    /**
+     * Generate configuration script for TreeHouse JavaScript library
+     *
+     * @param array $config Configuration options
+     * @return string HTML script tag with configuration
+     */
+    function treehouseConfig(array $config = []): string
+    {
+        // Default configuration
+        $defaultConfig = [
+            'csrf' => [
+                'endpoint' => '/_csrf/token',
+                'field' => '_token'
+            ],
+            'baseUrl' => url('_assets/treehouse'),
+            'debug' => function_exists('env') ? env('APP_DEBUG', false) : false
+        ];
+        
+        // Merge with provided configuration
+        $finalConfig = array_merge_recursive($defaultConfig, $config);
+        
+        // Convert to JSON
+        $configJson = json_encode($finalConfig, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+        
+        return '<script>if(window.TreeHouse){window.TreeHouse.configure(' . $configJson . ');}</script>';
+    }
+}
+
+if (!function_exists('treehouseCss')) {
+    /**
+     * Generate CSS link tag for TreeHouse framework styles
+     *
+     * @param bool|null $minified Whether to use minified version
+     * @return string HTML link tag
+     */
+    function treehouseCss(?bool $minified = null): string
+    {
+        if ($minified === null) {
+            $minified = (function_exists('env') && env('APP_ENV') === 'production') ||
+                       (!function_exists('env') && !ini_get('display_errors'));
+        }
+        
+        $suffix = $minified ? '.min' : '';
+        return '<link rel="stylesheet" href="' . htmlspecialchars(treehouseAsset("css/treehouse{$suffix}.css"), ENT_QUOTES, 'UTF-8') . '">';
+    }
+}
+
+if (!function_exists('jsModule')) {
+    /**
+     * Generate script tag for a specific TreeHouse module
+     *
+     * @param string $module Module name
+     * @return string HTML script tag
+     */
+    function jsModule(string $module): string
+    {
+        $modulePath = "js/modules/{$module}.js";
+        return '<script src="' . htmlspecialchars(treehouseAsset($modulePath), ENT_QUOTES, 'UTF-8') . '" defer></script>';
+    }
+}
+
+if (!function_exists('treehouseSetup')) {
+    /**
+     * Generate complete TreeHouse framework setup
+     *
+     * @param array $options Setup options
+     * @return string HTML for complete TreeHouse setup
+     */
+    function treehouseSetup(array $options = []): string
+    {
+        $modules = $options['modules'] ?? ['csrf'];
+        $includeCss = $options['css'] ?? false;
+        $config = $options['config'] ?? [];
+        $minified = $options['minified'] ?? null;
+        
+        $html = '';
+        
+        // CSS if requested
+        if ($includeCss) {
+            $html .= treehouseCss($minified) . "\n";
+        }
+        
+        // CSRF meta tag for dynamic injection
+        if (in_array('csrf', $modules)) {
+            $html .= csrfMeta(true) . "\n";
+        }
+        
+        // Configuration
+        $html .= treehouseConfig($config) . "\n";
+        
+        // JavaScript files
+        $html .= treehouseJs($modules, $minified);
+        
+        return $html;
+    }
+}
