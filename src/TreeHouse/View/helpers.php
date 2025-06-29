@@ -608,14 +608,12 @@ if (!function_exists('treehouseSetup')) {
 
 if (!function_exists('isViteDevServerRunning')) {
     /**
-     * Check if Vite dev server is actually running
+     * Check if Vite dev server is running using multiple methods
      */
     function isViteDevServerRunning(): bool
     {
-        // Try to connect to the Vite dev server
-        $connection = @fsockopen('localhost', 5173, $errno, $errstr, 1);
-        if ($connection) {
-            fclose($connection);
+        // Check if Vite dev server is running by checking the environment variable
+        if (file_exists(dirname(getcwd()) . '/VITE_RUNNING')) {
             return true;
         }
         return false;
@@ -683,7 +681,7 @@ if (!function_exists('viteAssets')) {
         }
         
         // Production mode - use manifest to generate asset tags
-        $manifestPath = getcwd() . '/build/.vite/manifest.json';
+        $manifestPath = dirname(getcwd()) . '/public/build/.vite/manifest.json';
 
         if (!file_exists($manifestPath)) {
             // If no manifest exists, return empty (no assets)

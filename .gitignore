@@ -32,4 +32,6 @@ composer.phar
 # Coverage
 /coverage-html/
 .phpunit.cache/test-results
+
 .memory-bank/
+/VITE_RUNNING

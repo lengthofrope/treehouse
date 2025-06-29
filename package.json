@@ -5,8 +5,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "touch VITE_RUNNING && vite -m DEV && rm VITE_RUNNING",
+    "build": "rm VITE_RUNNING && vite build",
     "preview": "vite preview"
   },
   "devDependencies": {

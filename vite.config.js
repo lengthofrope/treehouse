@@ -36,8 +36,8 @@ export default defineConfig({
     }
   },
   
-  // Public directory
-  publicDir: 'public',
+  // Public directory - set to false to avoid conflict with outDir
+  publicDir: false,
   
   // Base URL for assets
   base: process.env.NODE_ENV === 'production' ? '/build/' : '/'
