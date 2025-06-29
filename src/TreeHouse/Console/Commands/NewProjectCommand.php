@@ -310,7 +310,7 @@ class NewProjectCommand extends Command
     {
         $config = [
             'app_name' => $projectName,
-            'app_url' => 'http://localhost:8000',
+            'app_url' => 'http://' . strtolower(preg_replace('/[^a-zA-Z0-9]/', '_', $projectName)) . '.dev:8000',
             'db_connection' => 'mysql',
             'db_database' => strtolower(preg_replace('/[^a-zA-Z0-9]/', '_', $projectName)),
             'db_host' => '127.0.0.1',
@@ -413,12 +413,7 @@ class NewProjectCommand extends Command
         $envContent .= "DB_PASSWORD={$config['db_password']}\n";
         
         $envContent .= "\nCACHE_DRIVER=file\n";
-        $envContent .= "SESSION_DRIVER=file\n\n";
-        
-        $envContent .= "# Admin User Configuration\n";
-        $envContent .= "ADMIN_NAME=\"{$config['admin_name']}\"\n";
-        $envContent .= "ADMIN_EMAIL={$config['admin_email']}\n";
-        $envContent .= "ADMIN_PASSWORD={$config['admin_password']}\n";
+        $envContent .= "SESSION_DRIVER=file\n";
 
         $envPath = $installPath . '/.env';
         file_put_contents($envPath, $envContent);
@@ -931,7 +926,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use LengthOfRope\TreeHouse\Console\Application;
 
 \$app = new Application('{$projectName}');
-\$app->run();
+\$app->run(\$argv);
 PHP;
     }
 
