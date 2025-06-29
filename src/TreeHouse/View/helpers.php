@@ -3,6 +3,72 @@
 declare(strict_types=1);
 
 use LengthOfRope\TreeHouse\Support\Arr;
+use LengthOfRope\TreeHouse\Support\Collection;
+use LengthOfRope\TreeHouse\View\{ViewEngine, ViewFactory, Template};
+
+if (!function_exists('view')) {
+    /**
+     * Create a view instance
+     */
+    function view(?string $template = null, array $data = []): ViewEngine|Template
+    {
+        static $factory = null;
+        
+        if ($factory === null) {
+            // Load support helpers if needed
+            if (!function_exists('env')) {
+                require_once __DIR__ . '/../Support/helpers.php';
+            }
+            
+            // Find application root directory
+            $appRoot = getcwd();
+            
+            // If we're in a vendor package, find the real app root
+            if (strpos(__DIR__, 'vendor/lengthofrope/treehouse') !== false) {
+                // We're installed as a vendor package
+                $vendorPos = strpos(__DIR__, 'vendor/lengthofrope/treehouse');
+                $appRoot = substr(__DIR__, 0, $vendorPos);
+            } elseif (strpos(__DIR__, 'vendor') !== false && strpos(__DIR__, 'lengthofrope') !== false) {
+                // Alternative vendor structure
+                $vendorPos = strpos(__DIR__, 'vendor');
+                $appRoot = substr(__DIR__, 0, $vendorPos);
+            }
+            
+            // Load configuration from config file in application root
+            $configFile = rtrim($appRoot, '/') . '/config/view.php';
+            $config = [];
+            
+            if (file_exists($configFile)) {
+                try {
+                    $config = require $configFile;
+                } catch (Throwable $e) {
+                    // Fall back to default if config fails to load
+                    $config = [];
+                }
+            }
+            
+            // Set default configuration if not loaded
+            if (empty($config)) {
+                $config = [
+                    'paths' => [
+                        $appRoot . '/resources/views',
+                        $appRoot . '/templates',
+                    ],
+                    'cache_path' => $appRoot . '/storage/views',
+                    'cache_enabled' => true,
+                ];
+            }
+            
+            $factory = new ViewFactory($config);
+        }
+        
+        if ($template === null) {
+            return $factory->engine();
+        }
+        
+        return $factory->make($template, $data);
+    }
+}
 
 if (!function_exists('thEscape')) {
     /**

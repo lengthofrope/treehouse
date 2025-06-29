@@ -13,7 +13,7 @@
     <link rel="icon" type="image/png" sizes="96x96" href="/_assets/treehouse/img/favicon/favicon-96x96.png">
     <link rel="manifest" href="/_assets/treehouse/img/favicon/site.webmanifest">
     
-    <!-- Vite Assets -->
+    <!-- Vite Assets (Dynamic: Development vs Production) -->
     <script th:raw="__vite_assets"></script>
         
     <!-- TreeHouse Framework Assets -->
@@ -40,6 +40,15 @@
                 <div class="hidden md:flex items-center space-x-6">
                     <a href="/" class="text-gray-700 hover:text-treehouse-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                         Home
+                    </a>
+                    <a href="/templating" class="text-gray-700 hover:text-treehouse-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        Templating
+                    </a>
+                    <a href="/components" class="text-gray-700 hover:text-treehouse-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        Components
+                    </a>
+                    <a href="/layouts" class="text-gray-700 hover:text-treehouse-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        Layouts
                     </a>
                     <a href="/about" class="text-gray-700 hover:text-treehouse-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                         About
@@ -71,6 +80,9 @@
         <div id="mobile-menu" class="md:hidden hidden border-t border-gray-200">
             <div class="px-2 pt-2 pb-3 space-y-1 bg-gray-50">
                 <a href="/" class="block px-3 py-2 text-gray-700 hover:text-treehouse-600 hover:bg-gray-100 rounded-md">Home</a>
+                <a href="/templating" class="block px-3 py-2 text-gray-700 hover:text-treehouse-600 hover:bg-gray-100 rounded-md">Templating</a>
+                <a href="/components" class="block px-3 py-2 text-gray-700 hover:text-treehouse-600 hover:bg-gray-100 rounded-md">Components</a>
+                <a href="/layouts" class="block px-3 py-2 text-gray-700 hover:text-treehouse-600 hover:bg-gray-100 rounded-md">Layouts</a>
                 <a href="/about" class="block px-3 py-2 text-gray-700 hover:text-treehouse-600 hover:bg-gray-100 rounded-md">About</a>
                 <a href="/api/status" class="block px-3 py-2 text-gray-700 hover:text-treehouse-600 hover:bg-gray-100 rounded-md">API Status</a>
             </div>
@@ -96,8 +108,8 @@
                         beautiful templates, and developer-friendly tools.
                     </p>
                     <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                        <a href="/about" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-treehouse-700 bg-white hover:bg-gray-50 transition-colors">
-                            Get Started
+                        <a href="/templating" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-treehouse-700 bg-white hover:bg-gray-50 transition-colors">
+                            Explore Templating
                         </a>
                         <a href="https://github.com/lengthofrope/treehouse" class="inline-flex items-center px-6 py-3 border-2 border-white text-base font-medium rounded-md text-white hover:bg-white hover:text-treehouse-700 transition-colors">
                             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -114,6 +126,39 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="treehouse-card p-8 animate-fade-in">
                 <div th:yield="content">
+                    <!-- Demo Navigation -->
+                    <div class="grid md:grid-cols-3 gap-8 mb-12">
+                        <a href="/templating" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
+                            <div class="w-12 h-12 bg-treehouse-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-treehouse-200 transition-colors">
+                                <svg class="w-6 h-6 text-treehouse-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Templating Engine</h3>
+                            <p class="text-gray-600 text-center">Explore dot notation, dynamic attributes, and powerful template features.</p>
+                        </a>
+                        
+                        <a href="/components" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Dynamic Components</h3>
+                            <p class="text-gray-600 text-center">See reusable UI components with data binding and dynamic behavior.</p>
+                        </a>
+                        
+                        <a href="/layouts" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-200 transition-colors">
+                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Layout System</h3>
+                            <p class="text-gray-600 text-center">Learn about template inheritance and section management.</p>
+                        </a>
+                    </div>
+
                     <!-- Features Grid -->
                     <div class="grid md:grid-cols-3 gap-8 mb-12">
                         <div class="text-center">
