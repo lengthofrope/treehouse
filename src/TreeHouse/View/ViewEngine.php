@@ -385,11 +385,8 @@ class ViewEngine
             require_once __DIR__ . '/helpers.php';
         }
 
-        // Auto-inject TreeHouse JavaScript setup (return actual HTML content)
-        $this->share('__treehouse_js', treehouseJs(['csrf']));
-
+        // TreeHouse JavaScript is now bundled with Vite, so we only need configuration
         // Auto-inject TreeHouse configuration (return actual HTML content)
-        // Fix: Use the proper function signature
         $this->share('__treehouse_config', treehouseConfig('/_assets/treehouse'));
 
         // Auto-inject Vite assets (return actual HTML content)

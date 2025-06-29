@@ -1,22 +1,18 @@
 import '../css/app.css'
 
-// TreeHouse Framework integration
-console.log('TreeHouse + Vite + Tailwind CSS loaded successfully!')
+// Import TreeHouse framework (available globally)
+import '../../assets/js/treehouse.js'
 
-// Initialize TreeHouse when available
-if (typeof TreeHouse !== 'undefined') {
-  TreeHouse.ready(() => {
-    console.log('TreeHouse Framework is ready!')
-    
-    // Add any custom initialization here
-    initializeComponents()
-  })
-} else {
-  // Fallback for when TreeHouse isn't loaded yet
-  document.addEventListener('DOMContentLoaded', () => {
-    initializeComponents()
-  })
-}
+// Import TreeHouse modules
+import '../../assets/js/modules/csrf.js'
+
+// Initialize TreeHouse when ready
+TreeHouse.ready(() => {
+  // Add any custom initialization here
+  initializeComponents()
+
+  console.log('TreeHouse: All components initialized');
+})
 
 function initializeComponents() {
   // Add smooth scrolling to navigation links
@@ -53,13 +49,5 @@ function initializeComponents() {
     if (menu) {
       menu.classList.toggle('hidden')
     }
-  }
-  
-  // Console welcome message
-  console.log(`
-  🌳 TreeHouse Framework
-  
-  A modern PHP framework with elegant JavaScript integration
-  Version: 1.0.0
-  `)
+  }  
 }

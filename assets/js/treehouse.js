@@ -15,7 +15,7 @@ const TreeHouse = (() => {
         constructor() {
             this.modules = new Map();
             this.config = {};
-            this.ready = false;
+            this.isReady = false;
             this.eventListeners = new Map();
             this.readyCallbacks = [];
         }
@@ -158,7 +158,7 @@ const TreeHouse = (() => {
          * @param {Function} callback Callback to execute when ready
          */
         ready(callback) {
-            if (this.ready) {
+            if (this.isReady) {
                 callback();
             } else {
                 this.readyCallbacks.push(callback);
@@ -170,11 +170,11 @@ const TreeHouse = (() => {
          * Mark TreeHouse as ready and execute callbacks
          */
         markReady() {
-            if (this.ready) {
+            if (this.isReady) {
                 return this;
             }
             
-            this.ready = true;
+            this.isReady = true;
             console.log('TreeHouse: Framework ready');
             
             this.readyCallbacks.forEach(callback => {
@@ -269,6 +269,11 @@ const TreeHouse = (() => {
     // Return the instance as the global TreeHouse object
     return instance;
 })();
+
+// Make TreeHouse immediately available globally when imported as ES module
+if (typeof window !== 'undefined') {
+    window.TreeHouse = TreeHouse;
+}
 
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
