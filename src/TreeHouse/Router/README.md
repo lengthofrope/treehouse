@@ -170,12 +170,100 @@ $parameters = $router->getCurrentParameters();
 $userId = $router->getParameter('id', null);
 
 // Route execution flow:
-// 1. Match route by method and URI
-// 2. Extract route parameters
-// 3. Build middleware stack (global + route-specific)
-// 4. Execute middleware pipeline
-// 5. Execute route action (controller or closure)
-// 6. Prepare and return response
+// 1. Determine HTTP method (with method spoofing support)
+// 2. Match route by method and URI
+// 3. Extract route parameters
+// 4. Build middleware stack (global + route-specific)
+// 5. Execute middleware pipeline
+// 6. Execute route action (controller or closure)
+// 7. Prepare and return response
+```
+
+### HTTP Method Spoofing
+
+The router supports HTTP method spoofing for HTML forms, which can only send GET and POST requests:
+
+```php
+// HTML form with method spoofing
+<form method="POST" action="/users/123">
+    <input type="hidden" name="_method" value="PUT">
+    <input type="text" name="name" value="John Doe">
+    <button type="submit">Update User</button>
+</form>
+
+// This form will be routed to a PUT route handler
+$router->put('/users/{id}', 'UserController@update');
+```
+
+**Method Spoofing Rules:**
+- Only works with POST requests
+- Uses `_method` parameter in form data
+- Supports: `PUT`, `PATCH`, `DELETE`, `OPTIONS`
+- Case-insensitive (automatically converted to uppercase)
+- Invalid methods are ignored (falls back to POST)
+
+```php
+// Examples of valid method spoofing
+<input type="hidden" name="_method" value="PUT">     <!-- Valid -->
+<input type="hidden" name="_method" value="patch">   <!-- Valid (converted to PATCH) -->
+<input type="hidden" name="_method" value="DELETE">  <!-- Valid -->
+<input type="hidden" name="_method" value="GET">     <!-- Invalid (ignored) -->
+<input type="hidden" name="_method" value="CUSTOM">  <!-- Invalid (ignored) -->
+```
+
+### Helper Functions
+
+The router includes helper functions to simplify form creation with method spoofing:
+
+```php
+// Include the helper functions
+require_once 'src/TreeHouse/View/helpers.php';
+
+// Generate method spoofing field
+echo methodField('PUT');
+// Output: <input type="hidden" name="_method" value="PUT">
+
+echo methodField('DELETE');
+// Output: <input type="hidden" name="_method" value="DELETE">
+
+// Generate CSRF protection field (placeholder implementation)
+echo csrfField();
+// Output: <input type="hidden" name="_token" value="random_token">
+
+// Generate both method and CSRF fields
+echo formMethod('PATCH');
+// Output: <input type="hidden" name="_method" value="PATCH">
+//         <input type="hidden" name="_token" value="random_token">
+
+// Generate method field without CSRF
+echo formMethod('DELETE', false);
+// Output: <input type="hidden" name="_method" value="DELETE">
+```
+
+**Complete Form Examples:**
+
+```html
+<!-- Update form using helper functions -->
+<form method="POST" action="/users/123">
+    <?php echo formMethod('PUT'); ?>
+    <input type="text" name="name" value="John Doe">
+    <input type="email" name="email" value="john@example.com">
+    <button type="submit">Update User</button>
+</form>
+
+<!-- Delete form -->
+<form method="POST" action="/users/123">
+    <?php echo methodField('DELETE'); ?>
+    <button type="submit" onclick="return confirm('Are you sure?')">Delete User</button>
+</form>
+
+<!-- Manual method spoofing (without helpers) -->
+<form method="POST" action="/posts/456">
+    <input type="hidden" name="_method" value="PATCH">
+    <input type="text" name="title" value="Post Title">
+    <textarea name="content">Post content...</textarea>
+    <button type="submit">Update Post</button>
+</form>
 ```
 
 ## Support Class Integration

@@ -215,7 +215,7 @@ class Router
      */
     public function dispatch(Request $request): Response
     {
-        $method = $request->method();
+        $method = $this->getRequestMethod($request);
         $uri = $request->path();
 
         // Find matching route
@@ -516,8 +516,38 @@ class Router
     }
 
     /**
+     * Get the actual HTTP method for the request, handling method spoofing
+     *
+     * @param Request $request HTTP request
+     * @return string
+     */
+    protected function getRequestMethod(Request $request): string
+    {
+        $method = $request->method();
+        
+        // Only check for method spoofing on POST requests
+        if ($method === 'POST') {
+            // Check for _method parameter in request data
+            $spoofedMethod = $request->input('_method');
+            
+            if ($spoofedMethod && is_string($spoofedMethod)) {
+                $spoofedMethod = strtoupper(trim($spoofedMethod));
+                
+                // Only allow valid HTTP methods for spoofing
+                $allowedMethods = ['PUT', 'PATCH', 'DELETE', 'OPTIONS'];
+                
+                if (in_array($spoofedMethod, $allowedMethods)) {
+                    return $spoofedMethod;
+                }
+            }
+        }
+        
+        return $method;
+    }
+
+    /**
      * Get debug information about the router
-     * 
+     *
      * @return array<string, mixed>
      */
     public function getDebugInfo(): array
