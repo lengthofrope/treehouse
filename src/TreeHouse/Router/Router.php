@@ -6,7 +6,9 @@ namespace LengthOfRope\TreeHouse\Router;
 
 use LengthOfRope\TreeHouse\Http\Request;
 use LengthOfRope\TreeHouse\Http\Response;
+use LengthOfRope\TreeHouse\Http\Session;
 use LengthOfRope\TreeHouse\Router\Middleware\MiddlewareStack;
+use LengthOfRope\TreeHouse\Security\Csrf;
 use LengthOfRope\TreeHouse\Support\Arr;
 use LengthOfRope\TreeHouse\Support\Collection;
 
@@ -228,6 +230,13 @@ class Router
         // Set current route and extract parameters
         $this->currentRoute = $route;
         $this->currentParameters = $route->extractParameters($uri);
+
+        // Validate CSRF token for state-changing requests
+        if ($this->shouldValidateCsrf($request)) {
+            if (!$this->validateCsrfToken($request)) {
+                return $this->handleCsrfFailure($request);
+            }
+        }
 
         // Create middleware stack for this route
         $middlewareStack = $this->createRouteMiddlewareStack($route);
@@ -543,6 +552,72 @@ class Router
         }
         
         return $method;
+    }
+
+    /**
+     * Determine if CSRF validation should be performed for the request
+     *
+     * @param Request $request HTTP request
+     * @return bool
+     */
+    protected function shouldValidateCsrf(Request $request): bool
+    {
+        $method = $request->method();
+        
+        // Only validate CSRF for state-changing methods
+        $stateMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
+        
+        if (!in_array($method, $stateMethods)) {
+            return false;
+        }
+        
+        // Check if request contains a CSRF token
+        return $request->input('_token') !== null;
+    }
+
+    /**
+     * Validate the CSRF token in the request
+     *
+     * @param Request $request HTTP request
+     * @return bool
+     */
+    protected function validateCsrfToken(Request $request): bool
+    {
+        try {
+            $session = new Session();
+            $csrf = new Csrf($session);
+            
+            // Get all request data (query + request data)
+            $data = $request->input();
+            
+            return $csrf->verifyRequest($data, '_token');
+        } catch (\Exception $e) {
+            // If session cannot be started or CSRF validation fails, deny access
+            return false;
+        }
+    }
+
+    /**
+     * Handle CSRF validation failure
+     *
+     * @param Request $request HTTP request
+     * @return Response
+     */
+    protected function handleCsrfFailure(Request $request): Response
+    {
+        // Check if this is an AJAX request
+        if ($request->isAjax() || $request->expectsJson()) {
+            $response = new Response(json_encode([
+                'error' => 'CSRF token mismatch',
+                'message' => 'The request could not be completed due to invalid CSRF token.'
+            ]), 419);
+            $response->setHeader('Content-Type', 'application/json');
+        } else {
+            $response = new Response('CSRF Token Mismatch', 419);
+            $response->setHeader('Content-Type', 'text/plain');
+        }
+        
+        return $response;
     }
 
     /**
