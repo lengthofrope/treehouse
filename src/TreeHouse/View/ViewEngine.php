@@ -381,20 +381,16 @@ class ViewEngine
             require_once __DIR__ . '/helpers.php';
         }
 
-        // Auto-inject TreeHouse JavaScript setup
-        $this->share('__treehouse_js', function() {
-            return treehouseJs(['csrf']);
-        });
+        // Auto-inject TreeHouse JavaScript setup (return actual HTML content)
+        $this->share('__treehouse_js', treehouseJs(['csrf']));
 
-        // Auto-inject TreeHouse configuration
-        $this->share('__treehouse_config', function() {
-            return treehouseConfig([
-                'csrf' => [
-                    'endpoint' => '/_csrf/token',
-                    'field' => '_token'
-                ]
-            ]);
-        });
+        // Auto-inject TreeHouse configuration (return actual HTML content)
+        $this->share('__treehouse_config', treehouseConfig([
+            'csrf' => [
+                'endpoint' => '/_csrf/token',
+                'field' => '_token'
+            ]
+        ]));
 
         // Auto-inject complete TreeHouse setup helper
         $this->share('__treehouse_setup', function() {

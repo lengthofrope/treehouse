@@ -41,7 +41,7 @@ class TreeHouseCompiler
         'th:auth', 'th:guest',                   // Auth conditionals
         'th:role', 'th:permission',              // Authorization conditionals
         'th:repeat',                             // Loops next
-        'th:text', 'th:html',                   // Content modifications
+        'th:text', 'th:html', 'th:raw',         // Content modifications
         'th:attr', 'th:class', 'th:style',      // Attribute modifications
         'th:extend', 'th:section', 'th:yield',  // Layout directives
         'th:component',                         // Components
@@ -234,6 +234,10 @@ class TreeHouseCompiler
                 
             case 'th:html':
                 $this->setHtmlContent($node, $this->compileHtmlExpression($expression));
+                break;
+                
+            case 'th:raw':
+                $this->setRawContent($node, $this->compileRawExpression($expression));
                 break;
                 
             case 'th:class':
@@ -563,6 +567,32 @@ class TreeHouseCompiler
     }
 
     /**
+     * Set raw content (replaces the entire element with raw PHP output)
+     */
+    protected function setRawContent(DOMElement $node, string $php): void
+    {
+        // Create a text node with the PHP code and replace the entire element
+        $textNode = $node->ownerDocument->createTextNode($php);
+        $node->parentNode->insertBefore($textNode, $node);
+        $this->removeNode($node);
+    }
+
+    /**
+     * Compile raw expression (unescaped, replaces entire element)
+     */
+    protected function compileRawExpression(string $expression): string
+    {
+        // Handle brace expressions in raw content
+        if (str_contains($expression, '{')) {
+            $compiledValue = $this->compileBraceExpressions($expression);
+        } else {
+            $compiledValue = $this->compileExpression($expression);
+        }
+        
+        return "<?php echo thRaw({$compiledValue}); ?>";
+    }
+
+    /**
      * Add class attribute
      */
     protected function addClassAttribute(DOMElement $node, string $expression): void
@@ -857,11 +887,20 @@ class TreeHouseCompiler
             
             // Only process if it contains brace expressions
             if (preg_match('/\{[^}]+\}/', $content)) {
-                // Compile the brace expressions
-                $compiledContent = $this->compileBraceExpressions($content);
-                
-                // Create PHP output
-                $phpCode = "<?php echo thEscape({$compiledContent}); ?>";
+                // Check if this is a TreeHouse framework variable that should be raw
+                if (preg_match('/\{__treehouse_(?:config|js)\}/', $content)) {
+                    // Compile the brace expressions for raw output
+                    $compiledContent = $this->compileBraceExpressions($content);
+                    
+                    // Create PHP output with raw output (no escaping)
+                    $phpCode = "<?php echo thRaw({$compiledContent}); ?>";
+                } else {
+                    // Compile the brace expressions for escaped output
+                    $compiledContent = $this->compileBraceExpressions($content);
+                    
+                    // Create PHP output with escaped output
+                    $phpCode = "<?php echo thEscape({$compiledContent}); ?>";
+                }
                 
                 // Replace the text node with the PHP code
                 $newTextNode = $dom->createTextNode($phpCode);

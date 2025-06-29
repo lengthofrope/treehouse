@@ -338,10 +338,6 @@ PHP;
     <title th:text="title" th:if="title">{$projectName}</title>
     <title th:unless="title">{$projectName}</title>
     
-    <!-- TreeHouse Framework Assets (auto-injected) -->
-    <th:block th:raw="__treehouse_config"></th:block>
-    <th:block th:raw="__treehouse_js"></th:block>
-    
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -393,6 +389,10 @@ PHP;
             text-decoration: underline;
         }
     </style>
+    
+    <!-- TreeHouse Framework Assets (auto-injected) -->
+    <script th:raw="__treehouse_config"></script>
+    <script th:raw="__treehouse_js"></script>
 </head>
 <body>
     <div class="container">
