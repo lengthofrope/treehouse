@@ -26,18 +26,10 @@ $router->get('/about', function() {
 // Example form handling
 $router->post('/contact', function() {
     // In a real application, you would validate and process the form data
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Thank you for your message! We will get back to you soon.',
-        'timestamp' => date('c')
-    ]);
+    return new Response('Form save', 200, []);
 });
 
 $router->post('/settings', function() {
     // In a real application, you would save the settings
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Settings have been updated successfully.',
-        'timestamp' => date('c')
-    ]);
+    return new Response('Settings save', 200, []);
 });
