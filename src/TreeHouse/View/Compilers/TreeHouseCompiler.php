@@ -915,7 +915,7 @@ class TreeHouseCompiler
             // Only process if it contains brace expressions
             if (preg_match('/\{[^}]+\}/', $content)) {
                 // Check if this is a TreeHouse framework variable that should be raw
-                if (preg_match('/\{__treehouse_(?:config|js)\}/', $content)) {
+                if (preg_match('/\{__treehouse_(?:config|js|favicons|logo|manifest)\}/', $content)) {
                     // Compile the brace expressions for raw output
                     $compiledContent = $this->compileBraceExpressions($content);
                     

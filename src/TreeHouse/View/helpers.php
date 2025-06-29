@@ -426,6 +426,75 @@ if (!function_exists('treehouseJs')) {
         
         return implode("\n", $scripts);
     }
+    
+    /**
+     * Get TreeHouse logo with application override support
+     *
+     * @param string $alt Alt text for the logo
+     * @param array $attributes Additional HTML attributes
+     * @return string Logo HTML tag
+     */
+    function treehouseLogo(string $alt = 'TreeHouse Framework', array $attributes = []): string
+    {
+        // Check for application override first
+        $publicLogoPath = 'assets/treehouse/img/treehouse-logo.svg';
+        $logoUrl = '/_assets/treehouse/img/treehouse-logo.svg';
+        
+        // Build attributes string
+        $attributeString = '';
+        foreach ($attributes as $key => $value) {
+            $attributeString .= ' ' . htmlspecialchars($key, ENT_QUOTES, 'UTF-8') . '="' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '"';
+        }
+        
+        return '<img src="' . htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8') . '"' . $attributeString . '>';
+    }
+    
+    /**
+     * Get TreeHouse favicon links with application override support
+     *
+     * @return string Complete favicon HTML tags
+     */
+    function treehouseFavicons(): string
+    {
+        $baseUrl = '/_assets/treehouse/img/favicon';
+        
+        $favicons = [
+            '<link rel="icon" type="image/x-icon" href="' . $baseUrl . '/favicon.ico">',
+            '<link rel="icon" type="image/svg+xml" href="' . $baseUrl . '/favicon.svg">',
+            '<link rel="apple-touch-icon" sizes="180x180" href="' . $baseUrl . '/apple-touch-icon.png">',
+            '<link rel="icon" type="image/png" sizes="96x96" href="' . $baseUrl . '/favicon-96x96.png">',
+            '<link rel="manifest" href="' . $baseUrl . '/site.webmanifest">'
+        ];
+        
+        return implode("\n", $favicons);
+    }
+    
+    /**
+     * Get TreeHouse web app manifest link with application override support
+     *
+     * @return string Web app manifest link tag
+     */
+    function treehouseManifest(): string
+    {
+        $manifestUrl = '/_assets/treehouse/img/favicon/site.webmanifest';
+        return '<link rel="manifest" href="' . htmlspecialchars($manifestUrl, ENT_QUOTES, 'UTF-8') . '">';
+    }
+    
+    /**
+     * Get complete TreeHouse branding package (logo + favicons)
+     *
+     * @param string $logoAlt Alt text for the logo
+     * @param array $logoAttributes Additional logo attributes
+     * @return array Array with 'logo' and 'favicons' keys
+     */
+    function treehouseBranding(string $logoAlt = 'TreeHouse Framework', array $logoAttributes = []): array
+    {
+        return [
+            'logo' => treehouseLogo($logoAlt, $logoAttributes),
+            'favicons' => treehouseFavicons(),
+            'manifest' => treehouseManifest()
+        ];
+    }
 }
 
 if (!function_exists('treehouseConfig')) {
