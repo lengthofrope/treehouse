@@ -736,6 +736,20 @@ class Router
             return $this->serveFile($vendorPath, $request);
         }
 
+        // If not found in vendor, try framework root (for development)
+        // Check multiple possible locations for the framework assets
+        $possibleFrameworkPaths = [
+            dirname(__DIR__, 2) . "/assets/{$path}", // From src/TreeHouse/Router go up 2 levels
+            getcwd() . "/assets/{$path}",             // From current working directory
+            __DIR__ . "/../../../assets/{$path}"     // Alternative path calculation
+        ];
+        
+        foreach ($possibleFrameworkPaths as $frameworkAssetPath) {
+            if (file_exists($frameworkAssetPath)) {
+                return $this->serveFile($frameworkAssetPath, $request);
+            }
+        }
+
         return new Response('Not Found', 404);
     }
 
