@@ -31,3 +31,4 @@ composer.phar
 
 # Coverage
 /coverage-html/
+.phpunit.cache/test-results
