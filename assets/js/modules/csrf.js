@@ -315,19 +315,19 @@ TreeHouse.register('csrf', {
     },
     
     // Export main methods for easy access
-    getToken() { 
+    getToken() {
         return this.csrf ? this.csrf.getToken() : Promise.reject(new Error('CSRF module not initialized'));
     },
     
-    injectForms() { 
+    injectForms() {
         return this.csrf ? this.csrf.injectIntoForms() : Promise.reject(new Error('CSRF module not initialized'));
     },
     
-    addToHeaders(headers) { 
+    addToHeaders(headers) {
         return this.csrf ? this.csrf.addToHeaders(headers) : Promise.reject(new Error('CSRF module not initialized'));
     },
     
-    addToFormData(data) { 
+    addToFormData(data) {
         return this.csrf ? this.csrf.addToFormData(data) : Promise.reject(new Error('CSRF module not initialized'));
     },
     

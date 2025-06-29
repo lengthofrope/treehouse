@@ -9,7 +9,7 @@
  * @since   1.0.0
  */
 
-class TreeHouse {
+class TreeHouseFramework {
     constructor() {
         this.modules = new Map();
         this.config = {};
@@ -245,7 +245,7 @@ class TreeHouse {
         for (const key in source) {
             if (source.hasOwnProperty(key)) {
                 if (typeof source[key] === 'object' && source[key] !== null && !Array.isArray(source[key])) {
-                    result[key] = TreeHouse.merge(result[key] || {}, source[key]);
+                    result[key] = TreeHouseFramework.merge(result[key] || {}, source[key]);
                 } else {
                     result[key] = source[key];
                 }
@@ -256,13 +256,13 @@ class TreeHouse {
     }
 }
 
-// Initialize global TreeHouse instance
-window.TreeHouse = new TreeHouse();
+// Create global TreeHouse object as instance of TreeHouseFramework
+const TreeHouse = new TreeHouseFramework();
 
 // Auto-initialize when DOM is ready
-TreeHouse.domReady(() => {
+TreeHouseFramework.domReady(() => {
     // Mark as ready after DOM is loaded
-    window.TreeHouse.markReady();
+    TreeHouse.markReady();
 });
 
 // Export for module systems

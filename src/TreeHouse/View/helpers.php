@@ -415,10 +415,10 @@ if (!function_exists('treehouseJs')) {
         $suffix = $minified ? '.min' : '';
         $scripts = [];
         
-        // Core TreeHouse library
-        $scripts[] = '<script src="' . htmlspecialchars(treehouseAsset("js/treehouse{$suffix}.js"), ENT_QUOTES, 'UTF-8') . '" defer></script>';
+        // Core TreeHouse library (no defer to ensure it loads first)
+        $scripts[] = '<script src="' . htmlspecialchars(treehouseAsset("js/treehouse{$suffix}.js"), ENT_QUOTES, 'UTF-8') . '"></script>';
         
-        // Load requested modules
+        // Load requested modules (with defer to load after core)
         foreach ($modules as $module) {
             $modulePath = "js/modules/{$module}.js";
             $scripts[] = '<script src="' . htmlspecialchars(treehouseAsset($modulePath), ENT_QUOTES, 'UTF-8') . '" defer></script>';
