@@ -81,12 +81,17 @@ class NewProjectCommand extends Command
             // Generate composer.json
             $this->generateComposerJson($installPath, $projectName, $output);
             
+            // Generate frontend assets
+            $this->generateFrontendAssets($installPath, $projectName, $output);
+            
             $output->writeln('');
             $output->writeln('<info>✓ TreeHouse application created successfully!</info>');
             $output->writeln('');
             $output->writeln('<comment>Next steps:</comment>');
             $output->writeln("  cd {$projectName}");
             $output->writeln('  composer install');
+            $output->writeln('  npm install');
+            $output->writeln('  npm run dev');
             $output->writeln('  ./bin/th serve');
             $output->writeln('');
             
@@ -110,7 +115,10 @@ class NewProjectCommand extends Command
             'src/App/Middleware',
             'config/routes',
             'public/assets',
+            'public/build',
             'resources/views/layouts',
+            'resources/js',
+            'resources/css',
             'storage/cache',
             'storage/logs',
             'storage/views',
@@ -178,6 +186,42 @@ class NewProjectCommand extends Command
         $content = $this->getComposerJsonTemplate($projectName);
         file_put_contents($basePath . '/composer.json', $content);
         $output->writeln("  <info>Created:</info> composer.json");
+    }
+
+    /**
+     * Generate frontend assets (package.json, vite.config.js, etc.)
+     */
+    private function generateFrontendAssets(string $basePath, string $projectName, OutputInterface $output): void
+    {
+        // Copy package.json
+        $this->copyFrameworkFile('package.json', $basePath . '/package.json', $projectName, $output);
+        
+        // Copy vite.config.js
+        $this->copyFrameworkFile('vite.config.js', $basePath . '/vite.config.js', $projectName, $output);
+        
+        // Copy postcss.config.js
+        $this->copyFrameworkFile('postcss.config.js', $basePath . '/postcss.config.js', $projectName, $output);
+        
+        // Copy tailwind.config.js if it exists
+        $this->copyFrameworkFile('tailwind.config.js', $basePath . '/tailwind.config.js', $projectName, $output);
+        
+        // Create frontend directories
+        $frontendDirs = [
+            'resources/js',
+            'resources/css'
+        ];
+        
+        foreach ($frontendDirs as $dir) {
+            $fullPath = $basePath . '/' . $dir;
+            if (!is_dir($fullPath)) {
+                mkdir($fullPath, 0755, true);
+                $output->writeln("  <info>Created:</info> {$dir}");
+            }
+        }
+        
+        // Copy frontend files
+        $this->copyFrameworkFile('resources/js/app.js', $basePath . '/resources/js/app.js', $projectName, $output);
+        $this->copyFrameworkFile('resources/css/app.css', $basePath . '/resources/css/app.css', $projectName, $output);
     }
 
     /**
@@ -254,6 +298,18 @@ class NewProjectCommand extends Command
                 return $this->getEnvExampleTemplate();
             case 'README.md':
                 return $this->getReadmeTemplate($projectName);
+            case 'package.json':
+                return $this->getPackageJsonTemplate($projectName);
+            case 'vite.config.js':
+                return $this->getViteConfigTemplate();
+            case 'postcss.config.js':
+                return $this->getPostcssConfigTemplate();
+            case 'tailwind.config.js':
+                return $this->getTailwindConfigTemplate();
+            case 'resources/js/app.js':
+                return $this->getAppJsTemplate();
+            case 'resources/css/app.css':
+                return $this->getAppCssTemplate();
             default:
                 return "<?php\n\n// Generated file for {$projectName}\n";
         }
@@ -873,5 +929,252 @@ class User extends Model
     ];
 }
 PHP;
+    }
+
+    /**
+     * Get package.json template
+     */
+    private function getPackageJsonTemplate(string $projectName): string
+    {
+        $packageName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '-', $projectName));
+        
+        return json_encode([
+            'name' => $packageName,
+            'version' => '1.0.0',
+            'description' => "Frontend assets for {$projectName}",
+            'private' => true,
+            'type' => 'module',
+            'scripts' => [
+                'dev' => 'touch VITE_RUNNING && vite -m DEV && rm VITE_RUNNING',
+                'build' => 'vite build',
+                'preview' => 'vite preview'
+            ],
+            'devDependencies' => [
+                '@tailwindcss/forms' => '^0.5.7',
+                '@tailwindcss/typography' => '^0.5.10',
+                'autoprefixer' => '^10.4.16',
+                'postcss' => '^8.4.32',
+                'tailwindcss' => '^3.3.6',
+                'vite' => '^5.0.8'
+            ]
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    }
+
+    /**
+     * Get vite.config.js template
+     */
+    private function getViteConfigTemplate(): string
+    {
+        return <<<JS
+import { defineConfig } from 'vite'
+import tailwindcss from 'tailwindcss'
+import autoprefixer from 'autoprefixer'
+
+export default defineConfig({
+  // Build configuration
+  build: {
+    outDir: 'public/build',
+    emptyOutDir: true,
+    manifest: true,
+    rollupOptions: {
+      input: {
+        app: 'resources/js/app.js'
+      }
+    }
+  },
+  
+  // Development server configuration
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: false,
+    cors: true,
+    hmr: {
+      host: 'localhost'
+    }
+  },
+  
+  // CSS configuration
+  css: {
+    postcss: {
+      plugins: [
+        tailwindcss,
+        autoprefixer
+      ]
+    }
+  },
+  
+  // Public directory - set to false to avoid conflict with outDir
+  publicDir: false,
+  
+  // Base URL for assets
+  base: process.env.NODE_ENV === 'production' ? '/build/' : '/'
+})
+JS;
+    }
+
+    /**
+     * Get postcss.config.js template
+     */
+    private function getPostcssConfigTemplate(): string
+    {
+        return <<<JS
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+JS;
+    }
+
+    /**
+     * Get tailwind.config.js template
+     */
+    private function getTailwindConfigTemplate(): string
+    {
+        return <<<JS
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./resources/**/*.{html,js,th.html,th.php}",
+    "./src/**/*.{html,js,php}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        'treehouse': {
+          50: '#f0f9ff',
+          100: '#e0f2fe',
+          200: '#bae6fd',
+          300: '#7dd3fc',
+          400: '#38bdf8',
+          500: '#0ea5e9',
+          600: '#0284c7',
+          700: '#0369a1',
+          800: '#075985',
+          900: '#0c4a6e',
+        }
+      }
+    },
+  },
+  plugins: [],
+}
+JS;
+    }
+
+    /**
+     * Get app.js template
+     */
+    private function getAppJsTemplate(): string
+    {
+        return <<<JS
+import '../css/app.css'
+
+// Import TreeHouse framework (now immediately available globally)
+import '../../assets/js/treehouse.js'
+
+// Import TreeHouse modules
+import '../../assets/js/modules/csrf.js'
+
+// TreeHouse Framework integration
+console.log('TreeHouse + Vite + Tailwind CSS loaded successfully!')
+
+// Initialize TreeHouse when ready
+TreeHouse.ready(() => {
+  console.log('TreeHouse Framework is ready!')
+  
+  // Add any custom initialization here
+  initializeComponents()
+})
+
+function initializeComponents() {
+  // Add smooth scrolling to navigation links
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault()
+      
+      const target = document.querySelector(this.getAttribute('href'))
+      if (target) {
+        target.scrollIntoView({
+          behavior: 'smooth'
+        })
+      }
+    })
+  })
+  
+  // Add fade-in animation to cards
+  const cards = document.querySelectorAll('.treehouse-card')
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('animate-fade-in')
+      }
+    })
+  })
+  
+  cards.forEach(card => {
+    observer.observe(card)
+  })
+  
+  // Mobile menu toggle
+  window.toggleMobileMenu = function() {
+    const menu = document.getElementById('mobile-menu')
+    if (menu) {
+      menu.classList.toggle('hidden')
+    }
+  }
+  
+  // Console welcome message
+  console.log(`
+  🌳 TreeHouse Framework
+  
+  A modern PHP framework with elegant JavaScript integration
+  Version: 1.0.0
+  `)
+}
+JS;
+    }
+
+    /**
+     * Get app.css template
+     */
+    private function getAppCssTemplate(): string
+    {
+        return <<<CSS
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* TreeHouse Framework Custom Styles */
+@layer components {
+  .treehouse-btn {
+    @apply inline-flex items-center px-4 py-2 bg-treehouse-600 hover:bg-treehouse-700 text-white font-medium rounded-md transition-colors duration-200;
+  }
+  
+  .treehouse-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+  }
+  
+  .treehouse-input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-treehouse-500 focus:border-treehouse-500;
+  }
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* TreeHouse branding */
+.treehouse-gradient {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+}
+CSS;
     }
 }
