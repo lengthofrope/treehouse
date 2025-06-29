@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "touch VITE_RUNNING && vite -m DEV && rm VITE_RUNNING",
-    "build": "rm VITE_RUNNING && vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "devDependencies": {

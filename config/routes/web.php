@@ -19,7 +19,10 @@ $router->get('/components', 'App\Controllers\DemoController@components');
 
 // About page
 $router->get('/about', function() {
-    return new Response(view('about', [])->render());
+    return new Response(view('about', [
+        'title' => 'About TreeHouse Framework',
+        'description' => nl2br(file_get_contents(__DIR__ . '/../../README.md')),
+    ])->render());
 });
 
 // Example form handling
