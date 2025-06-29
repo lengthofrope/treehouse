@@ -74,6 +74,12 @@ class TreeHouseCompiler
             // Reset boolean attribute placeholders for each compilation
             $this->booleanAttributePlaceholders = [];
             
+            // Store original template for DOCTYPE preservation
+            $originalTemplate = $template;
+            $hasDoctype = preg_match('/^\s*<!DOCTYPE/i', $template);
+            $hasHtmlTag = preg_match('/<html\b[^>]*>/i', $template);
+            $isFullDocument = $hasDoctype && $hasHtmlTag;
+            
             // Parse HTML with libxml
             $dom = $this->parseTemplate($template);
             $xpath = new DOMXPath($dom);
@@ -85,7 +91,7 @@ class TreeHouseCompiler
             $this->processTextContent($dom, $xpath);
             
             // Generate final PHP
-            $compiled = $this->generatePhp($dom);
+            $compiled = $this->generatePhp($dom, $originalTemplate, $isFullDocument);
             
             return $this->wrapWithHelpers($compiled);
             
@@ -104,8 +110,19 @@ class TreeHouseCompiler
         $dom->preserveWhiteSpace = true;
         $dom->formatOutput = false;
         
-        // Wrap template content to ensure proper parsing with UTF-8 declaration
-        $wrappedTemplate = '<?xml encoding="UTF-8"?><div>' . $template . '</div>';
+        // Check if this is a full HTML document (has DOCTYPE and html tag) or just a fragment
+        $hasDoctype = preg_match('/^\s*<!DOCTYPE/i', $template);
+        $hasHtmlTag = preg_match('/<html\b[^>]*>/i', $template);
+        $isFullDocument = $hasDoctype && $hasHtmlTag;
+        
+        if ($isFullDocument) {
+            // For full HTML documents, parse directly but strip DOCTYPE first for DOM parsing
+            $templateForParsing = preg_replace('/^\s*<!DOCTYPE[^>]+>\s*/i', '', $template);
+            $wrappedTemplate = '<?xml encoding="UTF-8"?>' . $templateForParsing;
+        } else {
+            // For fragments, wrap in a div as before
+            $wrappedTemplate = '<?xml encoding="UTF-8"?><div>' . $template . '</div>';
+        }
         
         // Load HTML with error suppression and proper UTF-8 handling
         libxml_use_internal_errors(true);
@@ -806,13 +823,23 @@ class TreeHouseCompiler
     /**
      * Generate final PHP from DOM
      */
-    protected function generatePhp(DOMDocument $dom): string
+    protected function generatePhp(DOMDocument $dom, string $originalTemplate = '', bool $isFullDocument = false): string
     {
         $html = $dom->saveHTML();
         
-        // Remove the wrapper div we added
-        if (preg_match('/<div>(.*)<\/div>$/s', $html, $matches)) {
+        // Only remove the wrapper div if this was a fragment (not a full document)
+        if (!$isFullDocument && preg_match('/<div>(.*)<\/div>$/s', $html, $matches)) {
             $html = $matches[1];
+        }
+        
+        // Remove XML declaration that was added for DOM parsing
+        $html = preg_replace('/^<\?xml[^>]*\?>\s*/', '', $html);
+        
+        // Preserve DOCTYPE if it existed in the original template
+        if ($originalTemplate && preg_match('/^(\s*<!DOCTYPE[^>]+>)/i', $originalTemplate, $doctypeMatch)) {
+            $doctype = $doctypeMatch[1];
+            // Add DOCTYPE back to the beginning
+            $html = $doctype . "\n" . $html;
         }
         
         // Decode PHP tags that were encoded by saveHTML
