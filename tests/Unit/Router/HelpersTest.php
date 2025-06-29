@@ -65,9 +65,14 @@ class HelpersTest extends TestCase
         $this->assertStringContainsString('<input type="hidden" name="_token" value="', $html);
         $this->assertStringContainsString('">', $html);
         
-        // Should generate different tokens each time
+        // Should generate the same token within the same session (proper CSRF behavior)
         $html2 = csrfField();
-        $this->assertNotEquals($html, $html2);
+        $this->assertEquals($html, $html2);
+        
+        // Token should be a valid length (64 characters for 32 bytes in hex)
+        preg_match('/value="([^"]+)"/', $html, $matches);
+        $this->assertNotEmpty($matches[1]);
+        $this->assertEquals(64, strlen($matches[1])); // 32 bytes * 2 (hex encoding)
     }
 
     public function testFormMethodWithCsrf(): void
