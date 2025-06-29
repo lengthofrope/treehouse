@@ -86,7 +86,6 @@ class DemoController
             ]
         ];
 
-        
         return new Response(view('templating', $data)->render());
     }
 

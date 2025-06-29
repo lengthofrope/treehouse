@@ -21,7 +21,7 @@ if (!function_exists('view')) {
             }
             
             // Find application root directory
-            $appRoot = getcwd();
+            $appRoot = dirname(getcwd());
             
             // If we're in a vendor package, find the real app root
             if (strpos(__DIR__, 'vendor/lengthofrope/treehouse') !== false) {
