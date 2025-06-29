@@ -1,46 +1,5 @@
-<!DOCTYPE html>
-<html lang="en" class="h-full">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TreeHouse Layouts Demo</title>
-    
-    <!-- TreeHouse Framework Favicons -->
-    <link rel="icon" type="image/x-icon" href="/_assets/treehouse/img/favicon/favicon.ico">
-    <link rel="icon" type="image/svg+xml" href="/_assets/treehouse/img/favicon/favicon.svg">
-    <link rel="apple-touch-icon" sizes="180x180" href="/_assets/treehouse/img/favicon/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="96x96" href="/_assets/treehouse/img/favicon/favicon-96x96.png">
-    <link rel="manifest" href="/_assets/treehouse/img/favicon/site.webmanifest">
-    
-    <!-- Vite Assets -->
-    <script th:raw="__vite_assets"></script>
-        
-    <!-- TreeHouse Framework Assets -->
-    <script th:raw="__treehouse_config"></script>
-    <script th:raw="__treehouse_js"></script>
-</head>
-<body class="h-full bg-gradient-to-br from-gray-50 to-gray-100">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center space-x-3">
-                    <img src="/_assets/treehouse/img/treehouse-logo.svg" alt="TreeHouse Framework" class="h-8 w-auto">
-                    <div class="hidden sm:block">
-                        <h1 class="text-xl font-semibold text-gray-900">TreeHouse</h1>
-                        <p class="text-xs text-gray-500">Layouts Demo</p>
-                    </div>
-                </div>
-                
-                <div class="hidden md:flex items-center space-x-6">
-                    <a href="/" class="text-gray-700 hover:text-treehouse-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">Home</a>
-                    <a href="/templating" class="text-gray-700 hover:text-treehouse-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">Templating</a>
-                    <a href="/components" class="text-gray-700 hover:text-treehouse-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">Components</a>
-                    <a href="/layouts" class="text-treehouse-600 px-3 py-2 rounded-md text-sm font-medium bg-treehouse-50">Layouts</a>
-                </div>
-            </div>
-        </div>
-    </nav>
+<div th:extend="layouts.app">
+    <div th:section="content">
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -390,20 +349,4 @@
             </div>
         </div>
     </main>
-
-    <!-- Footer -->
-    <footer class="bg-gray-800 text-white mt-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="flex flex-col md:flex-row justify-between items-center">
-                <div class="flex items-center space-x-3 mb-4 md:mb-0">
-                    <img src="/_assets/treehouse/img/treehouse-logo.svg" alt="TreeHouse Framework" class="h-6 w-auto filter brightness-0 invert">
-                    <span class="text-sm">TreeHouse Layouts Demo</span>
-                </div>
-                <div class="text-sm text-gray-400">
-                    Powered by TreeHouse Framework with Vite + Tailwind CSS
-                </div>
-            </div>
-        </div>
-    </footer>
-</body>
-</html>
+</div></div>
