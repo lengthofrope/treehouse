@@ -25,7 +25,7 @@ class RouterTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->router = new Router();
+        $this->router = new Router(false); // Disable CSRF endpoint for tests
     }
 
     public function testConstructorInitializesProperties(): void

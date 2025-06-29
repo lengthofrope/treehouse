@@ -61,12 +61,29 @@ class Router
 
     /**
      * Create a new router instance
+     *
+     * @param bool $registerCsrfEndpoint Whether to automatically register the CSRF token endpoint
      */
-    public function __construct()
+    public function __construct(RouteCollection|bool $routesOrRegisterCsrf = true, ?bool $registerCsrfEndpoint = null)
     {
-        $this->routes = new RouteCollection();
+        // Handle backward compatibility with old constructor signature
+        if ($routesOrRegisterCsrf instanceof RouteCollection) {
+            // Old signature: Router(RouteCollection $routes)
+            $this->routes = $routesOrRegisterCsrf;
+            $registerCsrf = $registerCsrfEndpoint ?? true;
+        } else {
+            // New signature: Router(bool $registerCsrfEndpoint = true)
+            $this->routes = new RouteCollection();
+            $registerCsrf = $routesOrRegisterCsrf;
+        }
+        
         $this->middleware = new MiddlewareStack();
         $this->groupStack = new Collection();
+        
+        // Register built-in CSRF token endpoint if requested
+        if ($registerCsrf) {
+            $this->registerCsrfEndpoint();
+        }
     }
 
     /**
@@ -618,6 +635,110 @@ class Router
         }
         
         return $response;
+    }
+
+    /**
+     * Register the built-in CSRF token endpoint
+     *
+     * @return void
+     */
+    protected function registerCsrfEndpoint(): void
+    {
+        $this->get('/_csrf/token', function (Request $request) {
+            // Validate same-origin request to prevent cross-origin token harvesting
+            if (!$this->validateSameOrigin($request)) {
+                $response = new Response(json_encode([
+                    'error' => 'Forbidden',
+                    'message' => 'Cross-origin requests are not allowed for CSRF token endpoint'
+                ]), 403);
+                $response->setHeader('Content-Type', 'application/json');
+                return $response;
+            }
+            
+            try {
+                $session = new Session();
+                $csrf = new Csrf($session);
+                
+                $token = $csrf->getToken();
+                
+                $response = new Response(json_encode([
+                    'token' => $token,
+                    'field' => '_token'
+                ]));
+                $response->setHeader('Content-Type', 'application/json');
+                $response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                $response->setHeader('Pragma', 'no-cache');
+                $response->setHeader('Expires', '0');
+                
+                return $response;
+            } catch (\Exception $e) {
+                $response = new Response(json_encode([
+                    'error' => 'Unable to generate CSRF token',
+                    'message' => 'Session could not be started'
+                ]), 500);
+                $response->setHeader('Content-Type', 'application/json');
+                
+                return $response;
+            }
+        });
+    }
+
+    /**
+     * Validate that the request comes from the same origin
+     *
+     * @param Request $request HTTP request
+     * @return bool
+     */
+    protected function validateSameOrigin(Request $request): bool
+    {
+        $currentHost = $request->getHost();
+        $currentScheme = $request->isSecure() ? 'https' : 'http';
+        $currentOrigin = $currentScheme . '://' . $currentHost;
+        
+        // Check Origin header (preferred for CORS and modern browsers)
+        $origin = $request->header('Origin');
+        if ($origin) {
+            return $this->isSameOrigin($origin, $currentOrigin);
+        }
+        
+        // Fallback to Referer header for older browsers
+        $referer = $request->header('Referer');
+        if ($referer) {
+            return $this->isSameOrigin($referer, $currentOrigin);
+        }
+        
+        // If neither Origin nor Referer is present, this might be a direct request
+        // For security, we should be strict and deny such requests to the CSRF endpoint
+        return false;
+    }
+
+    /**
+     * Check if the given URL/origin matches the current origin
+     *
+     * @param string $url URL or origin to check
+     * @param string $currentOrigin Current origin
+     * @return bool
+     */
+    protected function isSameOrigin(string $url, string $currentOrigin): bool
+    {
+        // Parse the URL to extract scheme, host, and port
+        $parsed = parse_url($url);
+        
+        if (!$parsed || !isset($parsed['host'])) {
+            return false;
+        }
+        
+        $scheme = $parsed['scheme'] ?? 'http';
+        $host = $parsed['host'];
+        $port = $parsed['port'] ?? ($scheme === 'https' ? 443 : 80);
+        
+        // Construct the origin from the parsed URL
+        $urlOrigin = $scheme . '://' . $host;
+        if (($scheme === 'http' && $port !== 80) || ($scheme === 'https' && $port !== 443)) {
+            $urlOrigin .= ':' . $port;
+        }
+        
+        return $urlOrigin === $currentOrigin;
     }
 
     /**

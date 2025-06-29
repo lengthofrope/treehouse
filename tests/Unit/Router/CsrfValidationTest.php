@@ -22,7 +22,7 @@ class CsrfValidationTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->router = new Router();
+        $this->router = new Router(false); // Disable CSRF endpoint for tests
         $this->session = new Session();
         $this->csrf = new Csrf($this->session);
     }

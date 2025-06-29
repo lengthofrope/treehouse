@@ -240,9 +240,17 @@ if (!function_exists('csrfToken')) {
 if (!function_exists('csrfField')) {
     /**
      * Generate CSRF field HTML using the Security\Csrf class
+     *
+     * @param bool $dynamic Whether to use dynamic JavaScript injection (cache-friendly)
+     * @return string HTML input field with CSRF token or placeholder
      */
-    function csrfField(): string
+    function csrfField(bool $dynamic = false): string
     {
+        if ($dynamic) {
+            // Return placeholder that will be populated by JavaScript
+            return '<input type="hidden" name="_token" value="" data-csrf-placeholder="true">';
+        }
+        
         static $csrf = null;
         
         if ($csrf === null) {
@@ -293,14 +301,75 @@ if (!function_exists('formMethod')) {
      *
      * @param string $method HTTP method (PUT, PATCH, DELETE, OPTIONS)
      * @param bool $includeCsrf Whether to include CSRF token
+     * @param bool $dynamic Whether to use dynamic CSRF injection
      * @return string HTML input fields
      */
-    function formMethod(string $method, bool $includeCsrf = true): string
+    function formMethod(string $method, bool $includeCsrf = true, bool $dynamic = false): string
     {
         $html = methodField($method);
         
         if ($includeCsrf) {
-            $html .= "\n" . csrfField();
+            $html .= "\n" . csrfField($dynamic);
+        }
+        
+        return $html;
+    }
+}
+
+if (!function_exists('csrfScript')) {
+    /**
+     * Generate script tag for CSRF JavaScript helper
+     *
+     * @param string|null $src Custom source path for the CSRF script
+     * @return string HTML script tag
+     */
+    function csrfScript(?string $src = null): string
+    {
+        $src = $src ?? asset('js/csrf.js');
+        return '<script src="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" defer></script>';
+    }
+}
+
+if (!function_exists('csrfMeta')) {
+    /**
+     * Generate meta tag for CSRF token (for AJAX requests)
+     *
+     * @param bool $dynamic Whether to use dynamic token injection
+     * @return string HTML meta tag
+     */
+    function csrfMeta(bool $dynamic = false): string
+    {
+        if ($dynamic) {
+            // Return placeholder that will be populated by JavaScript
+            return '<meta name="csrf-token" content="" data-csrf-meta="true">';
+        }
+        
+        $token = csrfToken();
+        return '<meta name="csrf-token" content="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">';
+    }
+}
+
+if (!function_exists('csrfSetup')) {
+    /**
+     * Generate complete CSRF setup for cache-friendly pages
+     *
+     * @param array $options Configuration options
+     * @return string HTML for CSRF setup
+     */
+    function csrfSetup(array $options = []): string
+    {
+        $includeMeta = $options['meta'] ?? true;
+        $includeScript = $options['script'] ?? true;
+        $scriptSrc = $options['script_src'] ?? null;
+        
+        $html = '';
+        
+        if ($includeMeta) {
+            $html .= csrfMeta(true) . "\n";
+        }
+        
+        if ($includeScript) {
+            $html .= csrfScript($scriptSrc);
         }
         
         return $html;
