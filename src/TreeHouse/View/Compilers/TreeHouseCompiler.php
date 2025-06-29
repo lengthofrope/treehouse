@@ -921,6 +921,12 @@ class TreeHouseCompiler
                     
                     // Create PHP output with raw output (no escaping)
                     $phpCode = "<?php echo thRaw({$compiledContent}); ?>";
+                } elseif (preg_match('/\{__vite_assets\}/', $content)) {
+                    // Handle vite assets variable
+                    $compiledContent = $this->compileBraceExpressions($content);
+                    
+                    // Create PHP output with raw output (no escaping)
+                    $phpCode = "<?php echo thRaw({$compiledContent}); ?>";
                 } else {
                     // Compile the brace expressions for escaped output
                     $compiledContent = $this->compileBraceExpressions($content);

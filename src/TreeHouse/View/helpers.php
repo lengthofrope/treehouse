@@ -2,140 +2,23 @@
 
 declare(strict_types=1);
 
-/**
- * View helper functions
- * 
- * Global helper functions for the TreeHouse View system.
- * 
- * @package LengthOfRope\TreeHouse\View
- * @author  Bas de Kort <bdekort@proton.me>
- * @since   1.0.0
- */
-
-use LengthOfRope\TreeHouse\View\{ViewEngine, ViewFactory, Template};
-use LengthOfRope\TreeHouse\Support\Collection;
-use LengthOfRope\TreeHouse\Security\Csrf;
-use LengthOfRope\TreeHouse\Http\Session;
-
-if (!function_exists('view')) {
-    /**
-     * Create a view instance
-     */
-    function view(?string $template = null, array $data = []): ViewEngine|Template
-    {
-        static $factory = null;
-        
-        if ($factory === null) {
-            // Load support helpers if needed
-            if (!function_exists('env')) {
-                require_once __DIR__ . '/../Support/helpers.php';
-            }
-            
-            // Find application root directory
-            $appRoot = getcwd();
-            
-            // If we're in a vendor package, find the real app root
-            if (strpos(__DIR__, 'vendor/lengthofrope/treehouse') !== false) {
-                // We're installed as a vendor package
-                $vendorPos = strpos(__DIR__, 'vendor/lengthofrope/treehouse');
-                $appRoot = substr(__DIR__, 0, $vendorPos);
-            } elseif (strpos(__DIR__, 'vendor') !== false && strpos(__DIR__, 'lengthofrope') !== false) {
-                // Alternative vendor structure
-                $vendorPos = strpos(__DIR__, 'vendor');
-                $appRoot = substr(__DIR__, 0, $vendorPos);
-            }
-            
-            // Load configuration from config file in application root
-            $configFile = rtrim($appRoot, '/') . '/config/view.php';
-            $config = [];
-            
-            if (file_exists($configFile)) {
-                try {
-                    $config = require $configFile;
-                } catch (Throwable $e) {
-                    // Fall back to default if config fails to load
-                    $config = [];
-                }
-            }
-            
-            // Set default configuration if not loaded
-            if (empty($config)) {
-                $config = [
-                    'paths' => [
-                        $appRoot . '/resources/views',
-                        $appRoot . '/templates',
-                    ],
-                    'cache_path' => $appRoot . '/storage/views',
-                    'cache_enabled' => true,
-                ];
-            }
-            
-            $factory = new ViewFactory($config);
-        }
-        
-        if ($template === null) {
-            return $factory->engine();
-        }
-        
-        return $factory->make($template, $data);
-    }
-}
-
-if (!function_exists('render')) {
-    /**
-     * Render a template
-     */
-    function render(string $template, array $data = []): string
-    {
-        return view($template, $data)->render();
-    }
-}
-
-if (!function_exists('partial')) {
-    /**
-     * Render a partial template
-     */
-    function partial(string $template, array $data = []): string
-    {
-        return view('partials.' . $template, $data)->render();
-    }
-}
-
-if (!function_exists('component')) {
-    /**
-     * Render a component
-     */
-    function component(string $name, array $props = []): string
-    {
-        return view()->renderComponent($name, $props);
-    }
-}
-
-if (!function_exists('layout')) {
-    /**
-     * Create a template with layout
-     */
-    function layout(string $layout, string $template, array $data = []): Template
-    {
-        return view($template, $data)->with('__layout', $layout);
-    }
-}
+use LengthOfRope\TreeHouse\Support\Arr;
 
 if (!function_exists('thEscape')) {
     /**
-     * Escape HTML (template helper)
+     * Escape HTML entities
      */
-    function thEscape(mixed $value): string
+    function thEscape($value): string
     {
-        return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+        return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8', false);
     }
 }
 
 if (!function_exists('thRaw')) {
     /**
-     * Output raw HTML (template helper)
+     * Output raw content (unescaped)
      */
-    function thRaw(mixed $value): string
+    function thRaw($value): string
     {
         return (string) $value;
     }
@@ -143,276 +26,68 @@ if (!function_exists('thRaw')) {
 
 if (!function_exists('thCollect')) {
     /**
-     * Convert array to Collection (template helper)
+     * Create a collection from array
      */
-    function thCollect(array $items): Collection
+    function thCollect($items = []): \LengthOfRope\TreeHouse\Support\Collection
     {
-        return new Collection($items);
-    }
-}
-
-if (!function_exists('thRepeatStatus')) {
-    /**
-     * Get repeat loop status (template helper)
-     */
-    function thRepeatStatus(int $index, int $count): object
-    {
-        return (object) [
-            'index' => $index,
-            'count' => $count,
-            'first' => $index === 0,
-            'last' => $index === $count - 1,
-            'odd' => $index % 2 === 1,
-            'even' => $index % 2 === 0,
-        ];
-    }
-}
-
-if (!function_exists('asset')) {
-    /**
-     * Generate asset URL
-     */
-    function asset(string $path): string
-    {
-        return '/assets/' . ltrim($path, '/');
-    }
-}
-
-if (!function_exists('url')) {
-    /**
-     * Generate URL
-     */
-    function url(string $path = ''): string
-    {
-        return '/' . ltrim($path, '/');
-    }
-}
-
-if (!function_exists('route')) {
-    /**
-     * Generate route URL
-     */
-    function route(string $name, array $parameters = []): string
-    {
-        // This would typically integrate with Router
-        return url($name);
-    }
-}
-
-if (!function_exists('old')) {
-    /**
-     * Get old input value
-     */
-    function old(string $key, mixed $default = null): mixed
-    {
-        // This would typically get from session flash data
-        return $default;
-    }
-}
-
-if (!function_exists('csrfToken')) {
-    /**
-     * Get CSRF token
-     */
-    function csrfToken(): string
-    {
-        static $csrf = null;
-        
-        if ($csrf === null) {
-            try {
-                $session = new Session();
-                $csrf = new Csrf($session);
-            } catch (Exception $e) {
-                // Fallback for CLI or when session cannot be started
-                return bin2hex(random_bytes(32));
-            }
-        }
-        
-        try {
-            return $csrf->getToken();
-        } catch (Exception $e) {
-            // Fallback for CLI or when session cannot be started
-            return bin2hex(random_bytes(32));
-        }
-    }
-}
-
-if (!function_exists('csrfField')) {
-    /**
-     * Generate CSRF field HTML using the Security\Csrf class
-     *
-     * @param bool $dynamic Whether to use dynamic JavaScript injection (cache-friendly)
-     * @return string HTML input field with CSRF token or placeholder
-     */
-    function csrfField(bool $dynamic = false): string
-    {
-        if ($dynamic) {
-            // Return placeholder that will be populated by JavaScript
-            return '<input type="hidden" name="_token" value="" data-csrf-placeholder="true">';
-        }
-        
-        static $csrf = null;
-        
-        if ($csrf === null) {
-            try {
-                $session = new Session();
-                $csrf = new Csrf($session);
-            } catch (Exception $e) {
-                // Fallback for CLI or when session cannot be started
-                $token = bin2hex(random_bytes(32));
-                return '<input type="hidden" name="_token" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">';
-            }
-        }
-        
-        try {
-            return $csrf->getTokenField('_token');
-        } catch (Exception $e) {
-            // Fallback for CLI or when session cannot be started
-            $token = bin2hex(random_bytes(32));
-            return '<input type="hidden" name="_token" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">';
-        }
-    }
-}
-
-if (!function_exists('methodField')) {
-    /**
-     * Generate HTTP method field for HTTP method spoofing
-     *
-     * @param string $method HTTP method (PUT, PATCH, DELETE, OPTIONS)
-     * @return string HTML input field
-     */
-    function methodField(string $method): string
-    {
-        $method = strtoupper(trim($method));
-        
-        // Validate method
-        $allowedMethods = ['PUT', 'PATCH', 'DELETE', 'OPTIONS'];
-        if (!in_array($method, $allowedMethods)) {
-            throw new \InvalidArgumentException("Invalid method '{$method}'. Allowed methods: " . implode(', ', $allowedMethods));
-        }
-        
-        return '<input type="hidden" name="_method" value="' . htmlspecialchars($method, ENT_QUOTES, 'UTF-8') . '">';
-    }
-}
-
-if (!function_exists('formMethod')) {
-    /**
-     * Generate method and CSRF fields for forms
-     *
-     * @param string $method HTTP method (PUT, PATCH, DELETE, OPTIONS)
-     * @param bool $includeCsrf Whether to include CSRF token
-     * @param bool $dynamic Whether to use dynamic CSRF injection
-     * @return string HTML input fields
-     */
-    function formMethod(string $method, bool $includeCsrf = true, bool $dynamic = false): string
-    {
-        $html = methodField($method);
-        
-        if ($includeCsrf) {
-            $html .= "\n" . csrfField($dynamic);
-        }
-        
-        return $html;
-    }
-}
-
-if (!function_exists('csrfScript')) {
-    /**
-     * Generate script tag for CSRF JavaScript helper
-     *
-     * @param string|null $src Custom source path for the CSRF script
-     * @return string HTML script tag
-     */
-    function csrfScript(?string $src = null): string
-    {
-        $src = $src ?? asset('js/csrf.js');
-        return '<script src="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" defer></script>';
-    }
-}
-
-if (!function_exists('csrfMeta')) {
-    /**
-     * Generate meta tag for CSRF token (for AJAX requests)
-     *
-     * @param bool $dynamic Whether to use dynamic token injection
-     * @return string HTML meta tag
-     */
-    function csrfMeta(bool $dynamic = false): string
-    {
-        if ($dynamic) {
-            // Return placeholder that will be populated by JavaScript
-            return '<meta name="csrf-token" content="" data-csrf-meta="true">';
-        }
-        
-        $token = csrfToken();
-        return '<meta name="csrf-token" content="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">';
-    }
-}
-
-if (!function_exists('csrfSetup')) {
-    /**
-     * Generate complete CSRF setup for cache-friendly pages
-     *
-     * @param array $options Configuration options
-     * @return string HTML for CSRF setup
-     */
-    function csrfSetup(array $options = []): string
-    {
-        $includeMeta = $options['meta'] ?? true;
-        $includeScript = $options['script'] ?? true;
-        $scriptSrc = $options['script_src'] ?? null;
-        
-        $html = '';
-        
-        if ($includeMeta) {
-            $html .= csrfMeta(true) . "\n";
-        }
-        
-        if ($includeScript) {
-            $html .= csrfScript($scriptSrc);
-        }
-        
-        return $html;
+        return new \LengthOfRope\TreeHouse\Support\Collection($items);
     }
 }
 
 if (!function_exists('treehouseAsset')) {
     /**
-     * Generate URL for TreeHouse framework assets
-     *
-     * @param string $path Asset path relative to TreeHouse assets directory
+     * Generate URL for TreeHouse framework asset
+     * 
+     * @param string $path Asset path
      * @return string Asset URL
      */
     function treehouseAsset(string $path): string
     {
-        // Check if override exists in application public directory
-        $publicPath = getcwd() . "/public/assets/treehouse/{$path}";
-        if (file_exists($publicPath)) {
-            return asset("assets/treehouse/{$path}");
-        }
+        return "/_assets/treehouse/{$path}";
+    }
+}
+
+if (!function_exists('treehouseConfig')) {
+    /**
+     * Generate TreeHouse configuration script
+     * 
+     * @param string|null $baseUrl Base URL for assets
+     * @param bool|null $debug Debug mode
+     * @return string Configuration script
+     */
+    function treehouseConfig(?string $baseUrl = null, ?bool $debug = null): string
+    {
+        $baseUrl = $baseUrl ?? '/_assets/treehouse';
+        $debug = $debug ?? (getenv('APP_ENV') !== 'production');
         
-        // Use vendor asset route
-        return url("_assets/treehouse/{$path}");
+        $config = [
+            'csrf' => [
+                'endpoint' => '/_csrf/token',
+                'field' => '_token'
+            ],
+            'baseUrl' => $baseUrl,
+            'debug' => $debug
+        ];
+        
+        $jsonConfig = json_encode($config, JSON_UNESCAPED_SLASHES);
+        
+        return "<script>if(window.TreeHouse){window.TreeHouse.configure({$jsonConfig});}</script>";
     }
 }
 
 if (!function_exists('treehouseJs')) {
     /**
-     * Generate script tags for TreeHouse JavaScript library and modules
-     *
-     * @param array $modules List of modules to load
-     * @param bool|null $minified Whether to use minified versions (null = auto-detect from environment)
-     * @return string HTML script tags
+     * Generate TreeHouse JavaScript includes
+     * 
+     * @param array $modules Modules to load
+     * @param bool|null $minified Use minified version
+     * @return string Script tags
      */
     function treehouseJs(array $modules = ['csrf'], ?bool $minified = null): string
     {
-        // Auto-detect minification based on environment
-        if ($minified === null) {
-            $minified = (function_exists('env') && env('APP_ENV') === 'production') ||
-                       (!function_exists('env') && !ini_get('display_errors'));
-        }
-        
+        $minified = $minified ?? (getenv('APP_ENV') === 'production');
         $suffix = $minified ? '.min' : '';
+        
         $scripts = [];
         
         // Core TreeHouse library (no defer to ensure it loads first)
@@ -426,10 +101,12 @@ if (!function_exists('treehouseJs')) {
         
         return implode("\n", $scripts);
     }
-    
+}
+
+if (!function_exists('treehouseLogo')) {
     /**
      * Get TreeHouse logo with application override support
-     *
+     * 
      * @param string $alt Alt text for the logo
      * @param array $attributes Additional HTML attributes
      * @return string Logo HTML tag
@@ -448,10 +125,12 @@ if (!function_exists('treehouseJs')) {
         
         return '<img src="' . htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8') . '"' . $attributeString . '>';
     }
-    
+}
+
+if (!function_exists('treehouseFavicons')) {
     /**
      * Get TreeHouse favicon links with application override support
-     *
+     * 
      * @return string Complete favicon HTML tags
      */
     function treehouseFavicons(): string
@@ -468,10 +147,12 @@ if (!function_exists('treehouseJs')) {
         
         return implode("\n", $favicons);
     }
-    
+}
+
+if (!function_exists('treehouseManifest')) {
     /**
      * Get TreeHouse web app manifest link with application override support
-     *
+     * 
      * @return string Web app manifest link tag
      */
     function treehouseManifest(): string
@@ -479,10 +160,12 @@ if (!function_exists('treehouseJs')) {
         $manifestUrl = '/_assets/treehouse/img/favicon/site.webmanifest';
         return '<link rel="manifest" href="' . htmlspecialchars($manifestUrl, ENT_QUOTES, 'UTF-8') . '">';
     }
-    
+}
+
+if (!function_exists('treehouseBranding')) {
     /**
      * Get complete TreeHouse branding package (logo + favicons)
-     *
+     * 
      * @param string $logoAlt Alt text for the logo
      * @param array $logoAttributes Additional logo attributes
      * @return array Array with 'logo' and 'favicons' keys
@@ -497,100 +180,111 @@ if (!function_exists('treehouseJs')) {
     }
 }
 
-if (!function_exists('treehouseConfig')) {
+if (!function_exists('isViteDevServerRunning')) {
     /**
-     * Generate configuration script for TreeHouse JavaScript library
-     *
-     * @param array $config Configuration options
-     * @return string HTML script tag with configuration
+     * Check if Vite dev server is actually running
      */
-    function treehouseConfig(array $config = []): string
+    function isViteDevServerRunning(): bool
     {
-        // Default configuration
-        $defaultConfig = [
-            'csrf' => [
-                'endpoint' => '/_csrf/token',
-                'field' => '_token'
-            ],
-            'baseUrl' => url('_assets/treehouse'),
-            'debug' => function_exists('env') ? env('APP_DEBUG', false) : false
-        ];
-        
-        // Merge with provided configuration
-        $finalConfig = array_merge_recursive($defaultConfig, $config);
-        
-        // Convert to JSON
-        $configJson = json_encode($finalConfig, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
-        
-        return '<script>if(window.TreeHouse){window.TreeHouse.configure(' . $configJson . ');}</script>';
+        // Try to connect to the Vite dev server
+        $connection = @fsockopen('localhost', 5173, $errno, $errstr, 1);
+        if ($connection) {
+            fclose($connection);
+            return true;
+        }
+        return false;
     }
 }
 
-if (!function_exists('treehouseCss')) {
+if (!function_exists('vite')) {
     /**
-     * Generate CSS link tag for TreeHouse framework styles
-     *
-     * @param bool|null $minified Whether to use minified version
-     * @return string HTML link tag
+     * Generate Vite asset URLs
+     * 
+     * @param string $path Asset path
+     * @return string Asset URL
      */
-    function treehouseCss(?bool $minified = null): string
+    function vite(string $path): string
     {
-        if ($minified === null) {
-            $minified = (function_exists('env') && env('APP_ENV') === 'production') ||
-                       (!function_exists('env') && !ini_get('display_errors'));
+        static $manifest = null;
+        static $isDev = null;
+        
+        if ($isDev === null) {
+            // Check if we're in development mode AND Vite dev server is running
+            $isDev = getenv('APP_ENV') !== 'production' && isViteDevServerRunning();
         }
         
-        $suffix = $minified ? '.min' : '';
-        return '<link rel="stylesheet" href="' . htmlspecialchars(treehouseAsset("css/treehouse{$suffix}.css"), ENT_QUOTES, 'UTF-8') . '">';
+        if ($isDev) {
+            // Development mode - return Vite dev server URL
+            return "http://localhost:5173/{$path}";
+        }
+        
+        // Production mode - use manifest
+        if ($manifest === null) {
+            $manifestPath = getcwd() . '/public/build/.vite/manifest.json';
+            if (file_exists($manifestPath)) {
+                $manifest = json_decode(file_get_contents($manifestPath), true);
+            } else {
+                $manifest = [];
+            }
+        }
+        
+        if (isset($manifest[$path])) {
+            return "/build/" . $manifest[$path]['file'];
+        }
+        
+        // Fallback
+        return "/build/{$path}";
     }
 }
 
-if (!function_exists('jsModule')) {
+if (!function_exists('viteAssets')) {
     /**
-     * Generate script tag for a specific TreeHouse module
-     *
-     * @param string $module Module name
-     * @return string HTML script tag
+     * Generate Vite script and CSS tags
+     * 
+     * @param string $entry Entry point (default: resources/js/app.js)
+     * @return string HTML tags
      */
-    function jsModule(string $module): string
+    function viteAssets(string $entry = 'resources/js/app.js'): string
     {
-        $modulePath = "js/modules/{$module}.js";
-        return '<script src="' . htmlspecialchars(treehouseAsset($modulePath), ENT_QUOTES, 'UTF-8') . '" defer></script>';
-    }
-}
+        // Check if we're in development mode AND Vite dev server is actually running
+        $isDev = getenv('APP_ENV') !== 'production' && isViteDevServerRunning();
+        
+        if ($isDev) {
+            // Development mode - return Vite dev server assets
+            return 
+                '<script type="module" src="http://localhost:5173/@vite/client"></script>' . "\n" .
+                '<script type="module" src="http://localhost:5173/' . htmlspecialchars($entry, ENT_QUOTES, 'UTF-8') . '"></script>';
+        }
+        
+        // Production mode - use manifest to generate asset tags
+        $manifestPath = getcwd() . '/build/.vite/manifest.json';
 
-if (!function_exists('treehouseSetup')) {
-    /**
-     * Generate complete TreeHouse framework setup
-     *
-     * @param array $options Setup options
-     * @return string HTML for complete TreeHouse setup
-     */
-    function treehouseSetup(array $options = []): string
-    {
-        $modules = $options['modules'] ?? ['csrf'];
-        $includeCss = $options['css'] ?? false;
-        $config = $options['config'] ?? [];
-        $minified = $options['minified'] ?? null;
-        
-        $html = '';
-        
-        // CSS if requested
-        if ($includeCss) {
-            $html .= treehouseCss($minified) . "\n";
+        if (!file_exists($manifestPath)) {
+            // If no manifest exists, return empty (no assets)
+            return '<!-- Vite assets: No manifest found, run "npm run build" -->';
         }
         
-        // CSRF meta tag for dynamic injection
-        if (in_array('csrf', $modules)) {
-            $html .= csrfMeta(true) . "\n";
+        $manifest = json_decode(file_get_contents($manifestPath), true);
+        if (!$manifest || !isset($manifest[$entry])) {
+            // If manifest is invalid or entry not found
+            return '<!-- Vite assets: Entry not found in manifest -->';
         }
         
-        // Configuration
-        $html .= treehouseConfig($config) . "\n";
+        $entryData = $manifest[$entry];
+        $tags = [];
         
-        // JavaScript files
-        $html .= treehouseJs($modules, $minified);
+        // Add CSS files first
+        if (isset($entryData['css'])) {
+            foreach ($entryData['css'] as $css) {
+                $tags[] = '<link rel="stylesheet" href="/build/' . htmlspecialchars($css, ENT_QUOTES, 'UTF-8') . '">';
+            }
+        }
         
-        return $html;
+        // Add JS file
+        if (isset($entryData['file'])) {
+            $tags[] = '<script type="module" src="/build/' . htmlspecialchars($entryData['file'], ENT_QUOTES, 'UTF-8') . '"></script>';
+        }
+        
+        return implode("\n", $tags);
     }
 }

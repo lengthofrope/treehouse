@@ -385,12 +385,11 @@ class ViewEngine
         $this->share('__treehouse_js', treehouseJs(['csrf']));
 
         // Auto-inject TreeHouse configuration (return actual HTML content)
-        $this->share('__treehouse_config', treehouseConfig([
-            'csrf' => [
-                'endpoint' => '/_csrf/token',
-                'field' => '_token'
-            ]
-        ]));
+        // Fix: Use the proper function signature
+        $this->share('__treehouse_config', treehouseConfig('/_assets/treehouse'));
+
+        // Auto-inject Vite assets (return actual HTML content)
+        $this->share('__vite_assets', viteAssets('resources/js/app.js'));
 
         // Auto-inject complete TreeHouse setup helper
         $this->share('__treehouse_setup', function() {
@@ -411,8 +410,8 @@ class ViewEngine
             return treehouseJs($modules, $minified);
         });
 
-        $this->share('treehouseConfig', function(array $config = []) {
-            return treehouseConfig($config);
+        $this->share('treehouseConfig', function(string $baseUrl = null, bool $debug = null) {
+            return treehouseConfig($baseUrl, $debug);
         });
 
         $this->share('treehouseSetup', function(array $options = []) {
@@ -425,6 +424,15 @@ class ViewEngine
 
         $this->share('jsModule', function(string $module) {
             return jsModule($module);
+        });
+
+        // Make Vite helper functions available to templates
+        $this->share('viteAssets', function(string $entry = 'resources/js/app.js') {
+            return viteAssets($entry);
+        });
+
+        $this->share('vite', function(string $path) {
+            return vite($path);
         });
     }
 }
