@@ -585,8 +585,8 @@ class NewProjectCommand extends Command
             'description' => "A TreeHouse application: {$projectName}",
             'type' => 'project',
             'require' => [
-                'php' => '^8.1',
-                'lengthofrope/treehouse' => '*'
+                'php' => '^8.4',
+                'lengthofrope/treehouse' => 'dev-develop',
             ],
             'require-dev' => [
                 'phpunit/phpunit' => '^11.0'
@@ -612,30 +612,6 @@ class NewProjectCommand extends Command
             'minimum-stability' => 'dev',
             'prefer-stable' => true
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-    }
-
-    /**
-     * Get app.php config template
-     */
-    private function getAppConfigTemplate(string $projectName): string
-    {
-        return <<<PHP
-<?php
-
-declare(strict_types=1);
-
-return [
-    'name' => '{$projectName}',
-    'env' => env('APP_ENV', 'local'),
-    'debug' => env('APP_DEBUG', true),
-    'url' => env('APP_URL', 'http://localhost:8000'),
-    'timezone' => 'UTC',
-    'locale' => 'en',
-    'fallback_locale' => 'en',
-    'key' => env('APP_KEY', ''),
-    'cipher' => 'AES-256-CBC',
-];
-PHP;
     }
 
     /**
@@ -1044,152 +1020,6 @@ public/assets/treehouse/
 - [Template Engine Guide](https://github.com/lengthofrope/treehouse-framework/docs/templates)
 - [JavaScript Framework API](https://github.com/lengthofrope/treehouse-framework/docs/javascript)
 MD;
-    }
-
-    private function getDatabaseConfigTemplate(): string
-    {
-        return <<<PHP
-<?php
-
-declare(strict_types=1);
-
-return [
-    'default' => env('DB_CONNECTION', 'sqlite'),
-    
-    'connections' => [
-        'sqlite' => [
-            'driver' => 'sqlite',
-            'database' => env('DB_DATABASE', database_path('database.sqlite')),
-            'prefix' => '',
-            'foreign_key_constraints' => true,
-        ],
-        
-        'mysql' => [
-            'driver' => 'mysql',
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '3306'),
-            'database' => env('DB_DATABASE', 'treehouse'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
-            'charset' => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
-            'prefix' => '',
-            'strict' => true,
-            'engine' => null,
-        ],
-    ],
-];
-PHP;
-    }
-
-    private function getCacheConfigTemplate(): string
-    {
-        return <<<PHP
-<?php
-
-declare(strict_types=1);
-
-return [
-    'default' => env('CACHE_DRIVER', 'file'),
-    
-    'stores' => [
-        'file' => [
-            'driver' => 'file',
-            'path' => storage_path('cache'),
-        ],
-    ],
-    
-    'prefix' => env('CACHE_PREFIX', 'treehouse_cache'),
-];
-PHP;
-    }
-
-    private function getViewConfigTemplate(): string
-    {
-        return <<<PHP
-<?php
-
-declare(strict_types=1);
-
-return [
-    'paths' => [
-        resource_path('views'),
-    ],
-    
-    'compiled' => env('VIEW_COMPILED_PATH', storage_path('views')),
-    
-    'cache' => env('VIEW_CACHE', true),
-    
-    'extensions' => ['.th.html', '.th.php', '.php', '.html'],
-];
-PHP;
-    }
-
-    private function getAuthConfigTemplate(): string
-    {
-        return <<<PHP
-<?php
-
-declare(strict_types=1);
-
-return [
-    'defaults' => [
-        'guard' => 'web',
-        'provider' => 'users',
-    ],
-    
-    'guards' => [
-        'web' => [
-            'driver' => 'session',
-            'provider' => 'users',
-        ],
-    ],
-    
-    'providers' => [
-        'users' => [
-            'driver' => 'database',
-            'model' => App\Models\User::class,
-            'table' => 'users',
-        ],
-    ],
-];
-PHP;
-    }
-
-    private function getUserModelTemplate(): string
-    {
-        return <<<PHP
-<?php
-
-declare(strict_types=1);
-
-namespace App\Models;
-
-use LengthOfRope\TreeHouse\Database\Model;
-use LengthOfRope\TreeHouse\Auth\AuthorizableUser;
-
-class User extends Model
-{
-    use AuthorizableUser;
-    
-    protected string \$table = 'users';
-    
-    protected array \$fillable = [
-        'name',
-        'email',
-        'password',
-    ];
-    
-    protected array \$hidden = [
-        'password',
-        'remember_token',
-    ];
-    
-    protected array \$casts = [
-        'email_verified_at' => 'datetime',
-    ];
-}
-PHP;
     }
 
     /**
