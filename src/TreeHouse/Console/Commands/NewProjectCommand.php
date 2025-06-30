@@ -450,7 +450,7 @@ class NewProjectCommand extends Command
         $userReturn = 0;
         
         $command = sprintf(
-            'php ./bin/th user:create "%s" "%s" "%s" --role=admin 2>&1',
+            'php ./bin/th user:create "%s" "%s" --password="%s" --role=admin 2>&1',
             addslashes($config['admin_name']),
             addslashes($config['admin_email']),
             addslashes($config['admin_password'])
