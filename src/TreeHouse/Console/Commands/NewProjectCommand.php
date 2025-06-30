@@ -429,7 +429,7 @@ class NewProjectCommand extends Command
         
         $migrateOutput = [];
         $migrateReturn = 0;
-        exec('php ./bin/th migrate 2>&1', $migrateOutput, $migrateReturn);
+        exec('php ./bin/th migrate:run 2>&1', $migrateOutput, $migrateReturn);
         
         if ($migrateReturn === 0) {
             $output->writeln('  <info>✓</info> Database migrations completed');
