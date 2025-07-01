@@ -35,3 +35,4 @@ composer.phar
 
 .memory-bank/
 /VITE_RUNNING
+.phpunit.cache/
