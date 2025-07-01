@@ -32,7 +32,7 @@ class Permission extends ActiveRecord
     public function roles(): Collection
     {
         $sql = "
-            SELECT r.* 
+            SELECT r.*
             FROM roles r
             INNER JOIN role_permissions rp ON r.id = rp.role_id
             WHERE rp.permission_id = ?
@@ -40,9 +40,11 @@ class Permission extends ActiveRecord
         
         $results = static::getConnection()->select($sql, [$this->getKey()]);
         
-        return new Collection(array_map(function($row) {
+        $roles = array_map(function($row) {
             return Role::newFromBuilder($row);
-        }, $results));
+        }, $results);
+        
+        return new Collection($roles, Role::class);
     }
 
     /**

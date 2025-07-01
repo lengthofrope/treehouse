@@ -222,7 +222,8 @@ abstract class ActiveRecord
     public static function all(array $columns = ['*']): Collection
     {
         $results = static::query()->select($columns)->get();
-        return $results->map([static::class, 'newFromBuilder']);
+        $models = $results->map([static::class, 'newFromBuilder']);
+        return new Collection($models->all(), static::class);
     }
 
     /**
@@ -277,7 +278,8 @@ abstract class ActiveRecord
             ->where($column, $value)
             ->get();
 
-        return $results->map([static::class, 'newFromBuilder']);
+        $models = $results->map([static::class, 'newFromBuilder']);
+        return new Collection($models->all(), static::class);
     }
 
     /**
