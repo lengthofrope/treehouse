@@ -411,7 +411,7 @@ class ViewEngine
             return treehouseJs($modules, $minified);
         });
 
-        $this->share('treehouseConfig', function(string $baseUrl = null, bool $debug = null) {
+        $this->share('treehouseConfig', function(?string $baseUrl = null, ?bool $debug = null) {
             return treehouseConfig($baseUrl, $debug);
         });
 
