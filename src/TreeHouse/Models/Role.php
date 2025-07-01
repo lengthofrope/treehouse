@@ -31,7 +31,7 @@ class Role extends ActiveRecord
     public function permissions(): Collection
     {
         $sql = "
-            SELECT p.* 
+            SELECT p.*
             FROM permissions p
             INNER JOIN role_permissions rp ON p.id = rp.permission_id
             WHERE rp.role_id = ?
@@ -39,20 +39,22 @@ class Role extends ActiveRecord
         
         $results = static::getConnection()->select($sql, [$this->getKey()]);
         
-        return new Collection(array_map(function($row) {
+        $permissions = array_map(function($row) {
             return Permission::newFromBuilder($row);
-        }, $results));
+        }, $results);
+        
+        return new Collection($permissions, Permission::class);
     }
 
     /**
      * Get users with this role
-     * 
+     *
      * @return Collection
      */
     public function users(): Collection
     {
         $sql = "
-            SELECT u.* 
+            SELECT u.*
             FROM users u
             INNER JOIN user_roles ur ON u.id = ur.user_id
             WHERE ur.role_id = ?
@@ -60,9 +62,11 @@ class Role extends ActiveRecord
         
         $results = static::getConnection()->select($sql, [$this->getKey()]);
         
-        return new Collection(array_map(function($row) {
+        $users = array_map(function($row) {
             return User::newFromBuilder($row);
-        }, $results));
+        }, $results);
+        
+        return new Collection($users, User::class);
     }
 
     /**

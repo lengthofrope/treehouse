@@ -38,9 +38,11 @@ class User extends ActiveRecord implements Authorizable
         
         $results = static::getConnection()->select($sql, [$this->getKey()]);
         
-        return new Collection(array_map(function($row) {
+        $roles = array_map(function($row) {
             return Role::newFromBuilder($row);
-        }, $results));
+        }, $results);
+        
+        return new Collection($roles, Role::class);
     }
 
     /**
