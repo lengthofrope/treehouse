@@ -183,7 +183,73 @@ $query = Arr::query($params); // "name=John&age=25"
 
 ## Collection Class
 
-The [`Collection`](src/TreeHouse/Support/Collection.php:1) class provides a fluent interface for working with arrays of data, inspired by Laravel's Collection.
+The [`Collection`](src/TreeHouse/Support/Collection.php:1) class provides a fluent interface for working with arrays of data, inspired by Laravel's Collection. It includes model-awareness capabilities for seamless integration with ActiveRecord models.
+
+### Model-Aware Collections
+
+Collections can automatically preserve model types through transformations, ensuring that model objects maintain their methods and properties even after filtering, mapping, or other operations.
+
+```php
+use LengthOfRope\TreeHouse\Models\User;
+
+// Get model-aware collection
+$users = User::all(); // Returns Collection<User>
+
+// Model types are preserved through transformations
+$activeUsers = $users
+    ->filter(fn($user) => $user->isActive()) // Still Collection<User>
+    ->map(fn($user) => $user->withFullName()) // Still Collection<User>
+    ->where('role', 'admin'); // Still Collection<User>
+
+// Model methods remain available
+$firstUser = $activeUsers->first();
+$userName = $firstUser->getName(); // Model method still works
+```
+
+### Model-Specific Methods
+
+Model-aware collections provide additional methods for working with model objects:
+
+```php
+// Find models by attribute
+$adminUser = $users->findBy('role', 'admin');
+$userById = $users->findBy('id', 123);
+
+// Refresh models from database
+$freshUsers = $users->fresh();
+
+// Bulk operations
+$users->saveAll(); // Save all models
+$users->deleteAll(); // Delete all models
+
+// Get model primary keys
+$userIds = $users->modelKeys(); // [1, 2, 3, ...]
+
+// Check if collection contains models
+$isModelCollection = $users->isModelCollection(); // true
+$modelClass = $users->getModelClass(); // "LengthOfRope\TreeHouse\Models\User"
+```
+
+### Type Preservation Logic
+
+The Collection class intelligently preserves model types:
+
+- **Preserved**: When transformations return model instances of the same type
+- **Reset**: When transformations return different types (arrays, other objects)
+- **Maintained**: Through filtering, sorting, and other non-transforming operations
+
+```php
+// Type preserved - callback returns User objects
+$transformed = $users->map(function($user) {
+    $user->last_login = now();
+    return $user; // Returns User object
+}); // Still Collection<User>
+
+// Type reset - callback returns arrays
+$arrays = $users->map(function($user) {
+    return $user->toArray(); // Returns array
+}); // Now Collection<array>
+```
 
 ### Basic Usage
 
