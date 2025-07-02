@@ -46,7 +46,7 @@ class ModelQueryBuilder extends QueryBuilder
         $results = $this->connection->select($sql, $this->getBindings());
         
         // Convert results to model instances
-        $models = array_map([$this->modelClass, 'newFromBuilder'], $results);
+        $models = array_map([$this->modelClass, 'createFromData'], $results);
         return new Collection($models);
     }
 
@@ -61,7 +61,7 @@ class ModelQueryBuilder extends QueryBuilder
         $result = $this->connection->selectOne($sql, $this->getBindings());
         
         if ($result) {
-            return $this->modelClass::newFromBuilder($result);
+            return $this->modelClass::createFromData($result);
         }
         
         return null;

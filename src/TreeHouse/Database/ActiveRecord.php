@@ -226,7 +226,7 @@ abstract class ActiveRecord
 
     /**
      * Find a record by primary key
-     * 
+     *
      * @param mixed $id Primary key value
      * @param array $columns Columns to select
      * @return static|null
@@ -234,12 +234,10 @@ abstract class ActiveRecord
     public static function find(mixed $id, array $columns = ['*']): ?static
     {
         $instance = new static();
-        $result = static::query()
+        return static::query()
             ->select($columns)
             ->where($instance->getKeyName(), $id)
             ->first();
-
-        return $result ? static::newFromBuilder($result) : null;
     }
 
     /**
@@ -292,7 +290,7 @@ abstract class ActiveRecord
 
     /**
      * Update or create a record
-     * 
+     *
      * @param array $attributes Search attributes
      * @param array $values Update values
      * @return static
@@ -308,10 +306,9 @@ abstract class ActiveRecord
         $result = $query->first();
 
         if ($result) {
-            $instance = static::newFromBuilder($result);
-            $instance->fill($values);
-            $instance->save();
-            return $instance;
+            $result->fill($values);
+            $result->save();
+            return $result;
         }
 
         return static::create(array_merge($attributes, $values));
@@ -514,12 +511,12 @@ abstract class ActiveRecord
     }
 
     /**
-     * Create new instance from query builder result
-     * 
+     * Create new instance from database data
+     *
      * @param array $attributes Attributes from database
      * @return static
      */
-    public static function newFromBuilder(array $attributes): static
+    public static function createFromData(array $attributes): static
     {
         $instance = new static();
         $instance->setRawAttributes($attributes);

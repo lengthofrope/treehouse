@@ -180,7 +180,7 @@ class HasMany extends Relation
             ->where($instance->getKeyName(), $id)
             ->first();
 
-        return $result ? $relatedClass::newFromBuilder($result) : null;
+        return $result ? $relatedClass::createFromData($result) : null;
     }
 
     /**
@@ -202,7 +202,7 @@ class HasMany extends Relation
         
         if ($result) {
             $relatedClass = $this->getRelatedClass();
-            return $relatedClass::newFromBuilder($result);
+            return $relatedClass::createFromData($result);
         }
 
         return null;
@@ -251,7 +251,7 @@ class HasMany extends Relation
         $relatedClass = $this->getRelatedClass();
 
         foreach ($results as $result) {
-            $model = $relatedClass::newFromBuilder($result);
+            $model = $relatedClass::createFromData($result);
             $key = $model->getAttribute($this->foreignKey);
             
             if (!isset($dictionary[$key])) {

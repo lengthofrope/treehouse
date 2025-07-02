@@ -41,7 +41,7 @@ class Permission extends ActiveRecord
         $results = static::getConnection()->select($sql, [$this->getKey()]);
         
         $roles = array_map(function($row) {
-            return Role::newFromBuilder($row);
+            return Role::createFromData($row);
         }, $results);
         
         return new Collection($roles, Role::class);

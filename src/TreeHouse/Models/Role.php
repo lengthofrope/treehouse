@@ -40,7 +40,7 @@ class Role extends ActiveRecord
         $results = static::getConnection()->select($sql, [$this->getKey()]);
         
         $permissions = array_map(function($row) {
-            return Permission::newFromBuilder($row);
+            return Permission::createFromData($row);
         }, $results);
         
         return new Collection($permissions, Permission::class);
@@ -63,7 +63,7 @@ class Role extends ActiveRecord
         $results = static::getConnection()->select($sql, [$this->getKey()]);
         
         $users = array_map(function($row) {
-            return User::newFromBuilder($row);
+            return User::createFromData($row);
         }, $results);
         
         return new Collection($users, User::class);
