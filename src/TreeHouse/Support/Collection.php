@@ -36,22 +36,13 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
     protected array $items = [];
 
     /**
-     * The model class this collection contains (for model-aware collections)
-     *
-     * @var string|null
-     */
-    protected ?string $modelClass = null;
-
-    /**
      * Create a new collection
      *
      * @param array<TKey, TValue> $items Initial items
-     * @param string|null $modelClass Model class for model-aware collections
      */
-    public function __construct(array $items = [], ?string $modelClass = null)
+    public function __construct(array $items = [])
     {
         $this->items = $items;
-        $this->modelClass = $modelClass;
     }
 
     /**
@@ -60,32 +51,11 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
      * @template TMakeKey of array-key
      * @template TMakeValue
      * @param array<TMakeKey, TMakeValue> $items
-     * @param string|null $modelClass Model class for model-aware collections
      * @return static<TMakeKey, TMakeValue>
      */
-    public static function make(array $items = [], ?string $modelClass = null): static
+    public static function make(array $items = []): static
     {
-        return new static($items, $modelClass);
-    }
-
-    /**
-     * Get the model class for this collection
-     *
-     * @return string|null
-     */
-    public function getModelClass(): ?string
-    {
-        return $this->modelClass;
-    }
-
-    /**
-     * Check if this is a model-aware collection
-     *
-     * @return bool
-     */
-    public function isModelCollection(): bool
-    {
-        return $this->modelClass !== null;
+        return new static($items);
     }
 
     /**
@@ -126,13 +96,13 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
     public function chunk(int $size): static
     {
         if ($size <= 0) {
-            return static::make([], $this->modelClass);
+            return static::make([]);
         }
 
         $chunks = [];
         
         foreach (array_chunk($this->items, $size, true) as $chunk) {
-            $chunks[] = static::make($chunk, $this->modelClass);
+            $chunks[] = static::make($chunk);
         }
 
         return static::make($chunks);
@@ -202,7 +172,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
      */
     public function diff(mixed $items): static
     {
-        return static::make(array_diff($this->items, $this->getArrayableItems($items)), $this->modelClass);
+        return static::make(array_diff($this->items, $this->getArrayableItems($items)));
     }
 
     /**
@@ -251,10 +221,10 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
     public function filter(?callable $callback = null): static
     {
         if ($callback) {
-            return static::make(array_filter($this->items, $callback, ARRAY_FILTER_USE_BOTH), $this->modelClass);
+            return static::make(array_filter($this->items, $callback, ARRAY_FILTER_USE_BOTH));
         }
 
-        return static::make(array_filter($this->items), $this->modelClass);
+        return static::make(array_filter($this->items));
     }
 
     /**
@@ -293,7 +263,6 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
      */
     public function flatten(float $depth = INF): static
     {
-        // Flatten operation loses model class since we're flattening nested structures
         return static::make(Arr::flatten($this->items, $depth));
     }
 
@@ -336,7 +305,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
                 $groupKey = is_bool($groupKey) ? (int) $groupKey : $groupKey;
 
                 if (!array_key_exists($groupKey, $results)) {
-                    $results[$groupKey] = static::make([], $this->modelClass);
+                    $results[$groupKey] = static::make([]);
                 }
 
                 $results[$groupKey]->offsetSet($preserveKeys ? $key : null, $value);
@@ -391,7 +360,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
      */
     public function intersect(mixed $items): static
     {
-        return static::make(array_intersect($this->items, $this->getArrayableItems($items)), $this->modelClass);
+        return static::make(array_intersect($this->items, $this->getArrayableItems($items)));
     }
 
     /**
@@ -401,7 +370,6 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
      */
     public function keys(): static
     {
-        // Keys operation returns a different type (keys instead of values), so no model class
         return static::make(array_keys($this->items));
     }
 
@@ -435,10 +403,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
         $items = array_map($callback, $this->items, $keys);
         $result = array_combine($keys, $items);
 
-        // Preserve model class only if all results are still instances of the same model class
-        $preserveModelClass = $this->shouldPreserveModelClass($result);
-
-        return static::make($result, $preserveModelClass ? $this->modelClass : null);
+        return static::make($result);
     }
 
     /**
@@ -466,7 +431,6 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
      */
     public function merge(mixed $items): static
     {
-        // Merge operation loses model class since we're merging with potentially different types
         return static::make(array_merge($this->items, $this->getArrayableItems($items)));
     }
 
@@ -494,12 +458,12 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
     public function only(mixed $keys): static
     {
         if (is_null($keys)) {
-            return static::make([], $this->modelClass);
+            return static::make([]);
         }
 
         $keys = is_array($keys) ? $keys : func_get_args();
 
-        return static::make(Arr::only($this->items, $keys), $this->modelClass);
+        return static::make(Arr::only($this->items, $keys));
     }
 
     /**
@@ -511,7 +475,6 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
      */
     public function pluck(string|array $value, ?string $key = null): static
     {
-        // Pluck operation returns attribute values, not models, so no model class
         return static::make(Arr::pluck($this->items, $value, $key));
     }
 
@@ -554,7 +517,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
             return Arr::random($this->items);
         }
 
-        return static::make(Arr::random($this->items, $number), $this->modelClass);
+        return static::make(Arr::random($this->items, $number));
     }
 
     /**
@@ -602,7 +565,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
      */
     public function reverse(): static
     {
-        return static::make(array_reverse($this->items, true), $this->modelClass);
+        return static::make(array_reverse($this->items, true));
     }
 
     /**
@@ -634,7 +597,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
      */
     public function shuffle(): static
     {
-        return static::make(Arr::shuffle($this->items), $this->modelClass);
+        return static::make(Arr::shuffle($this->items));
     }
 
     /**
@@ -657,7 +620,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
      */
     public function slice(int $offset, ?int $length = null): static
     {
-        return static::make(array_slice($this->items, $offset, $length, true), $this->modelClass);
+        return static::make(array_slice($this->items, $offset, $length, true));
     }
 
     /**
@@ -674,7 +637,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
             ? uasort($items, $callback)
             : asort($items, SORT_REGULAR);
 
-        return static::make($items, $this->modelClass);
+        return static::make($items);
     }
 
     /**
@@ -707,7 +670,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
             $results[$key] = $this->items[$key];
         }
 
-        return static::make($results, $this->modelClass);
+        return static::make($results);
     }
 
     /**
@@ -735,7 +698,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
 
         $descending ? krsort($items, $options) : ksort($items, $options);
 
-        return static::make($items, $this->modelClass);
+        return static::make($items);
     }
 
     /**
@@ -822,7 +785,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
      */
     public function values(): static
     {
-        return static::make(array_values($this->items), $this->modelClass);
+        return static::make(array_values($this->items));
     }
 
     /**
@@ -1176,123 +1139,5 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
             }
             return dataGet($item, $attribute) === $value;
         });
-    }
-
-    /**
-     * Reload all models from the database (only works with model collections)
-     *
-     * @return static
-     */
-    public function fresh(): static
-    {
-        if (!$this->isModelCollection()) {
-            return $this;
-        }
-
-        $freshItems = [];
-        foreach ($this->items as $key => $item) {
-            if (is_object($item) && method_exists($item, 'fresh')) {
-                $fresh = $item->fresh();
-                if ($fresh) {
-                    $freshItems[$key] = $fresh;
-                }
-            } else {
-                $freshItems[$key] = $item;
-            }
-        }
-
-        return static::make($freshItems, $this->modelClass);
-    }
-
-    /**
-     * Save all models in the collection (only works with model collections)
-     *
-     * @return bool
-     */
-    public function saveAll(): bool
-    {
-        if (!$this->isModelCollection()) {
-            return false;
-        }
-
-        $success = true;
-        foreach ($this->items as $item) {
-            if (is_object($item) && method_exists($item, 'save')) {
-                if (!$item->save()) {
-                    $success = false;
-                }
-            }
-        }
-
-        return $success;
-    }
-
-    /**
-     * Delete all models in the collection (only works with model collections)
-     *
-     * @return bool
-     */
-    public function deleteAll(): bool
-    {
-        if (!$this->isModelCollection()) {
-            return false;
-        }
-
-        $success = true;
-        foreach ($this->items as $item) {
-            if (is_object($item) && method_exists($item, 'delete')) {
-                if (!$item->delete()) {
-                    $success = false;
-                }
-            }
-        }
-
-        return $success;
-    }
-
-    /**
-     * Get an array of the primary key values
-     *
-     * @return array
-     */
-    public function modelKeys(): array
-    {
-        if (!$this->isModelCollection()) {
-            return [];
-        }
-
-        return $this->map(function ($item) {
-            if (is_object($item) && method_exists($item, 'getKey')) {
-                return $item->getKey();
-            }
-            return null;
-        })->filter()->values()->all();
-    }
-
-    /**
-     * Determine if the model class should be preserved based on result items
-     *
-     * @param array $result
-     * @return bool
-     */
-    protected function shouldPreserveModelClass(array $result): bool
-    {
-        if (!$this->modelClass) {
-            return false;
-        }
-
-        // If result is empty, preserve model class
-        if (empty($result)) {
-            return true;
-        }
-
-        // Check if all items are still instances of the model class
-        foreach ($result as $item) {
-            if (!($item instanceof $this->modelClass)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

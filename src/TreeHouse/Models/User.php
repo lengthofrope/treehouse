@@ -7,7 +7,11 @@ namespace LengthOfRope\TreeHouse\Models;
 use LengthOfRope\TreeHouse\Database\ActiveRecord;
 use LengthOfRope\TreeHouse\Auth\Contracts\Authorizable;
 use LengthOfRope\TreeHouse\Support\Collection;
+use LengthOfRope\TreeHouse\Support\Carbon;
 
+/**
+ * User Model
+ */
 class User extends ActiveRecord implements Authorizable
 {
     protected string $table = 'users';
@@ -21,6 +25,60 @@ class User extends ActiveRecord implements Authorizable
     protected array $hidden = [
         'password',
     ];
+
+    // Property hooks for perfect IDE autocompletion
+    public int $id {
+        get => (int) $this->getAttribute('id');
+    }
+
+    public string $name {
+        get => (string) $this->getAttribute('name');
+        set(string $value) {
+            $this->setAttribute('name', $value);
+        }
+    }
+
+    public string $email {
+        get => (string) $this->getAttribute('email');
+        set(string $value) {
+            $this->setAttribute('email', $value);
+        }
+    }
+
+    public string $password {
+        get => (string) $this->getAttribute('password');
+        set(string $value) {
+            $this->setAttribute('password', $value);
+        }
+    }
+
+    public ?string $remember_token {
+        get => $this->getAttribute('remember_token');
+        set(?string $value) {
+            $this->setAttribute('remember_token', $value);
+        }
+    }
+
+    public ?string $email_verified_at {
+        get => $this->getAttribute('email_verified_at');
+        set(?string $value) {
+            $this->setAttribute('email_verified_at', $value);
+        }
+    }
+
+    public ?Carbon $created_at {
+        get => $this->getAttribute('created_at') ? Carbon::parse($this->getAttribute('created_at')) : null;
+        set(?Carbon $value) {
+            $this->setAttribute('created_at', $value?->format('Y-m-d H:i:s'));
+        }
+    }
+
+    public ?Carbon $updated_at {
+        get => $this->getAttribute('updated_at') ? Carbon::parse($this->getAttribute('updated_at')) : null;
+        set(?Carbon $value) {
+            $this->setAttribute('updated_at', $value?->format('Y-m-d H:i:s'));
+        }
+    }
 
     /**
      * Get roles associated with this user
@@ -39,10 +97,10 @@ class User extends ActiveRecord implements Authorizable
         $results = static::getConnection()->select($sql, [$this->getKey()]);
         
         $roles = array_map(function($row) {
-            return Role::newFromBuilder($row);
+            return Role::createFromData($row);
         }, $results);
         
-        return new Collection($roles, Role::class);
+        return new Collection($roles);
     }
 
     /**

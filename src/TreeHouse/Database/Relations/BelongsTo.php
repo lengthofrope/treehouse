@@ -121,7 +121,7 @@ class BelongsTo extends Relation
         
         if ($result) {
             $relatedClass = $this->getRelatedClass();
-            return $relatedClass::newFromBuilder($result);
+            return $relatedClass::createFromData($result);
         }
 
         return null;
@@ -187,7 +187,7 @@ class BelongsTo extends Relation
         $relatedClass = $this->getRelatedClass();
 
         foreach ($results as $result) {
-            $model = $relatedClass::newFromBuilder($result);
+            $model = $relatedClass::createFromData($result);
             $key = $model->getAttribute($this->ownerKey);
             $dictionary[$key] = $model;
         }

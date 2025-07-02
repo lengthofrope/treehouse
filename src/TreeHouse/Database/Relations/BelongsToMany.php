@@ -154,7 +154,7 @@ class BelongsToMany extends Relation
         $models = [];
 
         foreach ($results as $result) {
-            $model = $relatedClass::newFromBuilder($result);
+            $model = $relatedClass::createFromData($result);
             $model->pivot = $this->cleanPivotAttributes($result);
             $models[] = $model;
         }
@@ -393,7 +393,7 @@ class BelongsToMany extends Relation
         $relatedClass = $this->getRelatedClass();
 
         foreach ($results as $result) {
-            $model = $relatedClass::newFromBuilder($result);
+            $model = $relatedClass::createFromData($result);
             $model->pivot = $this->cleanPivotAttributes($result);
             
             $key = $result['pivot_' . $this->foreignPivotKey] ?? null;

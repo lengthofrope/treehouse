@@ -67,6 +67,7 @@ The [`QueryBuilder`](QueryBuilder.php:21) class provides a fluent interface for 
 - **Complex Queries**: Joins, subqueries, aggregations
 - **Pagination Support**: Built-in pagination with offset/limit
 - **Collection Results**: Returns structured data collections
+- **Model Integration**: ModelQueryBuilder automatically converts results to model instances
 
 #### Core Methods:
 
@@ -120,6 +121,39 @@ $deleted = QueryBuilder::table('users')
     ->delete();
 ```
 
+#### ModelQueryBuilder - Model-Aware Query Builder
+
+The [`ModelQueryBuilder`](ModelQueryBuilder.php) extends QueryBuilder to automatically convert database results to model instances:
+
+```php
+// ModelQueryBuilder automatically returns User objects
+$users = User::query()                    // Returns ModelQueryBuilder
+    ->where('active', true)
+    ->orderBy('created_at', 'desc')
+    ->get();                              // Returns Collection of User objects
+
+// All results are properly hydrated model instances
+foreach ($users as $user) {
+    echo $user->name;                     // Perfect IDE autocompletion
+    echo $user->created_at->format('Y-m-d'); // Carbon instance methods
+}
+
+// Single model retrieval
+$user = User::query()->where('email', 'john@example.com')->first(); // Returns User|null
+$user = User::query()->find(1); // Returns User|null
+
+// Collection methods work with model instances
+$activeUsers = User::query()->get()
+    ->filter(fn($user) => $user->isActive())
+    ->map(fn($user) => $user->email);
+```
+
+**Key Differences from QueryBuilder:**
+- **Automatic Model Hydration**: Results are model instances, not arrays
+- **Type Safety**: Returns properly typed model objects
+- **IDE Support**: Perfect autocompletion for model properties and methods
+- **Relationship Loading**: Seamless integration with model relationships
+
 ### ActiveRecord - Base Model Class
 
 The [`ActiveRecord`](ActiveRecord.php:26) class provides an elegant ORM implementation with automatic table mapping, relationships, and data validation.
@@ -130,6 +164,7 @@ The [`ActiveRecord`](ActiveRecord.php:26) class provides an elegant ORM implemen
 - **Timestamps**: Automatic created_at/updated_at handling
 - **Type Casting**: Automatic data type conversion
 - **Relationships**: HasMany, BelongsTo, BelongsToMany support
+- **Property Hooks**: PHP 8.4 property hooks for perfect IDE autocompletion
 - **Query Scopes**: Reusable query constraints
 - **Events**: Model lifecycle hooks
 
@@ -203,6 +238,97 @@ $user->name = 'New Name';
 // Array/JSON conversion
 $array = $user->toArray();
 $json = $user->toJson();
+```
+
+#### Property Hooks for IDE Autocompletion
+
+ActiveRecord models use PHP 8.4 Property Hooks to provide perfect IDE autocompletion and type safety:
+
+```php
+class User extends ActiveRecord
+{
+    protected array $fillable = ['name', 'email', 'password'];
+
+    // Property hooks for perfect IDE autocompletion
+    public int $id {
+        get => (int) $this->getAttribute('id');
+    }
+
+    public string $name {
+        get => (string) $this->getAttribute('name');
+        set(string $value) {
+            $this->setAttribute('name', $value);
+        }
+    }
+
+    public string $email {
+        get => (string) $this->getAttribute('email');
+        set(string $value) {
+            $this->setAttribute('email', $value);
+        }
+    }
+
+    public ?Carbon $created_at {
+        get => $this->getAttribute('created_at') ? Carbon::parse($this->getAttribute('created_at')) : null;
+        set(?Carbon $value) {
+            $this->setAttribute('created_at', $value?->format('Y-m-d H:i:s'));
+        }
+    }
+}
+
+// Perfect IDE autocompletion and type safety
+$user = User::find(1);
+$user->name = 'John Doe';        // ✅ String type enforced
+$user->created_at = Carbon::now(); // ✅ Carbon type enforced
+$user->save();
+```
+
+**Benefits of Property Hooks:**
+- **Perfect IDE autocompletion**: Real properties, not magic methods
+- **Type safety**: PHP enforces types at runtime
+- **Better performance**: No magic method overhead
+- **Carbon integration**: DateTime properties return Carbon instances
+- **Static analysis support**: PHPStan, Psalm, etc. understand them perfectly
+
+**Property Hook Patterns:**
+
+```php
+// Read-only properties (like ID)
+public int $id {
+    get => (int) $this->getAttribute('id');
+}
+
+// Read-write properties
+public string $name {
+    get => (string) $this->getAttribute('name');
+    set(string $value) {
+        $this->setAttribute('name', $value);
+    }
+}
+
+// Nullable properties
+public ?string $description {
+    get => $this->getAttribute('description');
+    set(?string $value) {
+        $this->setAttribute('description', $value);
+    }
+}
+
+// Carbon date properties
+public ?Carbon $created_at {
+    get => $this->getAttribute('created_at') ? Carbon::parse($this->getAttribute('created_at')) : null;
+    set(?Carbon $value) {
+        $this->setAttribute('created_at', $value?->format('Y-m-d H:i:s'));
+    }
+}
+
+// Complex properties (JSON arrays)
+public array $metadata {
+    get => json_decode($this->getAttribute('metadata') ?? '[]', true);
+    set(array $value) {
+        $this->setAttribute('metadata', json_encode($value));
+    }
+}
 ```
 
 ### Migration - Database Migration System
