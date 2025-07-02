@@ -801,7 +801,7 @@ abstract class ActiveRecord
 
     /**
      * Magic getter
-     * 
+     *
      * @param string $key Attribute key
      * @return mixed
      */
@@ -812,7 +812,7 @@ abstract class ActiveRecord
 
     /**
      * Magic setter
-     * 
+     *
      * @param string $key Attribute key
      * @param mixed $value Attribute value
      */

@@ -6,10 +6,11 @@ namespace LengthOfRope\TreeHouse\Models;
 
 use LengthOfRope\TreeHouse\Database\ActiveRecord;
 use LengthOfRope\TreeHouse\Support\Collection;
+use LengthOfRope\TreeHouse\Support\Carbon;
 
 /**
  * Role Model
- * 
+ *
  * Represents a user role with associated permissions.
  * Provides methods for managing role-permission relationships.
  */
@@ -22,6 +23,46 @@ class Role extends ActiveRecord
         'slug',
         'description',
     ];
+
+    // Property hooks for perfect IDE autocompletion
+    public int $id {
+        get => (int) $this->getAttribute('id');
+    }
+
+    public string $name {
+        get => (string) $this->getAttribute('name');
+        set(string $value) {
+            $this->setAttribute('name', $value);
+        }
+    }
+
+    public string $slug {
+        get => (string) $this->getAttribute('slug');
+        set(string $value) {
+            $this->setAttribute('slug', $value);
+        }
+    }
+
+    public ?string $description {
+        get => $this->getAttribute('description');
+        set(?string $value) {
+            $this->setAttribute('description', $value);
+        }
+    }
+
+    public ?Carbon $created_at {
+        get => $this->getAttribute('created_at') ? Carbon::parse($this->getAttribute('created_at')) : null;
+        set(?Carbon $value) {
+            $this->setAttribute('created_at', $value?->format('Y-m-d H:i:s'));
+        }
+    }
+
+    public ?Carbon $updated_at {
+        get => $this->getAttribute('updated_at') ? Carbon::parse($this->getAttribute('updated_at')) : null;
+        set(?Carbon $value) {
+            $this->setAttribute('updated_at', $value?->format('Y-m-d H:i:s'));
+        }
+    }
 
     /**
      * Get permissions associated with this role
