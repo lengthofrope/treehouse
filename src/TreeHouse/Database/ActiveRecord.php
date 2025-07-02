@@ -194,12 +194,22 @@ abstract class ActiveRecord
 
     /**
      * Get primary key value
-     * 
+     *
      * @return mixed
      */
     public function getKey(): mixed
     {
         return $this->getAttribute($this->getKeyName());
+    }
+
+    /**
+     * Check if the model exists in the database
+     *
+     * @return bool
+     */
+    public function exists(): bool
+    {
+        return $this->exists;
     }
 
     /**
