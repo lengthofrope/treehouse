@@ -92,7 +92,7 @@ class QueryBuilder
 
     /**
      * Create a new QueryBuilder instance
-     * 
+     *
      * @param Connection $connection Database connection
      * @param string $table Table name
      */
@@ -441,10 +441,10 @@ class QueryBuilder
 
     /**
      * Execute the query and get first result
-     * 
-     * @return array|null
+     *
+     * @return mixed
      */
-    public function first(): ?array
+    public function first(): mixed
     {
         $sql = $this->limit(1)->toSql();
         return $this->connection->selectOne($sql, $this->getBindings());
@@ -452,12 +452,12 @@ class QueryBuilder
 
     /**
      * Find a record by ID
-     * 
+     *
      * @param mixed $id Record ID
      * @param string $column ID column name
-     * @return array|null
+     * @return mixed
      */
-    public function find(mixed $id, string $column = 'id'): ?array
+    public function find(mixed $id, string $column = 'id'): mixed
     {
         return $this->where($column, $id)->first();
     }

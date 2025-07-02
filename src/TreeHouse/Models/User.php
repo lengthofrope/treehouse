@@ -42,7 +42,7 @@ class User extends ActiveRecord implements Authorizable
             return Role::newFromBuilder($row);
         }, $results);
         
-        return new Collection($roles, Role::class);
+        return new Collection($roles);
     }
 
     /**

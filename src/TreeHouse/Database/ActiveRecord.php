@@ -204,13 +204,13 @@ abstract class ActiveRecord
 
     /**
      * Create a new query builder
-     * 
+     *
      * @return QueryBuilder
      */
     public static function query(): QueryBuilder
     {
         $instance = new static();
-        return new QueryBuilder(static::getConnection(), $instance->getTable());
+        return new ModelQueryBuilder(static::getConnection(), $instance->getTable(), static::class);
     }
 
     /**
@@ -221,9 +221,7 @@ abstract class ActiveRecord
      */
     public static function all(array $columns = ['*']): Collection
     {
-        $results = static::query()->select($columns)->get();
-        $models = $results->map([static::class, 'newFromBuilder']);
-        return new Collection($models->all(), static::class);
+        return static::query()->select($columns)->get();
     }
 
     /**
@@ -273,13 +271,10 @@ abstract class ActiveRecord
      */
     public static function where(string $column, mixed $value, array $columns = ['*']): Collection
     {
-        $results = static::query()
+        return static::query()
             ->select($columns)
             ->where($column, $value)
             ->get();
-
-        $models = $results->map([static::class, 'newFromBuilder']);
-        return new Collection($models->all(), static::class);
     }
 
     /**
