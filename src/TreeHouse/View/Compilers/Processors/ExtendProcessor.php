@@ -23,6 +23,9 @@ class ExtendProcessor extends AbstractProcessor
         $php = "<?php \$this->extend('{$expression}'); ?>";
         $this->insertPhpBefore($node, $php);
         
+        // Remove the th:extend attribute before unwrapping
+        $node->removeAttribute('th:extend');
+        
         // Move child nodes up to parent instead of removing them
         $this->unwrapElement($node);
     }

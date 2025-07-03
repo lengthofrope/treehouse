@@ -25,5 +25,8 @@ class SectionProcessor extends AbstractProcessor
         // Use PHP marker system for proper code generation
         $this->insertPhpBefore($node, $startPhp);
         $this->insertPhpAfter($node, $endPhp);
+        
+        // Remove the th:section attribute
+        $node->removeAttribute('th:section');
     }
 }

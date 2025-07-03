@@ -36,8 +36,8 @@ class ExpressionValidator
      * Blocked operators
      */
     private const BLOCKED_OPERATORS = [
-        // Arithmetic
-        '+', '-', '*', '/', '%',
+        // Arithmetic (except + which is allowed for string concatenation)
+        '-', '*', '/', '%',
         // Comparison
         '==', '!=', '<', '>', '<=', '>=', '===', '!==',
         // Assignment
