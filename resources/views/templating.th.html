@@ -49,24 +49,24 @@
             </div>
         </div>
 
-        <!-- th:attr Examples -->
+        <!-- Dynamic Attributes Examples -->
         <div class="treehouse-card p-6">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-6">Dynamic Attributes (th:attr)</h2>
+            <h2 class="text-2xl font-semibold text-gray-900 mb-6">Dynamic Attributes</h2>
             
             <!-- Dynamic Links -->
             <div class="mb-6">
                 <h3 class="text-lg font-medium text-gray-800 mb-3">Dynamic Links</h3>
                 <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-green-500 mb-3">
-                    <a th:attr="href=user.profile.url" class="text-treehouse-600 hover:text-treehouse-700 underline">
+                    <a th:href="user.profile.url" class="text-treehouse-600 hover:text-treehouse-700 underline">
                         Visit {user.profile.name}'s Profile
                     </a><br>
-                    <a th:attr="href=user.profile.emailUrl" class="text-blue-600 hover:text-blue-700 underline">
+                    <a th:href="user.profile.emailUrl" class="text-blue-600 hover:text-blue-700 underline">
                         Email {user.profile.name}
                     </a>
                 </div>
                 <div class="text-sm text-gray-600 bg-gray-100 p-3 rounded">
                     <strong>Template Code:</strong><br>
-                    <code class="text-xs">&lt;a th:attr="href=user.profile.url"&gt;Visit Profile&lt;/a&gt;</code>
+                    <code class="text-xs">&lt;a th:href="user.profile.url"&gt;Visit Profile&lt;/a&gt;</code>
                 </div>
             </div>
 
@@ -74,13 +74,13 @@
             <div class="mb-6">
                 <h3 class="text-lg font-medium text-gray-800 mb-3">Dynamic Images</h3>
                 <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-yellow-500 mb-3">
-                    <img th:attr="src=user.profile.avatar, alt=user.profile.avatarAlt"
+                    <img th:src="user.profile.avatar" th:alt="user.profile.avatarAlt"
                             class="w-16 h-16 rounded-full border-2 border-gray-300">
                     <p class="mt-2 text-sm">Profile photo of {user.profile.name}</p>
                 </div>
                 <div class="text-sm text-gray-600 bg-gray-100 p-3 rounded">
                     <strong>Template Code:</strong><br>
-                    <code class="text-xs">&lt;img th:attr="src=user.profile.avatar, alt=user.profile.avatarAlt"&gt;</code>
+                    <code class="text-xs">&lt;img th:src="user.profile.avatar" th:alt="user.profile.avatarAlt"&gt;</code>
                 </div>
             </div>
 
@@ -88,14 +88,14 @@
             <div class="mb-6">
                 <h3 class="text-lg font-medium text-gray-800 mb-3">Dynamic CSS Classes</h3>
                 <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-red-500 mb-3">
-                    <div th:attr="class=user.status.fullCssClass">
+                    <div th:class="user.status.fullCssClass">
                         <p><strong>Status:</strong> {user.status.name}</p>
-                        <p><strong>Badge:</strong> <span th:attr="class=user.badge.fullCssClass">{user.badge.text}</span></p>
+                        <p><strong>Badge:</strong> <span th:class="user.badge.fullCssClass">{user.badge.text}</span></p>
                     </div>
                 </div>
                 <div class="text-sm text-gray-600 bg-gray-100 p-3 rounded">
                     <strong>Template Code:</strong><br>
-                    <code class="text-xs">&lt;div th:attr="class=user.status.fullCssClass"&gt;</code>
+                    <code class="text-xs">&lt;div th:class="user.status.fullCssClass"&gt;</code>
                 </div>
             </div>
 
@@ -103,14 +103,14 @@
             <div class="mb-6">
                 <h3 class="text-lg font-medium text-gray-800 mb-3">Data Attributes</h3>
                 <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-indigo-500 mb-3">
-                    <button th:attr="data-user-id=user.id, data-role=user.role.name, onclick=user.showUserOnclick"
+                    <button th:data-user-id="user.id" th:data-role="user.role.name" th:onclick="user.showUserOnclick"
                             class="bg-treehouse-600 text-white px-4 py-2 rounded hover:bg-treehouse-700 transition-colors">
                         View User Details
                     </button>
                 </div>
                 <div class="text-sm text-gray-600 bg-gray-100 p-3 rounded">
                     <strong>Template Code:</strong><br>
-                    <code class="text-xs">&lt;button th:attr="data-user-id=user.id, onclick=user.showUserOnclick"&gt;</code>
+                    <code class="text-xs">&lt;button th:data-user-id="user.id" th:onclick="user.showUserOnclick"&gt;</code>
                 </div>
             </div>
         </div>
