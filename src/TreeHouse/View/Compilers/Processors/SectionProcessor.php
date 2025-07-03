@@ -13,7 +13,7 @@ use DOMElement;
  *
  * @package LengthOfRope\TreeHouse\View\Compilers\Processors
  * @author  Bas de Kort <bdekort@proton.me>
- * @since   2.0.0
+ * @since   1.0.0
  */
 class SectionProcessor extends AbstractProcessor
 {
