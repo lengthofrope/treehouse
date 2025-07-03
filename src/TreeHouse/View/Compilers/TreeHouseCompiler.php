@@ -31,7 +31,7 @@ class TreeHouseCompiler
      * Processing order for directives (critical for correct compilation)
      */
     protected array $processingOrder = [
-        'th:extend', 'th:section', 'th:yield', 'th:if', 'th:repeat', 'th:text', 'th:raw', 'th:attr'
+        'th:extend', 'th:section', 'th:yield', 'th:if', 'th:repeat', 'th:text', 'th:raw'
     ];
 
     public function __construct(
@@ -56,8 +56,7 @@ class TreeHouseCompiler
             'th:if' => new Processors\IfProcessor($this->expressionCompiler),
             'th:repeat' => new Processors\RepeatProcessor($this->expressionCompiler),
             'th:text' => new Processors\TextProcessor($this->expressionCompiler),
-            'th:raw' => new Processors\RawProcessor($this->expressionCompiler),
-            'th:attr' => new Processors\AttrProcessor($this->expressionCompiler),
+            'th:raw' => new Processors\RawProcessor($this->expressionCompiler)
         ];
     }
 
