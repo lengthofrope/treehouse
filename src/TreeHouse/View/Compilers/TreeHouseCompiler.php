@@ -31,7 +31,7 @@ class TreeHouseCompiler
      * Processing order for directives (critical for correct compilation)
      */
     protected array $processingOrder = [
-        'th:extend', 'th:section', 'th:yield', 'th:if', 'th:repeat', 'th:text', 'th:attr'
+        'th:extend', 'th:section', 'th:yield', 'th:if', 'th:repeat', 'th:text', 'th:raw', 'th:attr'
     ];
 
     public function __construct(
@@ -56,6 +56,7 @@ class TreeHouseCompiler
             'th:if' => new Processors\IfProcessor($this->expressionCompiler),
             'th:repeat' => new Processors\RepeatProcessor($this->expressionCompiler),
             'th:text' => new Processors\TextProcessor($this->expressionCompiler),
+            'th:raw' => new Processors\RawProcessor($this->expressionCompiler),
             'th:attr' => new Processors\AttrProcessor($this->expressionCompiler),
         ];
     }
@@ -198,11 +199,14 @@ class TreeHouseCompiler
                 continue;
             }
             
-            // Compile brace expressions
+            // Compile brace expressions using PHP markers
             $compiledContent = $this->compileBraceExpressions($content);
             
             if ($compiledContent !== $content) {
-                $textNode->nodeValue = $compiledContent;
+                // Replace the text node with a comment node containing the PHP marker
+                $marker = "<!--TH_PHP_CONTENT:" . base64_encode($compiledContent) . "-->";
+                $commentNode = $dom->createComment("TH_PHP_CONTENT:" . base64_encode($compiledContent));
+                $textNode->parentNode->replaceChild($commentNode, $textNode);
             }
         }
     }
@@ -270,6 +274,10 @@ class TreeHouseCompiler
         }, $html);
         
         $html = preg_replace_callback('/<!--TH_PHP_AFTER:([^-]+)-->/', function ($matches) {
+            return base64_decode($matches[1]);
+        }, $html);
+        
+        $html = preg_replace_callback('/<!--TH_PHP_REPLACE:([^-]+)-->/', function ($matches) {
             return base64_decode($matches[1]);
         }, $html);
         

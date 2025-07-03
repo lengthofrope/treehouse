@@ -58,6 +58,9 @@ class ExpressionCompiler
     {
         // Convert dot notation to thGetProperty() calls
         $compiled = $this->compileDotNotation($expression);
+        
+        // Handle bare variable names (convert to $variable)
+        $compiled = $this->compileBareVariables($compiled);
 
         // Handle boolean operators (already valid PHP)
         // No conversion needed for &&, ||, !
@@ -90,6 +93,43 @@ class ExpressionCompiler
             }
 
             return $result;
+        }, $expression);
+    }
+
+    /**
+     * Convert bare variable names to PHP variables
+     *
+     * @param string $expression
+     * @return string
+     */
+    private function compileBareVariables(string $expression): string
+    {
+        // Pattern to match bare variable names that aren't already prefixed with $
+        // and aren't part of function calls or already processed dot notation
+        // This should match standalone words that look like variables
+        $pattern = '/\b(?<![\$\w])([a-zA-Z_][a-zA-Z0-9_]*)\b(?!\s*\(|::|->)/';
+        
+        return preg_replace_callback($pattern, function ($matches) {
+            $word = $matches[1];
+            
+            // Skip PHP keywords, constants, and framework helpers
+            $skipWords = [
+                'true', 'false', 'null', 'and', 'or', 'xor', 'not',
+                'if', 'else', 'elseif', 'endif', 'while', 'endwhile',
+                'for', 'endfor', 'foreach', 'endforeach', 'switch',
+                'case', 'default', 'break', 'continue', 'function',
+                'return', 'class', 'interface', 'trait', 'extends',
+                'implements', 'public', 'private', 'protected',
+                'static', 'final', 'abstract', 'const', 'var',
+                'Str', 'Carbon', 'Arr', 'Collection', 'thGetProperty'
+            ];
+            
+            if (in_array($word, $skipWords, true)) {
+                return $word;
+            }
+            
+            // Convert to PHP variable
+            return '$' . $word;
         }, $expression);
     }
 

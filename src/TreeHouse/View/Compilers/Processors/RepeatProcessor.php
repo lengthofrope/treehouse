@@ -20,23 +20,31 @@ class RepeatProcessor extends AbstractProcessor
     public function process(DOMElement $node, string $expression): void
     {
         // Parse repeat expression: "item $items", "item items", "key,item $items", or "key,item items"
-        if (preg_match('/^(\w+)(?:,(\w+))?\s+\$?(\w+)$/', trim($expression), $matches)) {
+        // Also handle dot notation like "act user.activities"
+        if (preg_match('/^(\w+)(?:,(\w+))?\s+(.+)$/', trim($expression), $matches)) {
             $first = $matches[1];
             $second = $matches[2] ?? null;
-            $array = $matches[3];
+            $arrayExpression = trim($matches[3]);
+            
+            // Compile the array expression (handles dot notation)
+            $compiledArray = $this->expressionCompiler->compileExpression($arrayExpression);
             
             if ($second) {
                 // key,item format
                 $key = $first;
                 $item = $second;
-                $loop = "foreach (\${$array} as \${$key} => \${$item})";
+                $startPhp = "<?php foreach ({$compiledArray} as \${$key} => \${$item}): ?>";
+                $endPhp = "<?php endforeach; ?>";
             } else {
                 // item format
                 $item = $first;
-                $loop = "foreach (\${$array} as \${$item})";
+                $startPhp = "<?php foreach ({$compiledArray} as \${$item}): ?>";
+                $endPhp = "<?php endforeach; ?>";
             }
             
-            $this->wrapWithLoop($node, $loop);
+            // Use PHP marker system for proper code generation
+            $this->insertPhpBefore($node, $startPhp);
+            $this->insertPhpAfter($node, $endPhp);
         }
     }
 }

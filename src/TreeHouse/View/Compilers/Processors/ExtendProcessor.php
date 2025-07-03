@@ -19,9 +19,9 @@ class ExtendProcessor extends AbstractProcessor
 {
     public function process(DOMElement $node, string $expression): void
     {
-        // Add the extend call at the beginning of the document
+        // Add the extend call at the beginning of the document using PHP marker system
         $php = "<?php \$this->extend('{$expression}'); ?>";
-        $this->insertBefore($node, $php);
+        $this->insertPhpBefore($node, $php);
         
         // Move child nodes up to parent instead of removing them
         $this->unwrapElement($node);

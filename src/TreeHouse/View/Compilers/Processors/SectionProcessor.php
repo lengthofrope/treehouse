@@ -22,7 +22,8 @@ class SectionProcessor extends AbstractProcessor
         $startPhp = "<?php \$this->startSection('{$expression}'); ?>";
         $endPhp = "<?php \$this->endSection(); ?>";
         
-        $this->insertBefore($node, $startPhp);
-        $this->insertAfter($node, $endPhp);
+        // Use PHP marker system for proper code generation
+        $this->insertPhpBefore($node, $startPhp);
+        $this->insertPhpAfter($node, $endPhp);
     }
 }
