@@ -16,7 +16,8 @@
                 <!-- User Card 1 -->
                 <div class="treehouse-card p-6">
                     <div class="flex items-center space-x-4 mb-4">
-                        <img th:attr="src=users.john.avatar, alt=users.john.name + ' Avatar'" 
+                        <img th:src="users.john.avatar"
+                             th:alt="{users.john.name} Avatar"
                              class="w-12 h-12 rounded-full border-2 border-gray-300">
                         <div>
                             <h3 class="font-semibold text-gray-900">{users.john.name}</h3>
@@ -35,16 +36,16 @@
                         </div>
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">Status:</span>
-                            <span th:attr="class='text-xs px-2 py-1 rounded-full ' + users.john.status.css">{users.john.status.label}</span>
+                            <span th:class="text-xs px-2 py-1 rounded-full {users.john.status.css}">{users.john.status.label}</span>
                         </div>
                     </div>
                     
                     <div class="flex space-x-2">
-                        <button th:attr="onclick='viewProfile(' + users.john.id + ')'" 
+                        <button th:onclick="viewProfile({users.john.id})"
                                 class="flex-1 bg-treehouse-600 text-white py-2 px-3 rounded text-sm hover:bg-treehouse-700 transition-colors">
                             View Profile
                         </button>
-                        <a th:attr="href='mailto:' + users.john.email" 
+                        <a th:href="mailto:{users.john.email}"
                            class="flex-1 bg-gray-200 text-gray-700 py-2 px-3 rounded text-sm text-center hover:bg-gray-300 transition-colors">
                             Email
                         </a>
@@ -54,7 +55,8 @@
                 <!-- User Card 2 -->
                 <div class="treehouse-card p-6">
                     <div class="flex items-center space-x-4 mb-4">
-                        <img th:attr="src=users.jane.avatar, alt=users.jane.name + ' Avatar'" 
+                        <img th:src="users.jane.avatar"
+                             th:alt="{users.jane.name} Avatar"
                              class="w-12 h-12 rounded-full border-2 border-gray-300">
                         <div>
                             <h3 class="font-semibold text-gray-900">{users.jane.name}</h3>
@@ -73,16 +75,16 @@
                         </div>
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">Status:</span>
-                            <span th:attr="class='text-xs px-2 py-1 rounded-full ' + users.jane.status.css">{users.jane.status.label}</span>
+                            <span th:class="text-xs px-2 py-1 rounded-full {users.jane.status.css}">{users.jane.status.label}</span>
                         </div>
                     </div>
                     
                     <div class="flex space-x-2">
-                        <button th:attr="onclick='viewProfile(' + users.jane.id + ')'" 
+                        <button th:onclick="viewProfile({users.jane.id})"
                                 class="flex-1 bg-treehouse-600 text-white py-2 px-3 rounded text-sm hover:bg-treehouse-700 transition-colors">
                             View Profile
                         </button>
-                        <a th:attr="href='mailto:' + users.jane.email" 
+                        <a th:href="mailto:{users.jane.email}"
                            class="flex-1 bg-gray-200 text-gray-700 py-2 px-3 rounded text-sm text-center hover:bg-gray-300 transition-colors">
                             Email
                         </a>
@@ -92,7 +94,8 @@
                 <!-- User Card 3 -->
                 <div class="treehouse-card p-6">
                     <div class="flex items-center space-x-4 mb-4">
-                        <img th:attr="src=users.mike.avatar, alt=users.mike.name + ' Avatar'" 
+                        <img th:src="users.mike.avatar"
+                             th:alt="{users.mike.name} Avatar"
                              class="w-12 h-12 rounded-full border-2 border-gray-300">
                         <div>
                             <h3 class="font-semibold text-gray-900">{users.mike.name}</h3>
@@ -111,16 +114,16 @@
                         </div>
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">Status:</span>
-                            <span th:attr="class='text-xs px-2 py-1 rounded-full ' + users.mike.status.css">{users.mike.status.label}</span>
+                            <span th:class="text-xs px-2 py-1 rounded-full {users.mike.status.css}">{users.mike.status.label}</span>
                         </div>
                     </div>
                     
                     <div class="flex space-x-2">
-                        <button th:attr="onclick='viewProfile(' + users.mike.id + ')'" 
+                        <button th:onclick="viewProfile({users.mike.id})"
                                 class="flex-1 bg-treehouse-600 text-white py-2 px-3 rounded text-sm hover:bg-treehouse-700 transition-colors">
                             View Profile
                         </button>
-                        <a th:attr="href='mailto:' + users.mike.email" 
+                        <a th:href="mailto:{users.mike.email}"
                            class="flex-1 bg-gray-200 text-gray-700 py-2 px-3 rounded text-sm text-center hover:bg-gray-300 transition-colors">
                             Email
                         </a>
@@ -136,7 +139,7 @@
             <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- Total Users -->
                 <div class="treehouse-card p-6 text-center">
-                    <div th:attr="class='w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center ' + stats.users.color">
+                    <div th:class="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center {stats.users.color}">
                         <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
@@ -148,7 +151,7 @@
 
                 <!-- Active Projects -->
                 <div class="treehouse-card p-6 text-center">
-                    <div th:attr="class='w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center ' + stats.projects.color">
+                    <div th:class="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center {stats.projects.color}">
                         <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
                         </svg>
@@ -160,7 +163,7 @@
 
                 <!-- Revenue -->
                 <div class="treehouse-card p-6 text-center">
-                    <div th:attr="class='w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center ' + stats.revenue.color">
+                    <div th:class="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center {stats.revenue.color}">
                         <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
@@ -173,7 +176,7 @@
 
                 <!-- Performance -->
                 <div class="treehouse-card p-6 text-center">
-                    <div th:attr="class='w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center ' + stats.performance.color">
+                    <div th:class="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center {stats.performance.color}">
                         <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                         </svg>
@@ -194,46 +197,53 @@
                 <div class="treehouse-card p-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Contact Form</h3>
                     
-                    <form th:attr="action=form.contact.action, method=form.contact.method">
+                    <form th:action="form.contact.action" th:method="form.contact.method">
                         <?php echo csrfField(); ?>
                         <div class="space-y-4">
                             <div>
-                                <label th:attr="for=form.contact.fields.name.id" class="block text-sm font-medium text-gray-700 mb-1">
+                                <label th:for="form.contact.fields.name.id" class="block text-sm font-medium text-gray-700 mb-1">
                                     {form.contact.fields.name.label}
                                 </label>
-                                <input th:attr="id=form.contact.fields.name.id, name=form.contact.fields.name.name, placeholder=form.contact.fields.name.placeholder" 
+                                <input th:id="form.contact.fields.name.id"
+                                       th:name="form.contact.fields.name.name"
+                                       th:placeholder="form.contact.fields.name.placeholder"
                                        type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-treehouse-500 focus:border-treehouse-500">
                             </div>
                             
                             <div>
-                                <label th:attr="for=form.contact.fields.email.id" class="block text-sm font-medium text-gray-700 mb-1">
+                                <label th:for="form.contact.fields.email.id" class="block text-sm font-medium text-gray-700 mb-1">
                                     {form.contact.fields.email.label}
                                 </label>
-                                <input th:attr="id=form.contact.fields.email.id, name=form.contact.fields.email.name, placeholder=form.contact.fields.email.placeholder" 
+                                <input th:id="form.contact.fields.email.id"
+                                       th:name="form.contact.fields.email.name"
+                                       th:placeholder="form.contact.fields.email.placeholder"
                                        type="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-treehouse-500 focus:border-treehouse-500">
                             </div>
                             
                             <div>
-                                <label th:attr="for=form.contact.fields.subject.id" class="block text-sm font-medium text-gray-700 mb-1">
+                                <label th:for="form.contact.fields.subject.id" class="block text-sm font-medium text-gray-700 mb-1">
                                     {form.contact.fields.subject.label}
                                 </label>
-                                <select th:attr="id=form.contact.fields.subject.id, name=form.contact.fields.subject.name" 
+                                <select th:id="form.contact.fields.subject.id"
+                                        th:name="form.contact.fields.subject.name"
                                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-treehouse-500 focus:border-treehouse-500">
-                                    <option th:repeat="option form.contact.fields.subject.options" th:attr="value=option.value">
+                                    <option th:repeat="option form.contact.fields.subject.options" th:value="option.value">
                                         {option.label}
                                     </option>
                                 </select>
                             </div>
                             
                             <div>
-                                <label th:attr="for=form.contact.fields.message.id" class="block text-sm font-medium text-gray-700 mb-1">
+                                <label th:for="form.contact.fields.message.id" class="block text-sm font-medium text-gray-700 mb-1">
                                     {form.contact.fields.message.label}
                                 </label>
-                                <textarea th:attr="id=form.contact.fields.message.id, name=form.contact.fields.message.name, placeholder=form.contact.fields.message.placeholder" 
+                                <textarea th:id="form.contact.fields.message.id"
+                                          th:name="form.contact.fields.message.name"
+                                          th:placeholder="form.contact.fields.message.placeholder"
                                           rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-treehouse-500 focus:border-treehouse-500"></textarea>
                             </div>
                             
-                            <button type="submit" th:attr="class='w-full py-2 px-4 rounded-lg text-white font-medium transition-colors ' + form.contact.submit.css">
+                            <button type="submit" th:class="w-full py-2 px-4 rounded-lg text-white font-medium transition-colors {form.contact.submit.css}">
                                 {form.contact.submit.text}
                             </button>
                         </div>
@@ -244,37 +254,40 @@
                 <div class="treehouse-card p-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">User Settings</h3>
                     
-                    <form th:attr="action=form.settings.action, method=form.settings.method">
+                    <form th:action="form.settings.action" th:method="form.settings.method">
                         <div class="space-y-4">
                             <div class="flex items-center">
-                                <input th:attr="id=form.settings.fields.notifications.id, name=form.settings.fields.notifications.name" 
+                                <input th:id="form.settings.fields.notifications.id"
+                                       th:name="form.settings.fields.notifications.name"
                                        type="checkbox" class="h-4 w-4 text-treehouse-600 focus:ring-treehouse-500 border-gray-300 rounded">
-                                <label th:attr="for=form.settings.fields.notifications.id" class="ml-2 block text-sm text-gray-700">
+                                <label th:for="form.settings.fields.notifications.id" class="ml-2 block text-sm text-gray-700">
                                     {form.settings.fields.notifications.label}
                                 </label>
                             </div>
                             
                             <div class="flex items-center">
-                                <input th:attr="id=form.settings.fields.marketing.id, name=form.settings.fields.marketing.name" 
+                                <input th:id="form.settings.fields.marketing.id"
+                                       th:name="form.settings.fields.marketing.name"
                                        type="checkbox" class="h-4 w-4 text-treehouse-600 focus:ring-treehouse-500 border-gray-300 rounded">
-                                <label th:attr="for=form.settings.fields.marketing.id" class="ml-2 block text-sm text-gray-700">
+                                <label th:for="form.settings.fields.marketing.id" class="ml-2 block text-sm text-gray-700">
                                     {form.settings.fields.marketing.label}
                                 </label>
                             </div>
                             
                             <div>
-                                <label th:attr="for=form.settings.fields.theme.id" class="block text-sm font-medium text-gray-700 mb-1">
+                                <label th:for="form.settings.fields.theme.id" class="block text-sm font-medium text-gray-700 mb-1">
                                     {form.settings.fields.theme.label}
                                 </label>
-                                <select th:attr="id=form.settings.fields.theme.id, name=form.settings.fields.theme.name" 
+                                <select th:id="form.settings.fields.theme.id"
+                                        th:name="form.settings.fields.theme.name"
                                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-treehouse-500 focus:border-treehouse-500">
-                                    <option th:repeat="theme form.settings.fields.theme.options" th:attr="value=theme.value">
+                                    <option th:repeat="theme form.settings.fields.theme.options" th:value="theme.value">
                                         {theme.label}
                                     </option>
                                 </select>
                             </div>
                             
-                            <button type="submit" th:attr="class='w-full py-2 px-4 rounded-lg text-white font-medium transition-colors ' + form.settings.submit.css">
+                            <button type="submit" th:class="w-full py-2 px-4 rounded-lg text-white font-medium transition-colors {form.settings.submit.css}">
                                 {form.settings.submit.text}
                             </button>
                         </div>

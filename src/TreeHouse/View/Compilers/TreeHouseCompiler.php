@@ -4,61 +4,61 @@ declare(strict_types=1);
 
 namespace LengthOfRope\TreeHouse\View\Compilers;
 
-use LengthOfRope\TreeHouse\Support\{Collection, Arr, Str, Carbon, Uuid};
 use DOMDocument;
 use DOMXPath;
 use DOMElement;
 use RuntimeException;
 
 /**
- * TreeHouse template compiler
+ * TreeHouse Template Compiler - Modular Architecture
  * 
- * Compiles .th.html and .th.php templates with th: attributes into optimized PHP code.
- * Provides HTML-valid syntax with deep Support class integration.
- * 
+ * Each directive type has its own processor class for clean separation of concerns.
+ * Supports all features from template-object-support-plan.md
+ *
  * @package LengthOfRope\TreeHouse\View\Compilers
  * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 class TreeHouseCompiler
 {
+    protected ExpressionValidator $validator;
+    protected ExpressionCompiler $expressionCompiler;
+    
+    /** @var array<string, DirectiveProcessorInterface> */
+    protected array $processors = [];
+    
     /**
-     * Support classes auto-imported in templates
+     * Processing order for directives (critical for correct compilation)
      */
-    protected array $supportClasses = [
-        'Collection' => 'LengthOfRope\\TreeHouse\\Support\\Collection',
-        'Arr' => 'LengthOfRope\\TreeHouse\\Support\\Arr',
-        'Str' => 'LengthOfRope\\TreeHouse\\Support\\Str',
-        'Carbon' => 'LengthOfRope\\TreeHouse\\Support\\Carbon',
-        'Uuid' => 'LengthOfRope\\TreeHouse\\Support\\Uuid',
+    protected array $processingOrder = [
+        'th:extend', 'th:section', 'th:yield', 'th:if', 'th:repeat', 'th:text', 'th:raw'
     ];
 
-    /**
-     * Attribute processing order (critical for correct compilation)
-     */
-    protected array $attributeProcessingOrder = [
-        'th:if', 'th:unless',                    // Conditionals first
-        'th:auth', 'th:guest',                   // Auth conditionals
-        'th:role', 'th:permission',              // Authorization conditionals
-        'th:repeat',                             // Loops next
-        'th:text', 'th:html', 'th:raw',         // Content modifications
-        'th:attr', 'th:class', 'th:style',      // Attribute modifications
-        'th:extend', 'th:section', 'th:yield',  // Layout directives
-        'th:component',                         // Components
-        'th:remove',                            // Removal last
-    ];
+    public function __construct(
+        ?ExpressionValidator $validator = null,
+        ?ExpressionCompiler $expressionCompiler = null
+    ) {
+        $this->validator = $validator ?? new ExpressionValidator();
+        $this->expressionCompiler = $expressionCompiler ?? new ExpressionCompiler($this->validator);
+        
+        $this->initializeProcessors();
+    }
 
     /**
-     * Helper functions injected into templates (disabled - using global helpers)
+     * Initialize directive processors
      */
-    protected array $helperFunctions = [
-        // Disabled - using global helper functions instead
-    ];
-
-    /**
-     * Boolean attribute placeholders for post-processing
-     */
-    protected array $booleanAttributePlaceholders = [];
+    protected function initializeProcessors(): void
+    {
+        $this->processors = [
+            'th:extend' => new Processors\ExtendProcessor($this->expressionCompiler),
+            'th:section' => new Processors\SectionProcessor($this->expressionCompiler),
+            'th:yield' => new Processors\YieldProcessor($this->expressionCompiler),
+            'th:if' => new Processors\IfProcessor($this->expressionCompiler),
+            'th:repeat' => new Processors\RepeatProcessor($this->expressionCompiler),
+            'th:text' => new Processors\TextProcessor($this->expressionCompiler),
+            'th:raw' => new Processors\RawProcessor($this->expressionCompiler)
+        ];
+    }
 
     /**
      * Compile template to PHP
@@ -71,9 +71,6 @@ class TreeHouseCompiler
         }
 
         try {
-            // Reset boolean attribute placeholders for each compilation
-            $this->booleanAttributePlaceholders = [];
-            
             // Store original template for DOCTYPE preservation
             $originalTemplate = $template;
             $hasDoctype = preg_match('/^\s*<!DOCTYPE/i', $template);
@@ -96,13 +93,23 @@ class TreeHouseCompiler
             return $this->wrapWithHelpers($compiled);
             
         } catch (\Throwable $e) {
-            // Fallback: treat as raw PHP if DOM parsing fails
+            // Enhanced error reporting for debugging
+            if (defined('TH_DEBUG') && constant('TH_DEBUG')) {
+                throw new RuntimeException(
+                    "TreeHouse Template Compilation Error: " . $e->getMessage() . 
+                    "\nTemplate: " . substr($template, 0, 200) . "...",
+                    0,
+                    $e
+                );
+            }
+            
+            // In production, fall back to raw template
             return $this->wrapWithHelpers($template);
         }
     }
 
     /**
-     * Parse template HTML
+     * Parse template into DOM
      */
     protected function parseTemplate(string $template): DOMDocument
     {
@@ -110,780 +117,234 @@ class TreeHouseCompiler
         $dom->preserveWhiteSpace = true;
         $dom->formatOutput = false;
         
-        // Check if this is a full HTML document (has DOCTYPE and html tag) or just a fragment
-        $hasDoctype = preg_match('/^\s*<!DOCTYPE/i', $template);
-        $hasHtmlTag = preg_match('/<html\b[^>]*>/i', $template);
-        $isFullDocument = $hasDoctype && $hasHtmlTag;
+        // Suppress libxml errors
+        $useInternalErrors = libxml_use_internal_errors(true);
         
-        if ($isFullDocument) {
-            // For full HTML documents, parse directly but strip DOCTYPE first for DOM parsing
-            $templateForParsing = preg_replace('/^\s*<!DOCTYPE[^>]+>\s*/i', '', $template);
-            $wrappedTemplate = '<?xml encoding="UTF-8"?>' . $templateForParsing;
-        } else {
-            // For fragments, wrap in a div as before
-            $wrappedTemplate = '<?xml encoding="UTF-8"?><div>' . $template . '</div>';
-        }
-        
-        // Load HTML with error suppression and proper UTF-8 handling
-        libxml_use_internal_errors(true);
-        $success = $dom->loadHTML($wrappedTemplate, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-        libxml_clear_errors();
-        
-        if (!$success) {
-            throw new RuntimeException('Failed to parse template HTML');
+        try {
+            // Try to load as HTML
+            if (!$dom->loadHTML($template, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD)) {
+                throw new RuntimeException('Failed to parse template as HTML');
+            }
+        } finally {
+            libxml_use_internal_errors($useInternalErrors);
         }
         
         return $dom;
     }
 
     /**
-     * Process all th: attributes
+     * Process th: attributes in correct order
      */
     protected function processAttributes(DOMDocument $dom, DOMXPath $xpath): void
     {
-        // Process standard attributes in specific order
-        foreach ($this->attributeProcessingOrder as $attribute) {
-            $this->processAttributeType($dom, $xpath, $attribute);
-        }
-        
-        // Process any remaining universal th: attributes not in the standard list
-        $this->processUniversalAttributes($dom, $xpath);
-    }
-
-    /**
-     * Process a specific attribute type
-     */
-    protected function processAttributeType(DOMDocument $dom, DOMXPath $xpath, string $attribute): void
-    {
-        // Use proper XPath syntax for attributes with colons
-        $nodes = $xpath->query("//*[@*[name()='{$attribute}']]");
-        
-        // Check if query was successful
-        if ($nodes === false) {
-            return;
-        }
-        
-        // Process nodes in reverse order to handle nested structures
-        $nodeArray = [];
-        foreach ($nodes as $node) {
-            $nodeArray[] = $node;
-        }
-        
-        foreach (array_reverse($nodeArray) as $node) {
-            if ($node instanceof DOMElement) {
-                $expression = $node->getAttribute($attribute);
-                $this->processAttribute($node, $attribute, $expression);
-                $node->removeAttribute($attribute);
+        // First, process specific directives in order
+        foreach ($this->processingOrder as $directive) {
+            if (!isset($this->processors[$directive])) {
+                continue;
             }
-        }
-    }
-
-    /**
-     * Process universal th: attributes not in the standard processing order
-     */
-    protected function processUniversalAttributes(DOMDocument $dom, DOMXPath $xpath): void
-    {
-        // Find all elements with th: attributes
-        $allThNodes = $xpath->query("//*[@*[starts-with(name(), 'th:')]]");
-        
-        if ($allThNodes === false) {
-            return;
-        }
-
-        foreach ($allThNodes as $node) {
-            if ($node instanceof DOMElement) {
-                // Get all th: attributes on this node
-                $attributesToProcess = [];
-                foreach ($node->attributes as $attr) {
-                    if (str_starts_with($attr->name, 'th:') && !in_array($attr->name, $this->attributeProcessingOrder)) {
-                        $attributesToProcess[] = $attr->name;
+            
+            $processor = $this->processors[$directive];
+            
+            // Find elements with this directive using a more robust approach
+            $elements = $this->findElementsWithAttribute($dom, $directive);
+            
+            foreach ($elements as $element) {
+                if ($element instanceof DOMElement && $element->hasAttribute($directive)) {
+                    $expression = $element->getAttribute($directive);
+                    
+                    try {
+                        $processor->process($element, $expression);
+                    } catch (\Throwable $e) {
+                        throw new RuntimeException(
+                            "Error processing {$directive}='{$expression}': " . $e->getMessage(),
+                            0,
+                            $e
+                        );
                     }
                 }
+            }
+        }
+        
+        // Then, process any remaining th: attributes as generic attribute setters
+        $this->processGenericThAttributes($dom);
+    }
+
+    /**
+     * Process any remaining th: attributes as generic attribute setters
+     */
+    protected function processGenericThAttributes(DOMDocument $dom): void
+    {
+        $allElements = $dom->getElementsByTagName('*');
+        
+        foreach ($allElements as $element) {
+            if (!($element instanceof DOMElement)) {
+                continue;
+            }
+            
+            // Get all attributes that start with 'th:'
+            $thAttributes = [];
+            foreach ($element->attributes as $attr) {
+                if (str_starts_with($attr->name, 'th:')) {
+                    $thAttributes[] = $attr->name;
+                }
+            }
+            
+            // Process each th: attribute as a generic attribute setter
+            foreach ($thAttributes as $thAttr) {
+                $expression = $element->getAttribute($thAttr);
+                $element->removeAttribute($thAttr);
                 
-                // Process universal attributes
-                foreach ($attributesToProcess as $attribute) {
-                    $expression = $node->getAttribute($attribute);
-                    $this->processAttribute($node, $attribute, $expression);
-                    $node->removeAttribute($attribute);
+                // Extract the actual attribute name (remove 'th:' prefix)
+                $attributeName = substr($thAttr, 3);
+                
+                try {
+                    // Check if expression contains brace expressions mixed with text
+                    if (preg_match('/\{[^}]+\}/', $expression) && !preg_match('/^\{[^}]+\}$/', $expression)) {
+                        // Handle mixed brace expressions and text (like "{users.john.name} Avatar")
+                        $compiledExpression = $this->expressionCompiler->compileMixedText($expression);
+                        $phpCode = "<?php echo {$compiledExpression}; ?>";
+                    } elseif (preg_match('/^\{[^}]+\}$/', $expression)) {
+                        // Single brace expression (like "{users.john.avatar}")
+                        $innerExpression = trim(substr($expression, 1, -1));
+                        $compiledExpression = $this->expressionCompiler->compileExpression($innerExpression);
+                        $phpCode = "<?php echo htmlspecialchars({$compiledExpression}, ENT_QUOTES, 'UTF-8'); ?>";
+                    } else {
+                        // Handle pure expressions without braces (like "users.john.avatar")
+                        $compiledExpression = $this->expressionCompiler->compileExpression($expression);
+                        $phpCode = "<?php echo htmlspecialchars({$compiledExpression}, ENT_QUOTES, 'UTF-8'); ?>";
+                    }
+                    
+                    // Use PHP marker to prevent HTML encoding
+                    $marker = "<!--TH_PHP_ATTR:" . base64_encode($phpCode) . "-->";
+                    $element->setAttribute($attributeName, $marker);
+                } catch (\Throwable $e) {
+                    throw new RuntimeException(
+                        "Error processing {$thAttr}='{$expression}': " . $e->getMessage(),
+                        0,
+                        $e
+                    );
                 }
             }
         }
     }
 
     /**
-     * Process individual th: attribute
+     * Find elements with a specific attribute (handles namespaced attributes)
      */
-    protected function processAttribute(DOMElement $node, string $attribute, string $expression): void
+    protected function findElementsWithAttribute(DOMDocument $dom, string $attributeName): array
     {
-        // TIER 1: Standard th: attributes with specialized processing
-        switch ($attribute) {
-            case 'th:if':
-                $this->wrapWithCondition($node, "if ({$this->compileExpression($expression)})");
-                break;
-                
-            case 'th:unless':
-                $this->wrapWithCondition($node, "if (!({$this->compileExpression($expression)}))");
-                break;
-                
-            case 'th:auth':
-                $this->wrapWithAuthCondition($node, true);
-                break;
-                
-            case 'th:guest':
-                $this->wrapWithAuthCondition($node, false);
-                break;
-                
-            case 'th:role':
-                $this->wrapWithRoleCondition($node, $expression);
-                break;
-                
-            case 'th:permission':
-                $this->wrapWithPermissionCondition($node, $expression);
-                break;
-                
-            case 'th:repeat':
-                $this->wrapWithLoop($node, $expression);
-                break;
-                
-            case 'th:text':
-                $this->setTextContent($node, $this->compileTextExpression($expression));
-                break;
-                
-            case 'th:html':
-                $this->setHtmlContent($node, $this->compileHtmlExpression($expression));
-                break;
-                
-            case 'th:raw':
-                $this->setRawContent($node, $this->compileRawExpression($expression));
-                break;
-                
-            case 'th:class':
-                $this->addClassAttribute($node, $expression);
-                break;
-                
-            case 'th:attr':
-                $this->processAttributeExpression($node, $expression);
-                break;
-                
-            case 'th:extend':
-                $this->processExtend($node, $expression);
-                break;
-                
-            case 'th:section':
-                $this->processSection($node, $expression);
-                break;
-                
-            case 'th:yield':
-                $this->processYield($node, $expression);
-                break;
-                
-            case 'th:component':
-                $this->processComponent($node, $expression);
-                break;
-                
-            case 'th:remove':
-                $this->removeNode($node);
-                break;
-                
-            default:
-                // TIER 2: Universal th: attributes - any attribute can be prefixed with th:
-                if (str_starts_with($attribute, 'th:')) {
-                    $htmlAttribute = substr($attribute, 3); // Remove 'th:' prefix
-                    $this->processDynamicAttribute($node, $htmlAttribute, $expression);
-                }
-                break;
-        }
-    }
-
-    /**
-     * Process dynamic attribute with universal th: prefix support
-     */
-    protected function processDynamicAttribute(DOMElement $node, string $attrName, string $expression): void
-    {
-        // Handle different types of expressions
-        if (str_contains($expression, '{')) {
-            // Brace syntax: "static text {$dynamic} more text"
-            if ($this->isBooleanAttribute($attrName)) {
-                // For boolean attributes, compile the expression inside braces directly
-                $compiledValue = $this->compileBooleanBraceExpression($expression);
-            } else {
-                $compiledValue = $this->compileBraceExpressions($expression);
-            }
-        } elseif ($this->isDotNotation($expression)) {
-            // Dot notation: "user.name"
-            $compiledValue = $this->compileExpression($expression);
-        } elseif ($this->isStaticText($expression)) {
-            // Static text: just output as string literal
-            $compiledValue = "'" . addslashes($expression) . "'";
-        } else {
-            // Dynamic PHP expression: "$user['id']"
-            $compiledValue = $this->compileExpression($expression);
-        }
+        $elements = [];
+        $allElements = $dom->getElementsByTagName('*');
         
-        // Handle boolean attributes (selected, checked, disabled, etc.)
-        if ($this->isBooleanAttribute($attrName)) {
-            // For boolean attributes, we need special handling since DOM normalizes them
-            // Use a temporary non-boolean attribute that we'll replace in generatePhp
-            $placeholder = "___TH_BOOL_" . uniqid() . "___";
-            $this->booleanAttributePlaceholders[$placeholder] = [
-                'condition' => $compiledValue,
-                'attribute' => $attrName
-            ];
-            // Use a temporary attribute name that won't be normalized
-            $node->setAttribute("data-th-bool-{$attrName}", $placeholder);
-        } else {
-            // For regular attributes, handle null values by not outputting anything
-            $php = "<?php \$val = {$compiledValue}; if (\$val !== null) echo \$val; ?>";
-            $node->setAttribute($attrName, $php);
-        }
-    }
-
-    /**
-     * Check if expression is dot notation: user.name, config.db.host, etc.
-     */
-    protected function isDotNotation(string $expression): bool
-    {
-        return (bool) preg_match('/^[a-zA-Z_]\w*\.[a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*$/', $expression);
-    }
-
-    /**
-     * Check if expression is static text (no variables or PHP syntax)
-     */
-    protected function isStaticText(string $expression): bool
-    {
-        // Check if it contains PHP variables or PHP-specific syntax
-        // Allow : and . for CSS and normal text, but not when part of PHP operators
-        return !preg_match('/\$|\[|\]|\(|\)|->|::|==|!=|&&|\|\||(\?[^:]*:)/', $expression);
-    }
-
-    /**
-     * Compile brace expressions: "text {expr} more {expr2}"
-     */
-    protected function compileBraceExpressions(string $value): string
-    {
-        $result = preg_replace_callback(
-            '/\{([^}]+)\}/',
-            function($matches) {
-                $expr = trim($matches[1]);
-                $expr = $this->compileDotNotation($expr);
-                $expr = $this->compileExpression($expr);
-                return "' . (($expr) ?? '') . '";
-            },
-            "'" . addslashes($value) . "'"
-        );
-        
-        // Clean up empty string concatenations
-        $result = preg_replace("/^'' \. /", "", $result);
-        $result = preg_replace("/ \. ''$/", "", $result);
-        
-        // Additional cleanup - remove unnecessary concatenations at start/end
-        $result = preg_replace("/^'' \. \(/", "(", $result);
-        $result = preg_replace("/\) \. ''$/", ")", $result);
-        
-        return $result;
-    }
-
-    /**
-     * Convert dot notation to array access: user.name → $user['name']
-     */
-    protected function compileDotNotation(string $expression): string
-    {
-        // Convert user.name.first → $user['name']['first']
-        // Also handles $user.name.first → $user['name']['first'] (when $ prefix already exists)
-        return preg_replace_callback(
-            '/\$?([a-zA-Z_]\w*)\.([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)\b/',
-            function($matches) {
-                $var = $matches[1];
-                $path = $matches[2];
-                $keys = explode('.', $path);
-                $result = '$' . $var;
-                foreach ($keys as $key) {
-                    $result .= "['$key']";
-                }
-                return $result;
-            },
-            $expression
-        );
-    }
-
-    /**
-     * Add $ prefix to simple variable names in th: commands
-     */
-    protected function addVariablePrefix(string $expression): string
-    {
-        // Don't process if expression already contains $ (already has variables)
-        // or if it contains PHP operators/functions that indicate it's already PHP code
-        if (str_contains($expression, '$') ||
-            preg_match('/\(|\)|->|::|==|!=|&&|\|\||[\[\]]/', $expression)) {
-            return $expression;
-        }
-        
-        // Don't process quoted strings
-        if (preg_match('/^[\'"][^\'"]*[\'"]$/', trim($expression))) {
-            return $expression;
-        }
-        
-        // Don't process numeric values or boolean literals
-        if (preg_match('/^(true|false|null|\d+(\.\d+)?)$/i', trim($expression))) {
-            return $expression;
-        }
-        
-        // Don't process Support class calls (Str::something, Arr::something, etc.)
-        foreach ($this->supportClasses as $alias => $class) {
-            if (str_starts_with($expression, $alias . '::')) {
-                return $expression;
+        foreach ($allElements as $element) {
+            if ($element instanceof DOMElement && $element->hasAttribute($attributeName)) {
+                $elements[] = $element;
             }
         }
         
-        // Handle simple variable names (just letters, numbers, underscores)
-        // Examples: "title" -> "$title", "user_name" -> "$user_name"
-        if (preg_match('/^[a-zA-Z_]\w*$/', trim($expression))) {
-            return '$' . trim($expression);
-        }
-        
-        // Handle simple dot notation without $ prefix
-        // Examples: "user.name" -> "$user.name" (will be further processed by compileDotNotation)
-        if (preg_match('/^[a-zA-Z_]\w*\.[a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*$/', trim($expression))) {
-            return '$' . trim($expression);
-        }
-        
-        return $expression;
+        return $elements;
     }
 
     /**
-     * Compile expression with Support class integration
+     * Process text content with brace expressions
      */
-    protected function compileExpression(string $expression): string
+    protected function processTextContent(DOMDocument $dom, DOMXPath $xpath): void
     {
-        // First, handle automatic $ prefixing for simple variable names
-        $expression = $this->addVariablePrefix($expression);
+        $textNodes = $xpath->query('//text()');
         
-        // Then, handle dot notation conversion
-        $expression = $this->compileDotNotation($expression);
-        
-        // Handle Support class static calls
-        foreach ($this->supportClasses as $alias => $class) {
-            $expression = preg_replace(
-                '/\b' . $alias . '::/i',
-                '\\' . $class . '::',
-                $expression
-            );
+        foreach ($textNodes as $textNode) {
+            $content = $textNode->nodeValue;
+            
+            // Skip if no brace expressions
+            if (!preg_match('/\{[^}]+\}/', $content)) {
+                continue;
+            }
+            
+            // Compile brace expressions using PHP markers
+            $compiledContent = $this->compileBraceExpressions($content);
+            
+            if ($compiledContent !== $content) {
+                // Replace the text node with a comment node containing the PHP marker
+                $marker = "<!--TH_PHP_CONTENT:" . base64_encode($compiledContent) . "-->";
+                $commentNode = $dom->createComment("TH_PHP_CONTENT:" . base64_encode($compiledContent));
+                $textNode->parentNode->replaceChild($commentNode, $textNode);
+            }
         }
-        
-        // Handle collection method calls on arrays
-        $expression = preg_replace_callback(
-            '/\$(\w+)->(\w+)\(([^)]*)\)/',
-            function ($matches) {
-                $var = $matches[1];
-                $method = $matches[2];
-                $args = $matches[3];
-                
-                // Check if this is a Collection method
-                $collectionMethods = ['count', 'isEmpty', 'isNotEmpty', 'first', 'last', 'take', 'skip', 'where', 'filter', 'map', 'sortBy', 'groupBy', 'pluck'];
-                
-                if (in_array($method, $collectionMethods)) {
-                    return "(is_array(\${$var}) ? thCollect(\${$var})->{$method}({$args}) : \${$var}->{$method}({$args}))";
-                }
-                
+    }
+
+    /**
+     * Compile brace expressions like {user.name}
+     */
+    protected function compileBraceExpressions(string $content): string
+    {
+        return preg_replace_callback('/\{([^}]+)\}/', function ($matches) {
+            $expression = trim($matches[1]);
+            
+            try {
+                $compiled = $this->expressionCompiler->compileText($expression);
+                return "<?php echo {$compiled}; ?>";
+            } catch (\Throwable $e) {
+                // Return original if compilation fails
                 return $matches[0];
-            },
-            $expression
-        );
-        
-        return $expression;
-    }
-
-    /**
-     * Compile text expression (escaped)
-     */
-    protected function compileTextExpression(string $expression): string
-    {
-        // Handle brace expressions in text
-        if (str_contains($expression, '{')) {
-            $compiledValue = $this->compileBraceExpressions($expression);
-        } else {
-            $compiledValue = $this->compileExpression($expression);
-        }
-        
-        return "<?php echo thEscape({$compiledValue}); ?>";
-    }
-
-    /**
-     * Compile HTML expression (raw)
-     */
-    protected function compileHtmlExpression(string $expression): string
-    {
-        // Handle brace expressions in HTML
-        if (str_contains($expression, '{')) {
-            $compiledValue = $this->compileBraceExpressions($expression);
-        } else {
-            $compiledValue = $this->compileExpression($expression);
-        }
-        
-        return "<?php echo thRaw({$compiledValue}); ?>";
-    }
-
-    /**
-     * Wrap node with conditional
-     */
-    protected function wrapWithCondition(DOMElement $node, string $condition): void
-    {
-        $php = $node->ownerDocument->createTextNode("<?php {$condition}: ?>");
-        $endPhp = $node->ownerDocument->createTextNode("<?php endif; ?>");
-        
-        $node->parentNode->insertBefore($php, $node);
-        $node->parentNode->insertBefore($endPhp, $node->nextSibling);
-    }
-
-    /**
-     * Wrap node with loop
-     */
-    protected function wrapWithLoop(DOMElement $node, string $expression): void
-    {
-        // Parse repeat expression: "item $items", "item items", "key,item $items", or "key,item items"
-        if (preg_match('/^(\w+)(?:,(\w+))?\s+\$?(\w+)$/', trim($expression), $matches)) {
-            $first = $matches[1];
-            $second = $matches[2] ?? null;
-            $array = $matches[3];
-            
-            if ($second) {
-                // key,item format
-                $key = $first;
-                $item = $second;
-                $loop = "foreach (\${$array} as \${$key} => \${$item})";
-            } else {
-                // item format
-                $item = $first;
-                $loop = "foreach (\${$array} as \${$item})";
             }
-            
-            $php = $node->ownerDocument->createTextNode("<?php {$loop}: ?>");
-            $endPhp = $node->ownerDocument->createTextNode("<?php endforeach; ?>");
-            
-            $node->parentNode->insertBefore($php, $node);
-            $node->parentNode->insertBefore($endPhp, $node->nextSibling);
-        }
-    }
-
-    /**
-     * Set text content
-     */
-    protected function setTextContent(DOMElement $node, string $php): void
-    {
-        // Clear existing content and add PHP
-        $node->nodeValue = '';
-        $textNode = $node->ownerDocument->createTextNode($php);
-        $node->appendChild($textNode);
-    }
-
-    /**
-     * Set HTML content
-     */
-    protected function setHtmlContent(DOMElement $node, string $php): void
-    {
-        // Clear existing content and add PHP
-        $node->nodeValue = '';
-        $textNode = $node->ownerDocument->createTextNode($php);
-        $node->appendChild($textNode);
-    }
-
-    /**
-     * Set raw content (replaces the entire element with raw PHP output)
-     */
-    protected function setRawContent(DOMElement $node, string $php): void
-    {
-        // Create a text node with the PHP code and replace the entire element
-        $textNode = $node->ownerDocument->createTextNode($php);
-        $node->parentNode->insertBefore($textNode, $node);
-        $this->removeNode($node);
-    }
-
-    /**
-     * Compile raw expression (unescaped, replaces entire element)
-     */
-    protected function compileRawExpression(string $expression): string
-    {
-        // Handle brace expressions in raw content
-        if (str_contains($expression, '{')) {
-            $compiledValue = $this->compileBraceExpressions($expression);
-        } else {
-            $compiledValue = $this->compileExpression($expression);
-        }
-        
-        return "<?php echo thRaw({$compiledValue}); ?>";
-    }
-
-    /**
-     * Add class attribute
-     */
-    protected function addClassAttribute(DOMElement $node, string $expression): void
-    {
-        // Use the same logic as universal th: attributes
-        if (str_contains($expression, '{')) {
-            // Brace syntax: "static text {$dynamic} more text"
-            $compiledValue = $this->compileBraceExpressions($expression);
-        } elseif ($this->isDotNotation($expression)) {
-            // Dot notation: "user.name"
-            $compiledValue = $this->compileExpression($expression);
-        } elseif ($this->isStaticText($expression)) {
-            // Static text: just output as string literal
-            $compiledValue = "'" . addslashes($expression) . "'";
-        } else {
-            // Dynamic PHP expression: "$user['id']"
-            $compiledValue = $this->compileExpression($expression);
-        }
-        
-        $existing = $node->getAttribute('class');
-        $php = "<?php echo " . ($existing ? "'{$existing} ' . " : '') . "{$compiledValue}; ?>";
-        $node->setAttribute('class', $php);
-    }
-
-    /**
-     * Process attribute expression
-     */
-    protected function processAttributeExpression(DOMElement $node, string $expression): void
-    {
-        // Parse attr expression: "id='user-' + $user->id, class=$user->status"
-        $attributes = explode(',', $expression);
-        
-        foreach ($attributes as $attr) {
-            if (preg_match('/^\s*(\w+)\s*=\s*(.+)$/', trim($attr), $matches)) {
-                $name = $matches[1];
-                $value = trim($matches[2]);
-                
-                // Handle concatenation expressions properly
-                if (strpos($value, '+') !== false) {
-                    // Replace + with proper PHP concatenation
-                    $value = preg_replace('/\s*\+\s*/', ' . ', $value);
-                }
-                
-                $compiledValue = $this->compileExpression($value);
-                $php = "<?php echo {$compiledValue}; ?>";
-                $node->setAttribute($name, $php);
-            }
-        }
-    }
-
-    /**
-     * Process extend directive
-     */
-    protected function processExtend(DOMElement $node, string $expression): void
-    {
-        // Add the extend call at the beginning of the document
-        $php = "<?php \$this->extend('{$expression}'); ?>";
-        $textNode = $node->ownerDocument->createTextNode($php);
-        $node->parentNode->insertBefore($textNode, $node);
-        
-        // Move child nodes up to parent instead of removing them
-        $parent = $node->parentNode;
-        while ($node->firstChild) {
-            $child = $node->firstChild;
-            $node->removeChild($child);
-            $parent->insertBefore($child, $node);
-        }
-        
-        // Remove the empty extend element
-        $this->removeNode($node);
-    }
-
-    /**
-     * Process section directive
-     */
-    protected function processSection(DOMElement $node, string $expression): void
-    {
-        $startPhp = $node->ownerDocument->createTextNode("<?php \$this->startSection('{$expression}'); ?>");
-        $endPhp = $node->ownerDocument->createTextNode("<?php \$this->endSection(); ?>");
-        
-        $node->parentNode->insertBefore($startPhp, $node);
-        $node->parentNode->insertBefore($endPhp, $node->nextSibling);
-        
-        $node->removeAttribute('th:section');
-    }
-
-    /**
-     * Process yield directive
-     */
-    protected function processYield(DOMElement $node, string $expression): void
-    {
-        // Parse expression to get section name and optional default
-        $sectionName = trim($expression);
-        $defaultValue = '';
-        
-        // Check if expression contains a default value: "content, 'default text'"
-        if (preg_match('/^([^,]+),\s*(.+)$/', $expression, $matches)) {
-            $sectionName = trim($matches[1], '\'"');
-            $defaultValue = trim($matches[2]);
-        } else {
-            $sectionName = trim($sectionName, '\'"');
-        }
-        
-        // Generate PHP code to yield the section
-        if ($defaultValue) {
-            $php = "<?php echo \$this->yieldSection('{$sectionName}', {$defaultValue}); ?>";
-        } else {
-            $php = "<?php echo \$this->yieldSection('{$sectionName}'); ?>";
-        }
-        
-        // Replace the element content with the yield PHP code
-        $node->nodeValue = '';
-        $textNode = $node->ownerDocument->createTextNode($php);
-        $node->appendChild($textNode);
-        
-        $node->removeAttribute('th:yield');
-    }
-
-    /**
-     * Process component directive
-     */
-    protected function processComponent(DOMElement $node, string $expression): void
-    {
-        // Extract props from other th: attributes
-        $props = [];
-        foreach ($node->attributes as $attr) {
-            if (str_starts_with($attr->name, 'th:props-')) {
-                $propName = substr($attr->name, 9);
-                $props[] = "'{$propName}' => {$this->compileExpression($attr->value)}";
-                $node->removeAttribute($attr->name);
-            }
-        }
-        
-        $propsStr = $props ? '[' . implode(', ', $props) . ']' : '[]';
-        $php = "<?php echo \$this->component('{$expression}', {$propsStr}); ?>";
-        
-        $textNode = $node->ownerDocument->createTextNode($php);
-        $node->parentNode->insertBefore($textNode, $node);
-        $this->removeNode($node);
-    }
-
-    /**
-     * Remove node
-     */
-    protected function removeNode(DOMElement $node): void
-    {
-        if ($node->parentNode) {
-            $node->parentNode->removeChild($node);
-        }
-    }
-
-    /**
-     * Wrap node with authentication condition
-     */
-    protected function wrapWithAuthCondition(DOMElement $node, bool $authenticated): void
-    {
-        $condition = $authenticated ? 'auth()->check()' : 'auth()->guest()';
-        $php = $node->ownerDocument->createTextNode("<?php if ({$condition}): ?>");
-        $endPhp = $node->ownerDocument->createTextNode("<?php endif; ?>");
-        
-        $node->parentNode->insertBefore($php, $node);
-        $node->parentNode->insertBefore($endPhp, $node->nextSibling);
-    }
-
-    /**
-     * Wrap node with role condition
-     */
-    protected function wrapWithRoleCondition(DOMElement $node, string $expression): void
-    {
-        // Parse role expression - supports single role or multiple roles
-        $roles = array_map('trim', explode(',', $expression));
-        
-        if (count($roles) === 1) {
-            // Single role: user.hasRole('admin')
-            $role = trim($roles[0], '\'"');
-            $condition = "auth()->user() && auth()->user()->hasRole('{$role}')";
-        } else {
-            // Multiple roles: user.hasAnyRole(['admin', 'editor'])
-            $roleList = "'" . implode("', '", array_map(fn($r) => trim($r, '\'"'), $roles)) . "'";
-            $condition = "auth()->user() && auth()->user()->hasAnyRole([{$roleList}])";
-        }
-        
-        $php = $node->ownerDocument->createTextNode("<?php if ({$condition}): ?>");
-        $endPhp = $node->ownerDocument->createTextNode("<?php endif; ?>");
-        
-        $node->parentNode->insertBefore($php, $node);
-        $node->parentNode->insertBefore($endPhp, $node->nextSibling);
-    }
-
-    /**
-     * Wrap node with permission condition
-     */
-    protected function wrapWithPermissionCondition(DOMElement $node, string $expression): void
-    {
-        // Parse permission expression - supports single permission or multiple permissions
-        $permissions = array_map('trim', explode(',', $expression));
-        
-        if (count($permissions) === 1) {
-            // Single permission: user.can('manage-users')
-            $permission = trim($permissions[0], '\'"');
-            $condition = "auth()->user() && auth()->user()->can('{$permission}')";
-        } else {
-            // Multiple permissions: check if user has any of them
-            $conditions = [];
-            foreach ($permissions as $permission) {
-                $permission = trim($permission, '\'"');
-                $conditions[] = "auth()->user()->can('{$permission}')";
-            }
-            $condition = "auth()->user() && (" . implode(' || ', $conditions) . ")";
-        }
-        
-        $php = $node->ownerDocument->createTextNode("<?php if ({$condition}): ?>");
-        $endPhp = $node->ownerDocument->createTextNode("<?php endif; ?>");
-        
-        $node->parentNode->insertBefore($php, $node);
-        $node->parentNode->insertBefore($endPhp, $node->nextSibling);
+        }, $content);
     }
 
     /**
      * Generate final PHP from DOM
      */
-    protected function generatePhp(DOMDocument $dom, string $originalTemplate = '', bool $isFullDocument = false): string
+    protected function generatePhp(DOMDocument $dom, string $originalTemplate, bool $isFullDocument): string
     {
-        $html = $dom->saveHTML();
-        
-        // Only remove the wrapper div if this was a fragment (not a full document)
-        if (!$isFullDocument && preg_match('/<div>(.*)<\/div>$/s', $html, $matches)) {
-            $html = $matches[1];
+        if ($isFullDocument) {
+            // For full documents, get the entire HTML
+            $html = $dom->saveHTML();
+            
+            // Restore original DOCTYPE if it was modified
+            if (preg_match('/^\s*<!DOCTYPE[^>]*>/i', $originalTemplate, $matches)) {
+                $html = preg_replace('/^\s*<!DOCTYPE[^>]*>/i', $matches[0], $html);
+            }
+        } else {
+            // For fragments, get only the body content
+            $body = $dom->getElementsByTagName('body')->item(0);
+            if ($body) {
+                $html = '';
+                foreach ($body->childNodes as $child) {
+                    $html .= $dom->saveHTML($child);
+                }
+            } else {
+                $html = $dom->saveHTML();
+            }
         }
         
-        // Remove XML declaration that was added for DOM parsing
-        $html = preg_replace('/^<\?xml[^>]*\?>\s*/', '', $html);
-        
-        // Preserve DOCTYPE if it existed in the original template
-        if ($originalTemplate && preg_match('/^(\s*<!DOCTYPE[^>]+>)/i', $originalTemplate, $doctypeMatch)) {
-            $doctype = $doctypeMatch[1];
-            // Add DOCTYPE back to the beginning
-            $html = $doctype . "\n" . $html;
-        }
-        
-        // Decode PHP tags that were encoded by saveHTML
-        $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        
-        // Fix URL encoding in PHP tags (spaces become %20)
-        $html = preg_replace_callback('/(<\?php[^>]*>)/', function($matches) {
-            return urldecode($matches[1]);
-        }, $html);
-        
-        // Process boolean attribute placeholders
-        foreach ($this->booleanAttributePlaceholders as $placeholder => $config) {
-            // Find and replace the temporary data-th-bool-* attributes
-            $tempAttr = "data-th-bool-{$config['attribute']}=\"{$placeholder}\"";
-            $replacement = "<?php if ({$config['condition']}) echo '{$config['attribute']}'; ?>";
-            $html = str_replace($tempAttr, $replacement, $html);
-        }
-        
-        // Fix emoji encoding issues by converting HTML numeric entities back to UTF-8
-        $html = $this->fixEmojiEncoding($html);
-        
-        return $html;
+        // Process PHP content markers
+        return $this->processPhpMarkers($html);
     }
 
     /**
-     * Fix emoji encoding by converting HTML numeric entities back to UTF-8
+     * Process PHP content markers and convert them back to PHP code
      */
-    protected function fixEmojiEncoding(string $html): string
+    protected function processPhpMarkers(string $html): string
     {
-        // Use mb_decode_numericentity to properly decode all numeric entities
-        $convmap = [0x0, 0x10FFFF, 0, 0xFFFFFF];
-        $html = mb_decode_numericentity($html, $convmap, 'UTF-8');
+        // Convert all PHP markers back to actual PHP code
+        $html = preg_replace_callback('/<!--TH_PHP_CONTENT:([^-]+)-->/', function ($matches) {
+            return base64_decode($matches[1]);
+        }, $html);
+        
+        $html = preg_replace_callback('/<!--TH_PHP_BEFORE:([^-]+)-->/', function ($matches) {
+            return base64_decode($matches[1]);
+        }, $html);
+        
+        $html = preg_replace_callback('/<!--TH_PHP_AFTER:([^-]+)-->/', function ($matches) {
+            return base64_decode($matches[1]);
+        }, $html);
+        
+        $html = preg_replace_callback('/<!--TH_PHP_REPLACE:([^-]+)-->/', function ($matches) {
+            return base64_decode($matches[1]);
+        }, $html);
+        
+        $html = preg_replace_callback('/<!--TH_PHP_ATTR:([^-]+)-->/', function ($matches) {
+            return base64_decode($matches[1]);
+        }, $html);
         
         return $html;
     }
@@ -893,96 +354,19 @@ class TreeHouseCompiler
      */
     protected function wrapWithHelpers(string $compiled): string
     {
-        // Helper functions are now loaded globally, no need to inject
-        return $compiled;
-    }
-
-    /**
-     * Get supported attributes
-     */
-    public function getSupportedAttributes(): array
-    {
-        return $this->attributeProcessingOrder;
-    }
-
-    /**
-     * Check if attribute is supported
-     */
-    public function isAttributeSupported(string $attribute): bool
-    {
-        return in_array($attribute, $this->attributeProcessingOrder);
-    }
-
-    /**
-     * Process text content with brace expressions
-     */
-    protected function processTextContent(DOMDocument $dom, DOMXPath $xpath): void
-    {
-        // Find all text nodes that contain brace expressions, but exclude those inside code/pre tags
-        $textNodes = $xpath->query('//text()[contains(., "{") and not(ancestor::code) and not(ancestor::pre) and not(ancestor::style) and not(ancestor::script)]');
-        
-        foreach ($textNodes as $textNode) {
-            $content = $textNode->textContent;
-            
-            // Only process if it contains brace expressions
-            if (preg_match('/\{[^}]+\}/', $content)) {
-                // Check if this is a TreeHouse framework variable that should be raw
-                if (preg_match('/\{__treehouse_(?:config|js|favicons|logo|manifest)\}/', $content)) {
-                    // Compile the brace expressions for raw output
-                    $compiledContent = $this->compileBraceExpressions($content);
-                    
-                    // Create PHP output with raw output (no escaping)
-                    $phpCode = "<?php echo thRaw({$compiledContent}); ?>";
-                } elseif (preg_match('/\{__vite_assets\}/', $content)) {
-                    // Handle vite assets variable
-                    $compiledContent = $this->compileBraceExpressions($content);
-                    
-                    // Create PHP output with raw output (no escaping)
-                    $phpCode = "<?php echo thRaw({$compiledContent}); ?>";
-                } else {
-                    // Compile the brace expressions for escaped output
-                    $compiledContent = $this->compileBraceExpressions($content);
-                    
-                    // Create PHP output with escaped output
-                    $phpCode = "<?php echo thEscape({$compiledContent}); ?>";
-                }
-                
-                // Replace the text node with the PHP code
-                $newTextNode = $dom->createTextNode($phpCode);
-                $textNode->parentNode->replaceChild($newTextNode, $textNode);
-            }
-        }
-    }
-
-    /**
-     * Check if an attribute is a boolean attribute (should be present or absent, not have a value)
-     */
-    protected function isBooleanAttribute(string $attrName): bool
-    {
-        $booleanAttributes = [
-            'selected', 'checked', 'disabled', 'readonly', 'multiple', 'autofocus',
-            'autoplay', 'controls', 'defer', 'hidden', 'loop', 'open', 'required',
-            'reversed', 'scoped', 'seamless', 'itemscope', 'novalidate', 'allowfullscreen',
-            'formnovalidate', 'default', 'inert', 'truespeed'
-        ];
-        
-        return in_array(strtolower($attrName), $booleanAttributes);
-    }
-
-    /**
-     * Compile brace expressions for boolean attributes (no string wrapping)
-     */
-    protected function compileBooleanBraceExpression(string $value): string
-    {
-        // For boolean attributes, we only expect a single brace expression
-        if (preg_match('/^\{([^}]+)\}$/', $value, $matches)) {
-            $expr = trim($matches[1]);
-            $expr = $this->compileDotNotation($expr);
-            $expr = $this->compileExpression($expr);
-            return $expr;
-        }
-        
-        // Fallback to regular compilation
-        return $this->compileExpression($value);
+        return "<?php\n" .
+               "// TreeHouse Template Helper Functions\n" .
+               "if (!function_exists('thGetProperty')) {\n" .
+               "    function thGetProperty(\$object, \$property) {\n" .
+               "        if (is_array(\$object)) {\n" .
+               "            return \$object[\$property] ?? null;\n" .
+               "        }\n" .
+               "        if (is_object(\$object)) {\n" .
+               "            return \$object->{\$property} ?? null;\n" .
+               "        }\n" .
+               "        return null;\n" .
+               "    }\n" .
+               "}\n" .
+               "?>" . $compiled;
     }
 }
