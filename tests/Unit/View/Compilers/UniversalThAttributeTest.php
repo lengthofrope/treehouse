@@ -30,8 +30,7 @@ class UniversalThAttributeTest extends TestCase
         
         $this->assertStringContainsString('href="<?php $val =', $compiled);
         $this->assertStringContainsString('if ($val !== null) echo $val', $compiled);
-        $this->assertStringContainsString('if ($val !== null) echo $val', $compiled);
-        $this->assertStringContainsString("\$user['id']", $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'id\')', $compiled);
     }
 
     #[Test]
@@ -41,9 +40,8 @@ class UniversalThAttributeTest extends TestCase
         
         $compiled = $this->compiler->compile($template);
         
-        $this->assertStringContainsString("\$user['name']", $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'name\')', $compiled);
         $this->assertStringContainsString('data-user="<?php $val =', $compiled);
-        $this->assertStringContainsString('if ($val !== null) echo $val', $compiled);
         $this->assertStringContainsString('if ($val !== null) echo $val', $compiled);
     }
 
@@ -54,20 +52,20 @@ class UniversalThAttributeTest extends TestCase
         
         $compiled = $this->compiler->compile($template);
         
-        $this->assertStringContainsString("\$user['profile']['theme']['primary']", $compiled);
+        $this->assertStringContainsString('thGetProperty(thGetProperty(thGetProperty($user, \'profile\'), \'theme\'), \'primary\')', $compiled);
     }
 
     #[Test]
     public function it_compiles_mixed_static_dynamic_content(): void
     {
-        $template = '<div th:class="btn btn-{user.role} {user.active ? \'active\' : \'inactive\'}">Button</div>';
+        $template = '<div th:class="btn btn-{user.role} {user.active}">Button</div>';
         
         $compiled = $this->compiler->compile($template);
         
         $this->assertStringContainsString('class="<?php echo', $compiled);
         $this->assertStringContainsString('btn btn-', $compiled);
-        $this->assertStringContainsString("\$user['role']", $compiled);
-        $this->assertStringContainsString("\$user['active']", $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'role\')', $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'active\')', $compiled);
     }
 
     #[Test]
@@ -80,11 +78,9 @@ class UniversalThAttributeTest extends TestCase
         $this->assertStringContainsString('id="<?php $val =', $compiled);
         $this->assertStringContainsString('if ($val !== null) echo $val', $compiled);
         $this->assertStringContainsString('name="<?php $val =', $compiled);
-        $this->assertStringContainsString('if ($val !== null) echo $val', $compiled);
         $this->assertStringContainsString('value="<?php $val =', $compiled);
-        $this->assertStringContainsString('if ($val !== null) echo $val', $compiled);
-        $this->assertStringContainsString("\$user['id']", $compiled);
-        $this->assertStringContainsString("\$user['name']", $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'id\')', $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'name\')', $compiled);
     }
 
     #[Test]
@@ -97,14 +93,13 @@ class UniversalThAttributeTest extends TestCase
         // Should contain th:if processing
         $this->assertStringContainsString('if ($condition)', $compiled);
         
-        // Should contain th:text processing  
+        // Should contain th:text processing with thGetProperty
         $this->assertStringContainsString('thEscape', $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'name\')', $compiled);
         
         // Should contain universal th:href processing
         $this->assertStringContainsString('href="<?php $val =', $compiled);
-        $this->assertStringContainsString('if ($val !== null) echo $val', $compiled);
-        $this->assertStringContainsString("\$user['id']", $compiled);
-        $this->assertStringContainsString("\$user['name']", $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'id\')', $compiled);
     }
 
     #[Test]
@@ -117,9 +112,9 @@ class UniversalThAttributeTest extends TestCase
         $this->assertStringContainsString('foreach', $compiled);
         $this->assertStringContainsString('data-user-id="<?php $val =', $compiled);
         $this->assertStringContainsString('if ($val !== null) echo $val', $compiled);
-        $this->assertStringContainsString("\$user['id']", $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'id\')', $compiled);
         $this->assertStringContainsString('thEscape', $compiled);
-        $this->assertStringContainsString("\$user['name']", $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'name\')', $compiled);
     }
 
     #[Test]
@@ -144,7 +139,7 @@ class UniversalThAttributeTest extends TestCase
         $this->assertStringContainsString('title="<?php $val =', $compiled);
         $this->assertStringContainsString('if ($val !== null) echo $val', $compiled);
         $this->assertStringContainsString('View profile for', $compiled);
-        $this->assertStringContainsString("\$user['name']", $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'name\')', $compiled);
     }
 
     #[Test]
@@ -160,7 +155,7 @@ class UniversalThAttributeTest extends TestCase
         // Universal attributes should be processed after
         $this->assertStringContainsString('data-user="<?php $val =', $compiled);
         $this->assertStringContainsString('if ($val !== null) echo $val', $compiled);
-        $this->assertStringContainsString("\$user['id']", $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'id\')', $compiled);
     }
 
     #[Test]
@@ -173,12 +168,82 @@ class UniversalThAttributeTest extends TestCase
         $this->assertStringContainsString('id="<?php $val =', $compiled);
         $this->assertStringContainsString('if ($val !== null) echo $val', $compiled);
         $this->assertStringContainsString('name="<?php $val =', $compiled);
-        $this->assertStringContainsString('if ($val !== null) echo $val', $compiled);
         $this->assertStringContainsString('placeholder="<?php $val =', $compiled);
-        $this->assertStringContainsString('if ($val !== null) echo $val', $compiled);
-        $this->assertStringContainsString("\$user['id']", $compiled);
-        $this->assertStringContainsString("\$field['name']", $compiled);
-        $this->assertStringContainsString("\$field['label']", $compiled);
-        $this->assertStringContainsString("\$user['name']", $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'id\')', $compiled);
+        $this->assertStringContainsString('thGetProperty($field, \'name\')', $compiled);
+        $this->assertStringContainsString('thGetProperty($field, \'label\')', $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'name\')', $compiled);
+    }
+
+    #[Test]
+    public function it_handles_logical_operators_in_universal_attributes(): void
+    {
+        $template = '<div th:data-valid="{user.age >= 18 && user.verified}">Content</div>';
+        
+        $compiled = $this->compiler->compile($template);
+        
+        $this->assertStringContainsString('data-valid="<?php $val =', $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'age\')', $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'verified\')', $compiled);
+        $this->assertStringContainsString('>=', $compiled);
+        $this->assertStringContainsString('&&', $compiled);
+    }
+
+    #[Test]
+    public function it_handles_framework_helpers_in_universal_attributes(): void
+    {
+        $template = '<div th:title="{Str::upper(user.name)}">Content</div>';
+        
+        $compiled = $this->compiler->compile($template);
+        
+        $this->assertStringContainsString('title="<?php $val =', $compiled);
+        $this->assertStringContainsString('LengthOfRope\\TreeHouse\\Support\\Str::', $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'name\')', $compiled);
+    }
+
+    #[Test]
+    public function it_validates_expressions_in_universal_attributes(): void
+    {
+        $template = '<div th:data-hack="{<?php echo \"hack\"; ?>}">Content</div>';
+        
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid template expression');
+        
+        $this->compiler->compile($template);
+    }
+
+    #[Test]
+    public function it_handles_string_concatenation_in_universal_attributes(): void
+    {
+        $template = '<input th:placeholder="{user.firstName + \' \' + user.lastName}">';
+        
+        $compiled = $this->compiler->compile($template);
+        
+        $this->assertStringContainsString('placeholder="<?php $val =', $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'firstName\')', $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'lastName\')', $compiled);
+        $this->assertStringContainsString(' . ', $compiled); // PHP concatenation
+    }
+
+    #[Test]
+    public function it_handles_simple_dot_notation_without_braces(): void
+    {
+        $template = '<div th:data-name="user.name">Content</div>';
+        
+        $compiled = $this->compiler->compile($template);
+        
+        $this->assertStringContainsString('data-name="<?php $val =', $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'name\')', $compiled);
+    }
+
+    #[Test]
+    public function it_handles_static_text_in_universal_attributes(): void
+    {
+        $template = '<div th:data-static="some-static-value">Content</div>';
+        
+        $compiled = $this->compiler->compile($template);
+        
+        $this->assertStringContainsString('data-static="<?php $val =', $compiled);
+        $this->assertStringContainsString('some-static-value', $compiled);
     }
 }

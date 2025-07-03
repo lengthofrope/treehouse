@@ -12,32 +12,26 @@ use RuntimeException;
 
 /**
  * TreeHouse template compiler
- * 
+ *
  * Compiles .th.html and .th.php templates with th: attributes into optimized PHP code.
- * Provides HTML-valid syntax with deep Support class integration.
- * 
+ * Provides HTML-valid syntax with deep Support class integration and enhanced object support.
+ *
  * @package LengthOfRope\TreeHouse\View\Compilers
  * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
 class TreeHouseCompiler
 {
-    /**
-     * Support classes auto-imported in templates
-     */
-    protected array $supportClasses = [
-        'Collection' => 'LengthOfRope\\TreeHouse\\Support\\Collection',
-        'Arr' => 'LengthOfRope\\TreeHouse\\Support\\Arr',
-        'Str' => 'LengthOfRope\\TreeHouse\\Support\\Str',
-        'Carbon' => 'LengthOfRope\\TreeHouse\\Support\\Carbon',
-        'Uuid' => 'LengthOfRope\\TreeHouse\\Support\\Uuid',
-    ];
+    protected ExpressionValidator $validator;
+    protected ExpressionCompiler $expressionCompiler;
+    protected UniversalAttributeProcessor $universalProcessor;
 
     /**
      * Attribute processing order (critical for correct compilation)
+     * th:unless removed - use logical operators with th:if instead
      */
     protected array $attributeProcessingOrder = [
-        'th:if', 'th:unless',                    // Conditionals first
+        'th:if',                                 // Conditionals (th:unless removed - use logical operators)
         'th:auth', 'th:guest',                   // Auth conditionals
         'th:role', 'th:permission',              // Authorization conditionals
         'th:repeat',                             // Loops next
@@ -48,17 +42,15 @@ class TreeHouseCompiler
         'th:remove',                            // Removal last
     ];
 
-    /**
-     * Helper functions injected into templates (disabled - using global helpers)
-     */
-    protected array $helperFunctions = [
-        // Disabled - using global helper functions instead
-    ];
-
-    /**
-     * Boolean attribute placeholders for post-processing
-     */
-    protected array $booleanAttributePlaceholders = [];
+    public function __construct(
+        ExpressionValidator $validator = null,
+        ExpressionCompiler $expressionCompiler = null,
+        UniversalAttributeProcessor $universalProcessor = null
+    ) {
+        $this->validator = $validator ?? new ExpressionValidator();
+        $this->expressionCompiler = $expressionCompiler ?? new ExpressionCompiler($this->validator);
+        $this->universalProcessor = $universalProcessor ?? new UniversalAttributeProcessor($this->expressionCompiler);
+    }
 
     /**
      * Compile template to PHP
@@ -72,7 +64,7 @@ class TreeHouseCompiler
 
         try {
             // Reset boolean attribute placeholders for each compilation
-            $this->booleanAttributePlaceholders = [];
+            $this->universalProcessor->resetBooleanAttributePlaceholders();
             
             // Store original template for DOCTYPE preservation
             $originalTemplate = $template;
@@ -218,11 +210,7 @@ class TreeHouseCompiler
         // TIER 1: Standard th: attributes with specialized processing
         switch ($attribute) {
             case 'th:if':
-                $this->wrapWithCondition($node, "if ({$this->compileExpression($expression)})");
-                break;
-                
-            case 'th:unless':
-                $this->wrapWithCondition($node, "if (!({$this->compileExpression($expression)}))");
+                $this->wrapWithCondition($node, "if ({$this->expressionCompiler->compileExpression($expression)})");
                 break;
                 
             case 'th:auth':
@@ -246,15 +234,15 @@ class TreeHouseCompiler
                 break;
                 
             case 'th:text':
-                $this->setTextContent($node, $this->compileTextExpression($expression));
+                $this->setTextContent($node, $this->expressionCompiler->compileTextExpression($expression));
                 break;
                 
             case 'th:html':
-                $this->setHtmlContent($node, $this->compileHtmlExpression($expression));
+                $this->setHtmlContent($node, $this->expressionCompiler->compileHtmlExpression($expression));
                 break;
                 
             case 'th:raw':
-                $this->setRawContent($node, $this->compileRawExpression($expression));
+                $this->setRawContent($node, $this->expressionCompiler->compileRawExpression($expression));
                 break;
                 
             case 'th:class':
@@ -289,238 +277,10 @@ class TreeHouseCompiler
                 // TIER 2: Universal th: attributes - any attribute can be prefixed with th:
                 if (str_starts_with($attribute, 'th:')) {
                     $htmlAttribute = substr($attribute, 3); // Remove 'th:' prefix
-                    $this->processDynamicAttribute($node, $htmlAttribute, $expression);
+                    $this->universalProcessor->processDynamicAttribute($node, $htmlAttribute, $expression);
                 }
                 break;
         }
-    }
-
-    /**
-     * Process dynamic attribute with universal th: prefix support
-     */
-    protected function processDynamicAttribute(DOMElement $node, string $attrName, string $expression): void
-    {
-        // Handle different types of expressions
-        if (str_contains($expression, '{')) {
-            // Brace syntax: "static text {$dynamic} more text"
-            if ($this->isBooleanAttribute($attrName)) {
-                // For boolean attributes, compile the expression inside braces directly
-                $compiledValue = $this->compileBooleanBraceExpression($expression);
-            } else {
-                $compiledValue = $this->compileBraceExpressions($expression);
-            }
-        } elseif ($this->isDotNotation($expression)) {
-            // Dot notation: "user.name"
-            $compiledValue = $this->compileExpression($expression);
-        } elseif ($this->isStaticText($expression)) {
-            // Static text: just output as string literal
-            $compiledValue = "'" . addslashes($expression) . "'";
-        } else {
-            // Dynamic PHP expression: "$user['id']"
-            $compiledValue = $this->compileExpression($expression);
-        }
-        
-        // Handle boolean attributes (selected, checked, disabled, etc.)
-        if ($this->isBooleanAttribute($attrName)) {
-            // For boolean attributes, we need special handling since DOM normalizes them
-            // Use a temporary non-boolean attribute that we'll replace in generatePhp
-            $placeholder = "___TH_BOOL_" . uniqid() . "___";
-            $this->booleanAttributePlaceholders[$placeholder] = [
-                'condition' => $compiledValue,
-                'attribute' => $attrName
-            ];
-            // Use a temporary attribute name that won't be normalized
-            $node->setAttribute("data-th-bool-{$attrName}", $placeholder);
-        } else {
-            // For regular attributes, handle null values by not outputting anything
-            $php = "<?php \$val = {$compiledValue}; if (\$val !== null) echo \$val; ?>";
-            $node->setAttribute($attrName, $php);
-        }
-    }
-
-    /**
-     * Check if expression is dot notation: user.name, config.db.host, etc.
-     */
-    protected function isDotNotation(string $expression): bool
-    {
-        return (bool) preg_match('/^[a-zA-Z_]\w*\.[a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*$/', $expression);
-    }
-
-    /**
-     * Check if expression is static text (no variables or PHP syntax)
-     */
-    protected function isStaticText(string $expression): bool
-    {
-        // Check if it contains PHP variables or PHP-specific syntax
-        // Allow : and . for CSS and normal text, but not when part of PHP operators
-        return !preg_match('/\$|\[|\]|\(|\)|->|::|==|!=|&&|\|\||(\?[^:]*:)/', $expression);
-    }
-
-    /**
-     * Compile brace expressions: "text {expr} more {expr2}"
-     */
-    protected function compileBraceExpressions(string $value): string
-    {
-        $result = preg_replace_callback(
-            '/\{([^}]+)\}/',
-            function($matches) {
-                $expr = trim($matches[1]);
-                $expr = $this->compileDotNotation($expr);
-                $expr = $this->compileExpression($expr);
-                return "' . (($expr) ?? '') . '";
-            },
-            "'" . addslashes($value) . "'"
-        );
-        
-        // Clean up empty string concatenations
-        $result = preg_replace("/^'' \. /", "", $result);
-        $result = preg_replace("/ \. ''$/", "", $result);
-        
-        // Additional cleanup - remove unnecessary concatenations at start/end
-        $result = preg_replace("/^'' \. \(/", "(", $result);
-        $result = preg_replace("/\) \. ''$/", ")", $result);
-        
-        return $result;
-    }
-
-    /**
-     * Convert dot notation to array access: user.name → $user['name']
-     */
-    protected function compileDotNotation(string $expression): string
-    {
-        // Convert user.name.first → $user['name']['first']
-        // Also handles $user.name.first → $user['name']['first'] (when $ prefix already exists)
-        return preg_replace_callback(
-            '/\$?([a-zA-Z_]\w*)\.([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)\b/',
-            function($matches) {
-                $var = $matches[1];
-                $path = $matches[2];
-                $keys = explode('.', $path);
-                $result = '$' . $var;
-                foreach ($keys as $key) {
-                    $result .= "['$key']";
-                }
-                return $result;
-            },
-            $expression
-        );
-    }
-
-    /**
-     * Add $ prefix to simple variable names in th: commands
-     */
-    protected function addVariablePrefix(string $expression): string
-    {
-        // Don't process if expression already contains $ (already has variables)
-        // or if it contains PHP operators/functions that indicate it's already PHP code
-        if (str_contains($expression, '$') ||
-            preg_match('/\(|\)|->|::|==|!=|&&|\|\||[\[\]]/', $expression)) {
-            return $expression;
-        }
-        
-        // Don't process quoted strings
-        if (preg_match('/^[\'"][^\'"]*[\'"]$/', trim($expression))) {
-            return $expression;
-        }
-        
-        // Don't process numeric values or boolean literals
-        if (preg_match('/^(true|false|null|\d+(\.\d+)?)$/i', trim($expression))) {
-            return $expression;
-        }
-        
-        // Don't process Support class calls (Str::something, Arr::something, etc.)
-        foreach ($this->supportClasses as $alias => $class) {
-            if (str_starts_with($expression, $alias . '::')) {
-                return $expression;
-            }
-        }
-        
-        // Handle simple variable names (just letters, numbers, underscores)
-        // Examples: "title" -> "$title", "user_name" -> "$user_name"
-        if (preg_match('/^[a-zA-Z_]\w*$/', trim($expression))) {
-            return '$' . trim($expression);
-        }
-        
-        // Handle simple dot notation without $ prefix
-        // Examples: "user.name" -> "$user.name" (will be further processed by compileDotNotation)
-        if (preg_match('/^[a-zA-Z_]\w*\.[a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*$/', trim($expression))) {
-            return '$' . trim($expression);
-        }
-        
-        return $expression;
-    }
-
-    /**
-     * Compile expression with Support class integration
-     */
-    protected function compileExpression(string $expression): string
-    {
-        // First, handle automatic $ prefixing for simple variable names
-        $expression = $this->addVariablePrefix($expression);
-        
-        // Then, handle dot notation conversion
-        $expression = $this->compileDotNotation($expression);
-        
-        // Handle Support class static calls
-        foreach ($this->supportClasses as $alias => $class) {
-            $expression = preg_replace(
-                '/\b' . $alias . '::/i',
-                '\\' . $class . '::',
-                $expression
-            );
-        }
-        
-        // Handle collection method calls on arrays
-        $expression = preg_replace_callback(
-            '/\$(\w+)->(\w+)\(([^)]*)\)/',
-            function ($matches) {
-                $var = $matches[1];
-                $method = $matches[2];
-                $args = $matches[3];
-                
-                // Check if this is a Collection method
-                $collectionMethods = ['count', 'isEmpty', 'isNotEmpty', 'first', 'last', 'take', 'skip', 'where', 'filter', 'map', 'sortBy', 'groupBy', 'pluck'];
-                
-                if (in_array($method, $collectionMethods)) {
-                    return "(is_array(\${$var}) ? thCollect(\${$var})->{$method}({$args}) : \${$var}->{$method}({$args}))";
-                }
-                
-                return $matches[0];
-            },
-            $expression
-        );
-        
-        return $expression;
-    }
-
-    /**
-     * Compile text expression (escaped)
-     */
-    protected function compileTextExpression(string $expression): string
-    {
-        // Handle brace expressions in text
-        if (str_contains($expression, '{')) {
-            $compiledValue = $this->compileBraceExpressions($expression);
-        } else {
-            $compiledValue = $this->compileExpression($expression);
-        }
-        
-        return "<?php echo thEscape({$compiledValue}); ?>";
-    }
-
-    /**
-     * Compile HTML expression (raw)
-     */
-    protected function compileHtmlExpression(string $expression): string
-    {
-        // Handle brace expressions in HTML
-        if (str_contains($expression, '{')) {
-            $compiledValue = $this->compileBraceExpressions($expression);
-        } else {
-            $compiledValue = $this->compileExpression($expression);
-        }
-        
-        return "<?php echo thRaw({$compiledValue}); ?>";
     }
 
     /**
@@ -605,9 +365,9 @@ class TreeHouseCompiler
     {
         // Handle brace expressions in raw content
         if (str_contains($expression, '{')) {
-            $compiledValue = $this->compileBraceExpressions($expression);
+            $compiledValue = $this->expressionCompiler->compileBraceExpressions($expression);
         } else {
-            $compiledValue = $this->compileExpression($expression);
+            $compiledValue = $this->expressionCompiler->compileExpression($expression);
         }
         
         return "<?php echo thRaw({$compiledValue}); ?>";
@@ -621,16 +381,16 @@ class TreeHouseCompiler
         // Use the same logic as universal th: attributes
         if (str_contains($expression, '{')) {
             // Brace syntax: "static text {$dynamic} more text"
-            $compiledValue = $this->compileBraceExpressions($expression);
-        } elseif ($this->isDotNotation($expression)) {
+            $compiledValue = $this->expressionCompiler->compileBraceExpressions($expression);
+        } elseif ($this->expressionCompiler->isDotNotation($expression)) {
             // Dot notation: "user.name"
-            $compiledValue = $this->compileExpression($expression);
-        } elseif ($this->isStaticText($expression)) {
+            $compiledValue = $this->expressionCompiler->compileExpression($expression);
+        } elseif ($this->expressionCompiler->isStaticText($expression)) {
             // Static text: just output as string literal
             $compiledValue = "'" . addslashes($expression) . "'";
         } else {
             // Dynamic PHP expression: "$user['id']"
-            $compiledValue = $this->compileExpression($expression);
+            $compiledValue = $this->expressionCompiler->compileExpression($expression);
         }
         
         $existing = $node->getAttribute('class');
@@ -657,7 +417,7 @@ class TreeHouseCompiler
                     $value = preg_replace('/\s*\+\s*/', ' . ', $value);
                 }
                 
-                $compiledValue = $this->compileExpression($value);
+                $compiledValue = $this->expressionCompiler->compileExpression($value);
                 $php = "<?php echo {$compiledValue}; ?>";
                 $node->setAttribute($name, $php);
             }
@@ -742,7 +502,7 @@ class TreeHouseCompiler
         foreach ($node->attributes as $attr) {
             if (str_starts_with($attr->name, 'th:props-')) {
                 $propName = substr($attr->name, 9);
-                $props[] = "'{$propName}' => {$this->compileExpression($attr->value)}";
+                $props[] = "'{$propName}' => {$this->expressionCompiler->compileExpression($attr->value)}";
                 $node->removeAttribute($attr->name);
             }
         }
@@ -863,12 +623,7 @@ class TreeHouseCompiler
         }, $html);
         
         // Process boolean attribute placeholders
-        foreach ($this->booleanAttributePlaceholders as $placeholder => $config) {
-            // Find and replace the temporary data-th-bool-* attributes
-            $tempAttr = "data-th-bool-{$config['attribute']}=\"{$placeholder}\"";
-            $replacement = "<?php if ({$config['condition']}) echo '{$config['attribute']}'; ?>";
-            $html = str_replace($tempAttr, $replacement, $html);
-        }
+        $html = $this->universalProcessor->processBooleanAttributePlaceholders($html);
         
         // Fix emoji encoding issues by converting HTML numeric entities back to UTF-8
         $html = $this->fixEmojiEncoding($html);
@@ -929,19 +684,19 @@ class TreeHouseCompiler
                 // Check if this is a TreeHouse framework variable that should be raw
                 if (preg_match('/\{__treehouse_(?:config|js|favicons|logo|manifest)\}/', $content)) {
                     // Compile the brace expressions for raw output
-                    $compiledContent = $this->compileBraceExpressions($content);
+                    $compiledContent = $this->expressionCompiler->compileBraceExpressions($content);
                     
                     // Create PHP output with raw output (no escaping)
                     $phpCode = "<?php echo thRaw({$compiledContent}); ?>";
                 } elseif (preg_match('/\{__vite_assets\}/', $content)) {
                     // Handle vite assets variable
-                    $compiledContent = $this->compileBraceExpressions($content);
+                    $compiledContent = $this->expressionCompiler->compileBraceExpressions($content);
                     
                     // Create PHP output with raw output (no escaping)
                     $phpCode = "<?php echo thRaw({$compiledContent}); ?>";
                 } else {
                     // Compile the brace expressions for escaped output
-                    $compiledContent = $this->compileBraceExpressions($content);
+                    $compiledContent = $this->expressionCompiler->compileBraceExpressions($content);
                     
                     // Create PHP output with escaped output
                     $phpCode = "<?php echo thEscape({$compiledContent}); ?>";
@@ -977,12 +732,17 @@ class TreeHouseCompiler
         // For boolean attributes, we only expect a single brace expression
         if (preg_match('/^\{([^}]+)\}$/', $value, $matches)) {
             $expr = trim($matches[1]);
-            $expr = $this->compileDotNotation($expr);
-            $expr = $this->compileExpression($expr);
+            
+            // Validate the boolean expression first
+            if (!$this->validator->isValidBraceExpression($expr)) {
+                throw new RuntimeException("Invalid template expression: {{$expr}}. Only dot notation, basic operators, and framework helpers are allowed.");
+            }
+            
+            $expr = $this->expressionCompiler->compileExpression($expr);
             return $expr;
         }
         
         // Fallback to regular compilation
-        return $this->compileExpression($value);
+        return $this->expressionCompiler->compileExpression($value);
     }
 }
