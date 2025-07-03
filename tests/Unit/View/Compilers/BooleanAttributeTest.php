@@ -18,11 +18,11 @@ class BooleanAttributeTest extends TestCase
     #[Test]
     public function it_handles_th_selected_boolean_attribute(): void
     {
-        $template = '<option th:selected="{user.role == \'admin\'}">Admin</option>';
+        $template = '<option th:selected="{user.isAdmin}">Admin</option>';
         
         $compiled = $this->compiler->compile($template);
         
-        $this->assertStringContainsString('<?php if (thGetProperty($user, \'role\') == \'admin\') echo \'selected\'; ?>', $compiled);
+        $this->assertStringContainsString('<?php if (thGetProperty($user, \'isAdmin\')) echo \'selected\'; ?>', $compiled);
         $this->assertStringNotContainsString('th:selected', $compiled);
     }
 
@@ -74,11 +74,11 @@ class BooleanAttributeTest extends TestCase
     #[Test]
     public function it_handles_boolean_attributes_with_complex_expressions(): void
     {
-        $template = '<option th:selected="{user.role == \'admin\' && user.active}">Admin</option>';
+        $template = '<option th:selected="{user.isAdmin && user.active}">Admin</option>';
         
         $compiled = $this->compiler->compile($template);
         
-        $this->assertStringContainsString('<?php if (thGetProperty($user, \'role\') == \'admin\' && thGetProperty($user, \'active\')) echo \'selected\'; ?>', $compiled);
+        $this->assertStringContainsString('<?php if (thGetProperty($user, \'isAdmin\') && thGetProperty($user, \'active\')) echo \'selected\'; ?>', $compiled);
     }
 
     #[Test]
@@ -146,23 +146,33 @@ class BooleanAttributeTest extends TestCase
     #[Test]
     public function it_handles_boolean_attributes_with_logical_operators(): void
     {
-        $template = '<input th:disabled="{user.age < 18 || user.isLocked}" type="text">';
+        $template = '<input th:disabled="{user.isMinor || user.isLocked}" type="text">';
         
         $compiled = $this->compiler->compile($template);
         
-        $this->assertStringContainsString('<?php if (thGetProperty($user, \'age\') < 18 || thGetProperty($user, \'isLocked\')) echo \'disabled\'; ?>', $compiled);
+        $this->assertStringContainsString('<?php if (thGetProperty($user, \'isMinor\') || thGetProperty($user, \'isLocked\')) echo \'disabled\'; ?>', $compiled);
     }
 
     #[Test]
     public function it_handles_boolean_attributes_with_framework_helpers(): void
     {
-        $template = '<input th:required="{Str::length(user.email) > 0}" type="email">';
+        $template = '<input th:required="{user.hasEmail}" type="email">';
         
         $compiled = $this->compiler->compile($template);
         
-        $this->assertStringContainsString('LengthOfRope\\TreeHouse\\Support\\Str::', $compiled);
-        $this->assertStringContainsString('thGetProperty($user, \'email\')', $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'hasEmail\')', $compiled);
         $this->assertStringContainsString('echo \'required\';', $compiled);
+    }
+
+    #[Test]
+    public function it_validates_and_blocks_comparison_operators_in_boolean_attributes(): void
+    {
+        $template = '<input th:required="{user.age >= 18}" type="email">';
+        
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid template expression');
+        
+        $this->compiler->compile($template);
     }
 
     #[Test]

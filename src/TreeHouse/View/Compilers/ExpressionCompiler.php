@@ -5,294 +5,171 @@ declare(strict_types=1);
 namespace LengthOfRope\TreeHouse\View\Compilers;
 
 /**
- * Compiles template expressions into PHP code
+ * Expression Compiler for TreeHouse Templates
+ * 
+ * Compiles template expressions to PHP code:
+ * - Converts dot notation to thGetProperty() calls
+ * - Handles boolean logic operators
+ * - Preserves framework helpers
+ * - Validates expressions before compilation
+ *
+ * @package LengthOfRope\TreeHouse\View\Compilers
+ * @author  Bas de Kort <bdekort@proton.me>
+ * @since   2.0.0
  */
 class ExpressionCompiler
 {
-    protected ExpressionValidator $validator;
+    private ExpressionValidator $validator;
 
-    /**
-     * Support classes auto-imported in templates
-     */
-    protected array $supportClasses = [
-        'Collection' => 'LengthOfRope\\TreeHouse\\Support\\Collection',
-        'Arr' => 'LengthOfRope\\TreeHouse\\Support\\Arr',
-        'Str' => 'LengthOfRope\\TreeHouse\\Support\\Str',
-        'Carbon' => 'LengthOfRope\\TreeHouse\\Support\\Carbon',
-        'Uuid' => 'LengthOfRope\\TreeHouse\\Support\\Uuid',
-    ];
-
-    public function __construct(ExpressionValidator $validator = null)
+    public function __construct(ExpressionValidator $validator)
     {
-        $this->validator = $validator ?? new ExpressionValidator();
+        $this->validator = $validator;
     }
 
     /**
-     * Compile expression with Support class integration
+     * Compile an expression to PHP code
+     *
+     * @param string $expression The template expression
+     * @return string Compiled PHP expression
+     * @throws \InvalidArgumentException If expression is invalid
      */
     public function compileExpression(string $expression): string
     {
-        // First, handle automatic $ prefixing for simple variable names
-        $expression = $this->addVariablePrefix($expression);
-        
-        // Then, handle dot notation conversion
-        $expression = $this->compileDotNotation($expression);
-        
-        // Handle Support class static calls
-        foreach ($this->supportClasses as $alias => $class) {
-            $expression = preg_replace(
-                '/\b' . $alias . '::/i',
-                '\\' . $class . '::',
-                $expression
+        $expression = trim($expression);
+
+        // Validate expression first
+        if (!$this->validator->validate($expression)) {
+            throw new \InvalidArgumentException(
+                $this->validator->getValidationError($expression)
             );
         }
-        
-        // Handle collection method calls on arrays
-        $expression = preg_replace_callback(
-            '/\$(\w+)->(\w+)\(([^)]*)\)/',
-            function ($matches) {
-                $var = $matches[1];
-                $method = $matches[2];
-                $args = $matches[3];
-                
-                // Check if this is a Collection method
-                $collectionMethods = ['count', 'isEmpty', 'isNotEmpty', 'first', 'last', 'take', 'skip', 'where', 'filter', 'map', 'sortBy', 'groupBy', 'pluck'];
-                
-                if (in_array($method, $collectionMethods)) {
-                    return "(is_array(\${$var}) ? thCollect(\${$var})->{$method}({$args}) : \${$var}->{$method}({$args}))";
-                }
-                
-                return $matches[0];
-            },
-            $expression
-        );
-        
-        return $expression;
+
+        // Compile the expression
+        return $this->doCompile($expression);
     }
 
     /**
-     * Compile brace expressions: "text {expr} more {expr2}" with validation
+     * Perform the actual compilation
+     *
+     * @param string $expression
+     * @return string
      */
-    public function compileBraceExpressions(string $value): string
+    private function doCompile(string $expression): string
     {
-        $result = preg_replace_callback(
-            '/\{([^}]+)\}/',
-            function($matches) {
-                $expr = trim($matches[1]);
-                
-                // Validate brace expression first
-                $this->validator->validateOrThrow($expr);
-                
-                // Only convert string concatenation in specific contexts, not for th:if
-                $expr = $this->compileDotNotation($expr);
-                $expr = $this->compileExpression($expr);
-                return "' . (($expr) ?? '') . '";
-            },
-            "'" . addslashes($value) . "'"
-        );
-        
-        // Clean up empty string concatenations
-        $result = preg_replace("/^'' \. /", "", $result);
-        $result = preg_replace("/ \. ''$/", "", $result);
-        
-        // Additional cleanup - remove unnecessary concatenations at start/end
-        $result = preg_replace("/^'' \. \(/", "(", $result);
-        $result = preg_replace("/\) \. ''$/", ")", $result);
-        
-        return $result;
+        // Convert dot notation to thGetProperty() calls
+        $compiled = $this->compileDotNotation($expression);
+
+        // Handle boolean operators (already valid PHP)
+        // No conversion needed for &&, ||, !
+
+        return $compiled;
     }
 
     /**
-     * Compile brace expressions for boolean attributes (no string wrapping)
+     * Convert dot notation to thGetProperty() calls
+     *
+     * @param string $expression
+     * @return string
      */
-    public function compileBooleanBraceExpression(string $value): string
+    private function compileDotNotation(string $expression): string
     {
-        // For boolean attributes, we only expect a single brace expression
-        if (preg_match('/^\{([^}]+)\}$/', $value, $matches)) {
-            $expr = trim($matches[1]);
-            
-            // Validate the boolean expression first
-            $this->validator->validateOrThrow($expr);
-            
-            $expr = $this->compileDotNotation($expr);
-            $expr = $this->compileExpression($expr);
-            return $expr;
-        }
-        
-        // Fallback to regular compilation
-        return $this->compileExpression($value);
-    }
+        // Pattern to match variable.property chains
+        // Matches: $user.name, user.name, $user.profile.email, user.profile.email, etc.
+        $pattern = '/(\$?)(\w+)((?:\.\w+)+)/';
 
-    /**
-     * Convert dot notation to thGetProperty calls: user.name → thGetProperty($user, 'name')
-     */
-    protected function compileDotNotation(string $expression): string
-    {
-        // Convert user.name.first → thGetProperty(thGetProperty($user, 'name'), 'first')
-        // Also handles $user.name.first → thGetProperty(thGetProperty($user, 'name'), 'first') (when $ prefix already exists)
-        return preg_replace_callback(
-            '/\$?([a-zA-Z_]\w*)\.([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)\b/',
-            function($matches) {
-                $var = $matches[1];
-                $path = $matches[2];
-                $keys = explode('.', $path);
-                
-                // Build nested thGetProperty calls
-                $result = '$' . $var;
-                foreach ($keys as $key) {
-                    $result = "thGetProperty({$result}, '{$key}')";
-                }
-                
-                return $result;
-            },
-            $expression
-        );
-    }
+        return preg_replace_callback($pattern, function ($matches) {
+            $hasPrefix = !empty($matches[1]);
+            $variable = ($hasPrefix ? '$' : '$') . $matches[2]; // Always add $ prefix
+            $properties = substr($matches[3], 1); // Remove leading dot
+            $propertyChain = explode('.', $properties);
 
-    /**
-     * Add $ prefix to simple variable names in th: commands
-     */
-    protected function addVariablePrefix(string $expression): string
-    {
-        // Don't process if expression already contains $ (already has variables)
-        // or if it contains PHP operators/functions that indicate it's already PHP code
-        if (str_contains($expression, '$') ||
-            preg_match('/\(|\)|->|::|==|!=|&&|\|\||[\[\]]|\+|\-|\*|\//', $expression)) {
-            return $expression;
-        }
-        
-        // Don't process quoted strings
-        if (preg_match('/^[\'"][^\'"]*[\'"]$/', trim($expression))) {
-            return $expression;
-        }
-        
-        // Don't process numeric values or boolean literals
-        if (preg_match('/^(true|false|null|\d+(\.\d+)?)$/i', trim($expression))) {
-            return $expression;
-        }
-        
-        // Don't process Support class calls (Str::something, Arr::something, etc.)
-        foreach ($this->supportClasses as $alias => $class) {
-            if (str_starts_with($expression, $alias . '::')) {
-                return $expression;
+            // Build nested thGetProperty calls
+            $result = $variable;
+            foreach ($propertyChain as $property) {
+                $result = "thGetProperty({$result}, '{$property}')";
             }
-        }
-        
-        // Handle simple variable names (just letters, numbers, underscores)
-        // Examples: "title" -> "$title", "user_name" -> "$user_name"
-        if (preg_match('/^[a-zA-Z_]\w*$/', trim($expression))) {
-            return '$' . trim($expression);
-        }
-        
-        // Handle simple dot notation without $ prefix
-        // Examples: "user.name" -> "$user.name" (will be further processed by compileDotNotation)
-        if (preg_match('/^[a-zA-Z_]\w*\.[a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*$/', trim($expression))) {
-            return '$' . trim($expression);
-        }
-        
-        return $expression;
+
+            return $result;
+        }, $expression);
     }
 
     /**
-     * Convert + operators to PHP concatenation . for string concatenation
+     * Compile a conditional expression for th:if
+     *
+     * @param string $expression
+     * @return string
      */
-    protected function convertStringConcatenation(string $expression): string
+    public function compileConditional(string $expression): string
     {
-        // Be very conservative - only convert + to . when we're sure it's string concatenation
-        // Only convert when we have quoted strings on at least one side
+        $compiled = $this->compileExpression($expression);
         
-        // Pattern 1: variable/property + 'string'
-        $expression = preg_replace(
-            '/((?:thGetProperty\([^)]+\)|\$\w+))\s*\+\s*(\'[^\']*\'|"[^"]*")/',
-            '$1 . $2',
-            $expression
-        );
-        
-        // Pattern 2: 'string' + variable/property
-        $expression = preg_replace(
-            '/(\'[^\']*\'|"[^"]*")\s*\+\s*((?:thGetProperty\([^)]+\)|\$\w+))/',
-            '$1 . $2',
-            $expression
-        );
-        
-        // Pattern 3: 'string' + 'string'
-        $expression = preg_replace(
-            '/(\'[^\']*\'|"[^"]*")\s*\+\s*(\'[^\']*\'|"[^"]*")/',
-            '$1 . $2',
-            $expression
-        );
-        
-        return $expression;
+        // Wrap in boolean context to ensure proper evaluation
+        return "({$compiled})";
     }
 
     /**
-     * Check if expression is dot notation: user.name, config.db.host, etc.
+     * Compile a text expression for th:text
+     *
+     * @param string $expression
+     * @return string
      */
-    public function isDotNotation(string $expression): bool
+    public function compileText(string $expression): string
     {
-        return (bool) preg_match('/^[a-zA-Z_]\w*\.[a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*$/', $expression);
+        $compiled = $this->compileExpression($expression);
+        
+        // Ensure output is escaped
+        return "htmlspecialchars((string)({$compiled}), ENT_QUOTES, 'UTF-8')";
     }
 
     /**
-     * Check if expression is static text (no variables or PHP syntax)
+     * Compile a raw expression for th:html
+     *
+     * @param string $expression
+     * @return string
      */
-    public function isStaticText(string $expression): bool
+    public function compileRaw(string $expression): string
     {
-        // Check if it contains PHP variables or PHP-specific syntax
-        // Allow : and . for CSS and normal text, but not when part of PHP operators
-        return !preg_match('/\$|\[|\]|\(|\)|->|::|==|!=|&&|\|\||(\?[^:]*:)/', $expression);
+        $compiled = $this->compileExpression($expression);
+        
+        // No escaping for raw output
+        return "(string)({$compiled})";
     }
 
     /**
-     * Compile text expression (escaped)
+     * Compile an iteration expression for th:repeat
+     *
+     * @param string $expression
+     * @return array{iterable: string, key: string|null, value: string}
      */
-    public function compileTextExpression(string $expression): string
+    public function compileIteration(string $expression): array
     {
-        // Handle brace expressions in text - validation happens in compileBraceExpressions
-        if (str_contains($expression, '{')) {
-            $compiledValue = $this->compileBraceExpressions($expression);
-        } else {
-            // For non-brace expressions, validate if they look unsafe
-            if ($this->validator->looksLikeUnsafeExpression($expression)) {
-                throw new \RuntimeException("Invalid template expression: {$expression}. Only dot notation, basic operators, and framework helpers are allowed.");
-            }
-            $compiledValue = $this->compileExpression($expression);
+        // Parse different repeat formats:
+        // "item : items" -> foreach($items as $item)
+        // "key,item : items" -> foreach($items as $key => $item)
+        // "item in items" -> foreach($items as $item)
+
+        if (preg_match('/^(\w+)\s*:\s*(.+)$/', $expression, $matches)) {
+            // Simple format: item : items
+            $value = '$' . $matches[1];
+            $iterable = $this->compileExpression($matches[2]);
+            return ['iterable' => $iterable, 'key' => null, 'value' => $value];
         }
-        
-        return "<?php echo thEscape({$compiledValue}); ?>";
-    }
 
-    /**
-     * Compile HTML expression (raw)
-     */
-    public function compileHtmlExpression(string $expression): string
-    {
-        // Handle brace expressions in HTML
-        if (str_contains($expression, '{')) {
-            $compiledValue = $this->compileBraceExpressions($expression);
-        } else {
-            // For non-brace expressions, validate if they look unsafe
-            if ($this->validator->looksLikeUnsafeExpression($expression)) {
-                throw new \RuntimeException("Invalid template expression: {$expression}. Only dot notation, basic operators, and framework helpers are allowed.");
-            }
-            $compiledValue = $this->compileExpression($expression);
+        if (preg_match('/^(\w+),\s*(\w+)\s*:\s*(.+)$/', $expression, $matches)) {
+            // Key-value format: key,item : items
+            $key = '$' . $matches[1];
+            $value = '$' . $matches[2];
+            $iterable = $this->compileExpression($matches[3]);
+            return ['iterable' => $iterable, 'key' => $key, 'value' => $value];
         }
-        
-        return "<?php echo thRaw({$compiledValue}); ?>";
-    }
 
-    /**
-     * Compile raw expression (unescaped, replaces entire element)
-     */
-    public function compileRawExpression(string $expression): string
-    {
-        // Handle brace expressions in raw content
-        if (str_contains($expression, '{')) {
-            $compiledValue = $this->compileBraceExpressions($expression);
-        } else {
-            $compiledValue = $this->compileExpression($expression);
+        if (preg_match('/^(\w+)\s+in\s+(.+)$/', $expression, $matches)) {
+            // Alternative format: item in items
+            $value = '$' . $matches[1];
+            $iterable = $this->compileExpression($matches[2]);
+            return ['iterable' => $iterable, 'key' => null, 'value' => $value];
         }
-        
-        return "<?php echo thRaw({$compiledValue}); ?>";
+
+        throw new \InvalidArgumentException("Invalid repeat expression: {$expression}");
     }
 }

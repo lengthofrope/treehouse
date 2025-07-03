@@ -4,131 +4,152 @@ declare(strict_types=1);
 
 namespace LengthOfRope\TreeHouse\View\Compilers;
 
-use RuntimeException;
-
 /**
- * Validates template expressions for security and syntax safety
+ * Expression Validator for TreeHouse Templates
+ * 
+ * Validates expressions to ensure they only contain allowed operations:
+ * - Boolean logic operators (&&, ||, !)
+ * - Dot notation for object access
+ * - Framework helpers (Str::, Carbon::, Arr::, Collection::)
+ * - Variable access ($var)
+ * - Method calls
+ * 
+ * Blocks:
+ * - Arithmetic operators (+, -, *, /, %)
+ * - Comparison operators (==, !=, <, >, <=, >=)
+ * - Assignment operators (=, +=, etc.)
+ *
+ * @package LengthOfRope\TreeHouse\View\Compilers
+ * @author  Bas de Kort <bdekort@proton.me>
+ * @since   2.0.0
  */
 class ExpressionValidator
 {
     /**
-     * Framework helper classes that are allowed
+     * Allowed framework helpers
      */
-    protected array $allowedHelpers = ['Str', 'Carbon', 'Arr', 'Collection', 'Uuid'];
+    private const ALLOWED_HELPERS = [
+        'Str::', 'Carbon::', 'Arr::', 'Collection::'
+    ];
 
     /**
-     * Validate brace expressions for security and syntax safety
+     * Blocked operators
      */
-    public function isValidBraceExpression(string $expression): bool
+    private const BLOCKED_OPERATORS = [
+        // Arithmetic
+        '+', '-', '*', '/', '%',
+        // Comparison
+        '==', '!=', '<', '>', '<=', '>=', '===', '!==',
+        // Assignment
+        '=', '+=', '-=', '*=', '/=', '%=', '.=',
+        // Bitwise
+        '&', '|', '^', '<<', '>>', '~'
+    ];
+
+    /**
+     * Allowed boolean operators
+     */
+    private const ALLOWED_BOOLEAN_OPERATORS = [
+        '&&', '||', '!'
+    ];
+
+    /**
+     * Validate an expression
+     *
+     * @param string $expression The expression to validate
+     * @return bool True if valid, false otherwise
+     */
+    public function validate(string $expression): bool
     {
-        $expr = trim($expression);
+        // Remove whitespace for easier parsing
+        $cleaned = preg_replace('/\s+/', ' ', trim($expression));
         
-        // ❌ Reject any PHP tags
-        if (preg_match('/<\?php|\?>/', $expr)) {
-            return false;
-        }
-        
-        // ❌ Reject native PHP functions (specific function names)
-        if (preg_match('/\b(strlen|strtoupper|array_|count|implode|explode|eval|exec|system|shell_exec|passthru|file_get_contents|fopen|fwrite)\s*\(/', $expr)) {
-            return false;
-        }
-        
-        // ❌ Reject complex arithmetic (multiplication, division, modulo, but allow addition)
-        if (preg_match('/[\*\/\%]/', $expr)) {
-            return false;
-        }
-        
-        // ❌ Reject complex numeric operations with decimal points
-        if (preg_match('/\d+\.\d+\s*[\*\/\%]/', $expr)) {
-            return false;
-        }
-        
-        // ✅ Allow clean dot notation: user.name, config.db.host
-        if (preg_match('/^[a-zA-Z_]\w*\.[a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*$/', $expr)) {
-            return true;
-        }
-        
-        // ✅ Allow simple variables: user, title
-        if (preg_match('/^[a-zA-Z_]\w*$/', $expr)) {
-            return true;
-        }
-        
-        // ✅ Allow string literals: 'text', "text"
-        if (preg_match('/^[\'"][^\'"]*[\'"]$/', $expr)) {
-            return true;
-        }
-        
-        // ✅ Allow framework helper calls: Str::upper(user.name)
-        foreach ($this->allowedHelpers as $helper) {
-            if (preg_match("/^{$helper}::\w+\([^)]*\)$/", $expr)) {
-                return true;
+        // Check for blocked operators
+        foreach (self::BLOCKED_OPERATORS as $operator) {
+            if (strpos($cleaned, $operator) !== false) {
+                // Special case: allow != in boolean context but not comparison
+                if ($operator === '!=' && $this->isInBooleanContext($cleaned, $operator)) {
+                    continue;
+                }
+                return false;
             }
         }
-        
-        // ✅ Allow basic safe operators with logical operators
-        if ($this->hasOnlyBasicOperators($expr)) {
-            return true;
+
+        // Check for valid patterns
+        return $this->hasValidPatterns($cleaned);
+    }
+
+    /**
+     * Check if expression contains only valid patterns
+     *
+     * @param string $expression
+     * @return bool
+     */
+    private function hasValidPatterns(string $expression): bool
+    {
+        // Remove valid patterns and see what's left
+        $remaining = $expression;
+
+        // Remove framework helpers
+        foreach (self::ALLOWED_HELPERS as $helper) {
+            $remaining = preg_replace('/\b' . preg_quote($helper, '/') . '\w+\([^)]*\)/', '', $remaining);
         }
-        
+
+        // Remove variables with dot notation (with or without $ prefix)
+        $remaining = preg_replace('/\$?\w+(\.\w+)*/', '', $remaining);
+
+        // Remove method calls
+        $remaining = preg_replace('/\w+\([^)]*\)/', '', $remaining);
+
+        // Remove boolean operators
+        foreach (self::ALLOWED_BOOLEAN_OPERATORS as $operator) {
+            $remaining = str_replace($operator, '', $remaining);
+        }
+
+        // Remove parentheses
+        $remaining = str_replace(['(', ')'], '', $remaining);
+
+        // Remove quotes and string literals
+        $remaining = preg_replace('/["\'][^"\']*["\']/', '', $remaining);
+
+        // Remove numbers
+        $remaining = preg_replace('/\b\d+(\.\d+)?\b/', '', $remaining);
+
+        // Remove remaining whitespace
+        $remaining = trim($remaining);
+
+        // If anything suspicious remains, it's invalid
+        return empty($remaining);
+    }
+
+    /**
+     * Check if operator is in boolean context
+     *
+     * @param string $expression
+     * @param string $operator
+     * @return bool
+     */
+    private function isInBooleanContext(string $expression, string $operator): bool
+    {
+        // For now, be conservative and don't allow != at all
+        // This can be refined later if needed
         return false;
     }
 
     /**
-     * Check if expression contains only basic safe operators including logical operators
+     * Get validation error message
+     *
+     * @param string $expression
+     * @return string
      */
-    protected function hasOnlyBasicOperators(string $expr): bool
+    public function getValidationError(string $expression): string
     {
-        // Allow basic safe operators including logical operators
-        $allowedOperators = ['+', '==', '!=', '>', '<', '>=', '<=', '&&', '||', '!'];
-        
-        // Check if expression contains only dot notation, strings, parentheses, and basic operators
-        $cleanExpr = preg_replace('/[a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*|[\'"][^\'"]*[\'"]/', 'VAR', $expr);
-        $cleanExpr = preg_replace('/\s+/', ' ', trim($cleanExpr));
-        
-        // Valid patterns: "VAR + VAR", "VAR == VAR", "VAR && VAR", "!(VAR)", etc.
-        $pattern = '/^(!?\(?VAR\)?)(\s*(\+|==|!=|>=?|<=?|&&|\|\|)\s*(!?\(?VAR\)?))*$/';
-        if (preg_match($pattern, $cleanExpr)) {
-            // Ensure no complex operators are present
-            if (!preg_match('/\*|\/|%|<<|>>|\^|&[^&]|\|[^\|]/', $expr)) {
-                return true;
+        foreach (self::BLOCKED_OPERATORS as $operator) {
+            if (strpos($expression, $operator) !== false) {
+                return "Blocked operator '{$operator}' found in expression: {$expression}";
             }
         }
-        
-        return false;
-    }
 
-    /**
-     * Check if expression looks like an unsafe expression that should be blocked
-     */
-    public function looksLikeUnsafeExpression(string $expression): bool
-    {
-        $expr = trim($expression);
-        
-        // Check for PHP tags
-        if (preg_match('/<\?php|\?>/', $expr)) {
-            return true;
-        }
-        
-        // Check for native PHP functions
-        if (preg_match('/\b(strlen|strtoupper|array_|count|implode|explode|eval|exec|system|shell_exec|passthru|file_get_contents|fopen|fwrite)\s*\(/', $expr)) {
-            return true;
-        }
-        
-        // Check for complex arithmetic (multiplication, division, modulo with decimal points)
-        if (preg_match('/\d+\.\d+\s*[\*\/\%]/', $expr)) {
-            return true;
-        }
-        
-        return false;
-    }
-
-    /**
-     * Validate expression and throw exception if invalid
-     */
-    public function validateOrThrow(string $expression): void
-    {
-        if (!$this->isValidBraceExpression($expression)) {
-            throw new RuntimeException("Invalid template expression: {{$expression}}. Only dot notation, basic operators, and framework helpers are allowed.");
-        }
+        return "Invalid expression pattern: {$expression}";
     }
 }

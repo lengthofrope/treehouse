@@ -66,26 +66,24 @@ class TreeHouseCompilerTest extends TestCase
     }
 
     #[Test]
-    public function it_compiles_logical_operators_with_th_if(): void
+    public function it_compiles_boolean_logic_operators_with_th_if(): void
     {
-        $template = '<div th:if="user.age > 18 && user.active">Adult & Active</div>';
+        $template = '<div th:if="user.isAdult && user.active">Adult & Active</div>';
         
         $compiled = $this->compiler->compile($template);
         
         $this->assertStringContainsString('thGetProperty', $compiled);
         $this->assertStringContainsString('&&', $compiled);
-        $this->assertStringContainsString('>', $compiled);
     }
 
     #[Test]
     public function it_compiles_logical_not_instead_of_th_unless(): void
     {
-        $template = '<div th:if="!(user.age < 18)">Not a minor</div>';
+        $template = '<div th:if="!user.isMinor">Not a minor</div>';
         
         $compiled = $this->compiler->compile($template);
         
         $this->assertStringContainsString('!', $compiled);
-        $this->assertStringContainsString('<', $compiled);
         $this->assertStringContainsString('thGetProperty', $compiled);
     }
 
@@ -211,9 +209,9 @@ class TreeHouseCompilerTest extends TestCase
     }
 
     #[Test]
-    public function it_validates_and_blocks_complex_arithmetic(): void
+    public function it_validates_and_blocks_arithmetic_operators(): void
     {
-        $template = '<p th:text="{user.age * 2.5 / 3}">Calculation</p>';
+        $template = '<p th:text="{user.age * 2.5}">Calculation</p>';
         
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Invalid template expression');
@@ -222,15 +220,25 @@ class TreeHouseCompilerTest extends TestCase
     }
 
     #[Test]
-    public function it_allows_basic_operators(): void
+    public function it_validates_and_blocks_comparison_operators(): void
     {
-        $template = '<div th:if="user.age + 5 == 25">Valid</div>';
+        $template = '<div th:if="user.age >= 18">Valid</div>';
         
-        $compiled = $this->compiler->compile($template);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid template expression');
         
-        $this->assertStringContainsString('thGetProperty($user, \'age\')', $compiled);
-        $this->assertStringContainsString('+', $compiled);
-        $this->assertStringContainsString('==', $compiled);
+        $this->compiler->compile($template);
+    }
+
+    #[Test]
+    public function it_validates_and_blocks_string_concatenation(): void
+    {
+        $template = '<div th:text="user.firstName + \' \' + user.lastName">Full Name</div>';
+        
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid template expression');
+        
+        $this->compiler->compile($template);
     }
 
     #[Test]
@@ -283,15 +291,15 @@ class TreeHouseCompilerTest extends TestCase
     }
 
     #[Test]
-    public function it_handles_complex_expressions_with_objects(): void
+    public function it_handles_complex_boolean_expressions_with_objects(): void
     {
-        $template = '<div th:text="user.firstName + \' \' + user.lastName">User</div>';
+        $template = '<div th:if="user.isActive && user.isVerified">Verified User</div>';
         
         $compiled = $this->compiler->compile($template);
         
-        $this->assertStringContainsString('thGetProperty($user, \'firstName\')', $compiled);
-        $this->assertStringContainsString('thGetProperty($user, \'lastName\')', $compiled);
-        $this->assertStringContainsString('thEscape', $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'isActive\')', $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'isVerified\')', $compiled);
+        $this->assertStringContainsString('&&', $compiled);
     }
 
     #[Test]
@@ -322,14 +330,14 @@ class TreeHouseCompilerTest extends TestCase
     }
 
     #[Test]
-    public function it_handles_string_concatenation_with_objects(): void
+    public function it_allows_framework_helpers_with_dot_notation(): void
     {
-        $template = '<p th:text="user.name + \' (\' + user.email + \')\'">Name (Email)</p>';
+        $template = '<p th:text="Str::upper(user.name)">NAME</p>';
         
         $compiled = $this->compiler->compile($template);
         
         $this->assertStringContainsString('thGetProperty($user, \'name\')', $compiled);
-        $this->assertStringContainsString('thGetProperty($user, \'email\')', $compiled);
-        $this->assertStringContainsString(' . ', $compiled); // PHP concatenation
+        $this->assertStringContainsString('LengthOfRope\\TreeHouse\\Support\\Str::', $compiled);
+        $this->assertStringContainsString('thEscape', $compiled);
     }
 }

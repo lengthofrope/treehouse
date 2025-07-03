@@ -176,16 +176,15 @@ class UniversalThAttributeTest extends TestCase
     }
 
     #[Test]
-    public function it_handles_logical_operators_in_universal_attributes(): void
+    public function it_handles_boolean_logic_in_universal_attributes(): void
     {
-        $template = '<div th:data-valid="{user.age >= 18 && user.verified}">Content</div>';
+        $template = '<div th:data-valid="{user.isAdult && user.verified}">Content</div>';
         
         $compiled = $this->compiler->compile($template);
         
         $this->assertStringContainsString('data-valid="<?php $val =', $compiled);
-        $this->assertStringContainsString('thGetProperty($user, \'age\')', $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'isAdult\')', $compiled);
         $this->assertStringContainsString('thGetProperty($user, \'verified\')', $compiled);
-        $this->assertStringContainsString('>=', $compiled);
         $this->assertStringContainsString('&&', $compiled);
     }
 
@@ -213,16 +212,25 @@ class UniversalThAttributeTest extends TestCase
     }
 
     #[Test]
-    public function it_handles_string_concatenation_in_universal_attributes(): void
+    public function it_validates_and_blocks_string_concatenation_in_universal_attributes(): void
     {
         $template = '<input th:placeholder="{user.firstName + \' \' + user.lastName}">';
         
-        $compiled = $this->compiler->compile($template);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid template expression');
         
-        $this->assertStringContainsString('placeholder="<?php $val =', $compiled);
-        $this->assertStringContainsString('thGetProperty($user, \'firstName\')', $compiled);
-        $this->assertStringContainsString('thGetProperty($user, \'lastName\')', $compiled);
-        $this->assertStringContainsString(' . ', $compiled); // PHP concatenation
+        $this->compiler->compile($template);
+    }
+
+    #[Test]
+    public function it_validates_and_blocks_comparison_operators_in_universal_attributes(): void
+    {
+        $template = '<div th:data-valid="{user.age >= 18}">Content</div>';
+        
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid template expression');
+        
+        $this->compiler->compile($template);
     }
 
     #[Test]

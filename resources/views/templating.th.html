@@ -60,7 +60,7 @@
                     <a th:attr="href=user.profile.url" class="text-treehouse-600 hover:text-treehouse-700 underline">
                         Visit {user.profile.name}'s Profile
                     </a><br>
-                    <a th:attr="href='mailto:' + user.profile.email" class="text-blue-600 hover:text-blue-700 underline">
+                    <a th:attr="href=user.profile.emailUrl" class="text-blue-600 hover:text-blue-700 underline">
                         Email {user.profile.name}
                     </a>
                 </div>
@@ -74,13 +74,13 @@
             <div class="mb-6">
                 <h3 class="text-lg font-medium text-gray-800 mb-3">Dynamic Images</h3>
                 <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-yellow-500 mb-3">
-                    <img th:attr="src=user.profile.avatar, alt=user.profile.name + ' Avatar'" 
+                    <img th:attr="src=user.profile.avatar, alt=user.profile.avatarAlt"
                             class="w-16 h-16 rounded-full border-2 border-gray-300">
                     <p class="mt-2 text-sm">Profile photo of {user.profile.name}</p>
                 </div>
                 <div class="text-sm text-gray-600 bg-gray-100 p-3 rounded">
                     <strong>Template Code:</strong><br>
-                    <code class="text-xs">&lt;img th:attr="src=user.profile.avatar, alt=user.profile.name + ' Avatar'"&gt;</code>
+                    <code class="text-xs">&lt;img th:attr="src=user.profile.avatar, alt=user.profile.avatarAlt"&gt;</code>
                 </div>
             </div>
 
@@ -88,14 +88,14 @@
             <div class="mb-6">
                 <h3 class="text-lg font-medium text-gray-800 mb-3">Dynamic CSS Classes</h3>
                 <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-red-500 mb-3">
-                    <div th:attr="class='p-3 rounded-lg ' + user.status.css_class">
+                    <div th:attr="class=user.status.fullCssClass">
                         <p><strong>Status:</strong> {user.status.name}</p>
-                        <p><strong>Badge:</strong> <span th:attr="class='px-2 py-1 rounded text-xs ' + user.badge.css_class">{user.badge.text}</span></p>
+                        <p><strong>Badge:</strong> <span th:attr="class=user.badge.fullCssClass">{user.badge.text}</span></p>
                     </div>
                 </div>
                 <div class="text-sm text-gray-600 bg-gray-100 p-3 rounded">
                     <strong>Template Code:</strong><br>
-                    <code class="text-xs">&lt;div th:attr="class='p-3 rounded-lg ' + user.status.css_class"&gt;</code>
+                    <code class="text-xs">&lt;div th:attr="class=user.status.fullCssClass"&gt;</code>
                 </div>
             </div>
 
@@ -103,14 +103,14 @@
             <div class="mb-6">
                 <h3 class="text-lg font-medium text-gray-800 mb-3">Data Attributes</h3>
                 <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-indigo-500 mb-3">
-                    <button th:attr="data-user-id=user.id, data-role=user.role.name, onclick='showUser(' + user.id + ')'" 
+                    <button th:attr="data-user-id=user.id, data-role=user.role.name, onclick=user.showUserOnclick"
                             class="bg-treehouse-600 text-white px-4 py-2 rounded hover:bg-treehouse-700 transition-colors">
                         View User Details
                     </button>
                 </div>
                 <div class="text-sm text-gray-600 bg-gray-100 p-3 rounded">
                     <strong>Template Code:</strong><br>
-                    <code class="text-xs">&lt;button th:attr="data-user-id=user.id, onclick='showUser(' + user.id + ')'"&gt;</code>
+                    <code class="text-xs">&lt;button th:attr="data-user-id=user.id, onclick=user.showUserOnclick"&gt;</code>
                 </div>
             </div>
         </div>
@@ -130,7 +130,7 @@
                             <p class="text-yellow-700">Welcome, {user.profile.name}! You have premium access.</p>
                         </div>
                         
-                        <div th:unless="user.is_premium" class="bg-blue-100 border border-blue-300 p-4 rounded-lg">
+                        <div th:if="!user.is_premium" class="bg-blue-100 border border-blue-300 p-4 rounded-lg">
                             <h4 class="font-medium text-blue-800">Standard User</h4>
                             <p class="text-blue-700">Hi {user.profile.name}, upgrade to premium for more features!</p>
                         </div>
@@ -148,18 +148,18 @@
                     
                     <div class="space-y-2">
                         <h4 class="font-medium text-gray-800">User's Recent Activities:</h4>
-                        <div th:repeat="activity user.activities" class="bg-gray-50 p-3 rounded border-l-4 border-gray-300">
+                        <div th:repeat="act user.activities" class="bg-gray-50 p-3 rounded border-l-4 border-gray-300">
                             <div class="flex justify-between items-center">
-                                <span class="font-medium">{activity.type}</span>
-                                <span class="text-sm text-gray-500">{activity.date}</span>
+                                <span class="font-medium">{act.type}</span>
+                                <span class="text-sm text-gray-500">{act.date}</span>
                             </div>
-                            <p class="text-sm text-gray-600 mt-1">{activity.description}</p>
+                            <p class="text-sm text-gray-600 mt-1">{act.description}</p>
                         </div>
                     </div>
                     
                     <div class="mt-4 text-sm text-gray-600 bg-gray-100 p-3 rounded">
                         <strong>Template Code:</strong><br>
-                        <code class="text-xs">&lt;div th:repeat="activity user.activities"&gt;{activity.type}&lt;/div&gt;</code>
+                        <code class="text-xs">&lt;div th:repeat="act user.activities"&gt;{act.type}&lt;/div&gt;</code>
                     </div>
                 </div>
             </div>
