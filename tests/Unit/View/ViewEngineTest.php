@@ -123,7 +123,7 @@ class ViewEngineTest extends TestCase
         
         // Since helpers are now loaded globally via Composer, we don't inject them
         // Just check that the template is compiled correctly
-        $this->assertStringContainsString('thEscape($title)', $compiled);
+        $this->assertStringContainsString('htmlspecialchars((string)($title)', $compiled);
         $this->assertStringContainsString('<h1', $compiled);
     }
 

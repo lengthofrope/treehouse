@@ -142,6 +142,109 @@ if (!function_exists('thCollect')) {
     }
 }
 
+if (!function_exists('thGetProperty')) {
+    /**
+     * Enhanced property access helper for objects and arrays with caching
+     */
+    function thGetProperty(mixed $target, string $property, bool $useCache = true): mixed
+    {
+        // Use cached property access information for performance
+        static $cache = [];
+        
+        if ($target === null) {
+            return null;
+        }
+        
+        // Generate cache key based on object class and property
+        $cacheKey = null;
+        if ($useCache && is_object($target)) {
+            $cacheKey = get_class($target) . '::' . $property;
+            if (isset($cache[$cacheKey])) {
+                return $cache[$cacheKey]['accessor']($target);
+            }
+        }
+        
+        $accessor = thResolvePropertyAccess($target, $property);
+        
+        // Cache the accessor for future use
+        if ($useCache && $cacheKey && $accessor) {
+            $cache[$cacheKey] = ['accessor' => $accessor];
+        }
+        
+        return $accessor ? $accessor($target) : null;
+    }
+}
+
+if (!function_exists('thResolvePropertyAccess')) {
+    /**
+     * Resolve property access method for different data types
+     */
+    function thResolvePropertyAccess(mixed $target, string $property): ?callable
+    {
+        if (is_object($target)) {
+            return thResolveObjectAccess($target, $property);
+        }
+        
+        if (is_array($target)) {
+            return thResolveArrayAccess($target, $property);
+        }
+        
+        return null;
+    }
+}
+
+if (!function_exists('thResolveObjectAccess')) {
+    /**
+     * Resolve object property access with multiple strategies
+     */
+    function thResolveObjectAccess(object $target, string $property): ?callable
+    {
+        // Check property access patterns in order of preference
+        $accessors = [
+            // 1. Direct property access
+            fn($obj) => property_exists($obj, $property) ? $obj->$property : null,
+            
+            // 2. Direct method call (user.getName → $user->getName())
+            fn($obj) => method_exists($obj, $property) ? $obj->$property() : null,
+            
+            // 3. Getter method (user.name → $user->getName())
+            fn($obj) => method_exists($obj, 'get' . ucfirst($property)) ? $obj->{'get' . ucfirst($property)}() : null,
+            
+            // 4. Is/Has boolean methods (user.active → $user->isActive())
+            fn($obj) => method_exists($obj, 'is' . ucfirst($property)) ? $obj->{'is' . ucfirst($property)}() : null,
+            fn($obj) => method_exists($obj, 'has' . ucfirst($property)) ? $obj->{'has' . ucfirst($property)}() : null,
+            
+            // 5. Snake_case to camelCase conversion (user.first_name → $user->getFirstName())
+            fn($obj) => method_exists($obj, 'get' . str_replace(' ', '', ucwords(str_replace('_', ' ', $property)))) 
+                        ? $obj->{'get' . str_replace(' ', '', ucwords(str_replace('_', ' ', $property)))}() : null,
+        ];
+        
+        foreach ($accessors as $accessor) {
+            try {
+                $result = $accessor($target);
+                if ($result !== null) {
+                    return $accessor;
+                }
+            } catch (Throwable $e) {
+                // Continue to next accessor
+                continue;
+            }
+        }
+        
+        return null;
+    }
+}
+
+if (!function_exists('thResolveArrayAccess')) {
+    /**
+     * Resolve array property access
+     */
+    function thResolveArrayAccess(array $target, string $property): ?callable
+    {
+        return fn($arr) => $arr[$property] ?? null;
+    }
+}
+
 if (!function_exists('thRepeatStatus')) {
     /**
      * Get repeat loop status (template helper)
