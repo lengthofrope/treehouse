@@ -925,3 +925,30 @@ Since logical operators are supported, `th:unless` becomes redundant:
 ```
 
 **Recommendation**: Remove `th:unless` from the framework to maintain simplicity and consistency.
+## Documentation Update Guidelines
+
+### **README.md and Documentation Updates**
+
+**Important**: When updating the main README.md and other documentation files, follow these guidelines:
+
+1. **Only Document Supported Functionality**: Include only currently supported features and functions
+2. **Remove Deprecated Features**: Do NOT mention `th:unless` or other removed functionality
+3. **Clean Documentation**: Remove all references to unsupported syntax patterns
+4. **No "No Longer Supported" Sections**: Simply omit deprecated features entirely
+5. **Focus on Current Capabilities**: Emphasize what the system CAN do, not what it can't
+
+### **Documentation Should Include:**
+- All supported `th:` functions (except `th:unless`)
+- Clean dot notation syntax: `user.name`
+- Supported operators: `+`, `==`, `!=`, `>`, `<`, `>=`, `<=`, `&&`, `||`, `!`
+- Framework helpers: `Str::`, `Carbon::`, `Arr::`, etc.
+- New functions: `th:csrf`, `th:field`, `th:errors`, `th:switch`, `th:fragment`, etc.
+
+### **Documentation Should NOT Include:**
+- `th:unless` directive (removed due to redundancy)
+- Array access syntax: `${user['name']}`
+- Raw PHP code examples
+- Native PHP function calls
+- Deprecated or unsupported syntax patterns
+
+**Result**: Clean, focused documentation that guides developers toward the correct, supported syntax without confusing them with historical or deprecated approaches.
