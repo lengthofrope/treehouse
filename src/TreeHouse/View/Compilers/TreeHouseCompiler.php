@@ -137,6 +137,7 @@ class TreeHouseCompiler
      */
     protected function processAttributes(DOMDocument $dom, DOMXPath $xpath): void
     {
+        // First, process specific directives in order
         foreach ($this->processingOrder as $directive) {
             if (!isset($this->processors[$directive])) {
                 continue;
@@ -150,7 +151,6 @@ class TreeHouseCompiler
             foreach ($elements as $element) {
                 if ($element instanceof DOMElement && $element->hasAttribute($directive)) {
                     $expression = $element->getAttribute($directive);
-                    $element->removeAttribute($directive);
                     
                     try {
                         $processor->process($element, $expression);
@@ -161,6 +161,68 @@ class TreeHouseCompiler
                             $e
                         );
                     }
+                }
+            }
+        }
+        
+        // Then, process any remaining th: attributes as generic attribute setters
+        $this->processGenericThAttributes($dom);
+    }
+
+    /**
+     * Process any remaining th: attributes as generic attribute setters
+     */
+    protected function processGenericThAttributes(DOMDocument $dom): void
+    {
+        $allElements = $dom->getElementsByTagName('*');
+        
+        foreach ($allElements as $element) {
+            if (!($element instanceof DOMElement)) {
+                continue;
+            }
+            
+            // Get all attributes that start with 'th:'
+            $thAttributes = [];
+            foreach ($element->attributes as $attr) {
+                if (str_starts_with($attr->name, 'th:')) {
+                    $thAttributes[] = $attr->name;
+                }
+            }
+            
+            // Process each th: attribute as a generic attribute setter
+            foreach ($thAttributes as $thAttr) {
+                $expression = $element->getAttribute($thAttr);
+                $element->removeAttribute($thAttr);
+                
+                // Extract the actual attribute name (remove 'th:' prefix)
+                $attributeName = substr($thAttr, 3);
+                
+                try {
+                    // Check if expression contains brace expressions mixed with text
+                    if (preg_match('/\{[^}]+\}/', $expression) && !preg_match('/^\{[^}]+\}$/', $expression)) {
+                        // Handle mixed brace expressions and text (like "{users.john.name} Avatar")
+                        $compiledExpression = $this->expressionCompiler->compileMixedText($expression);
+                        $phpCode = "<?php echo {$compiledExpression}; ?>";
+                    } elseif (preg_match('/^\{[^}]+\}$/', $expression)) {
+                        // Single brace expression (like "{users.john.avatar}")
+                        $innerExpression = trim(substr($expression, 1, -1));
+                        $compiledExpression = $this->expressionCompiler->compileExpression($innerExpression);
+                        $phpCode = "<?php echo htmlspecialchars({$compiledExpression}, ENT_QUOTES, 'UTF-8'); ?>";
+                    } else {
+                        // Handle pure expressions without braces (like "users.john.avatar")
+                        $compiledExpression = $this->expressionCompiler->compileExpression($expression);
+                        $phpCode = "<?php echo htmlspecialchars({$compiledExpression}, ENT_QUOTES, 'UTF-8'); ?>";
+                    }
+                    
+                    // Use PHP marker to prevent HTML encoding
+                    $marker = "<!--TH_PHP_ATTR:" . base64_encode($phpCode) . "-->";
+                    $element->setAttribute($attributeName, $marker);
+                } catch (\Throwable $e) {
+                    throw new RuntimeException(
+                        "Error processing {$thAttr}='{$expression}': " . $e->getMessage(),
+                        0,
+                        $e
+                    );
                 }
             }
         }
@@ -277,6 +339,10 @@ class TreeHouseCompiler
         }, $html);
         
         $html = preg_replace_callback('/<!--TH_PHP_REPLACE:([^-]+)-->/', function ($matches) {
+            return base64_decode($matches[1]);
+        }, $html);
+        
+        $html = preg_replace_callback('/<!--TH_PHP_ATTR:([^-]+)-->/', function ($matches) {
             return base64_decode($matches[1]);
         }, $html);
         

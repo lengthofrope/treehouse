@@ -82,7 +82,7 @@ class ExpressionCompiler
 
         return preg_replace_callback($pattern, function ($matches) {
             $hasPrefix = !empty($matches[1]);
-            $variable = ($hasPrefix ? '$' : '$') . $matches[2]; // Always add $ prefix
+            $variable = '$' . $matches[2]; // Always add $ prefix for main variable
             $properties = substr($matches[3], 1); // Remove leading dot
             $propertyChain = explode('.', $properties);
 
@@ -106,8 +106,8 @@ class ExpressionCompiler
     {
         // Pattern to match bare variable names that aren't already prefixed with $
         // and aren't part of function calls or already processed dot notation
-        // This should match standalone words that look like variables
-        $pattern = '/\b(?<![\$\w])([a-zA-Z_][a-zA-Z0-9_]*)\b(?!\s*\(|::|->)/';
+        // This should match standalone words that look like variables but exclude thGetProperty calls
+        $pattern = '/\b(?<![\$\w])([a-zA-Z_][a-zA-Z0-9_]*)\b(?!\s*\(|::|->|\')/';
         
         return preg_replace_callback($pattern, function ($matches) {
             $word = $matches[1];
@@ -173,6 +173,40 @@ class ExpressionCompiler
         
         // No escaping for raw output
         return "(string)({$compiled})";
+    }
+
+    /**
+     * Compile mixed brace expressions with text for attributes
+     *
+     * @param string $content
+     * @return string
+     */
+    public function compileMixedText(string $content): string
+    {
+        // Handle mixed brace expressions and text (like "{users.john.name} Avatar")
+        $compiled = preg_replace_callback('/\{([^}]+)\}/', function ($matches) {
+            $expression = trim($matches[1]);
+            $compiledExpression = $this->compileExpression($expression);
+            return "' . htmlspecialchars((string)({$compiledExpression}), ENT_QUOTES, 'UTF-8') . '";
+        }, $content);
+        
+        // If we had replacements, wrap in concatenation
+        if ($compiled !== $content) {
+            // Remove leading/trailing concatenation if content starts/ends with replacement
+            $compiled = "'" . $compiled . "'";
+            $compiled = str_replace("'' . ", "", $compiled);
+            $compiled = str_replace(" . ''", "", $compiled);
+            
+            // Clean up empty quotes
+            if ($compiled === "''") {
+                return "''";
+            }
+        } else {
+            // No brace expressions, just a literal string
+            $compiled = "'" . addslashes($content) . "'";
+        }
+        
+        return $compiled;
     }
 
     /**
