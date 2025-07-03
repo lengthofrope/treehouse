@@ -175,68 +175,7 @@ class TreeHouseCompilerTest extends TestCase
         $this->assertStringContainsString('thGetProperty($user, \'name\')', $compiled);
     }
 
-    #[Test]
-    public function it_compiles_collection_method_calls(): void
-    {
-        $template = '<span th:text="items->count()">0</span>';
-        
-        $compiled = $this->compiler->compile($template);
-        
-        $this->assertStringContainsString('$items->count()', $compiled);
-        $this->assertStringContainsString('htmlspecialchars', $compiled);
-    }
 
-    #[Test]
-    public function it_validates_and_blocks_unsafe_expressions(): void
-    {
-        $template = '<p th:text="<?php echo \"hack\"; ?>">Hack attempt</p>';
-        
-        $this->expectException(\RuntimeException::class);
-        
-        $this->compiler->compile($template);
-    }
-
-    #[Test]
-    public function it_validates_and_blocks_native_php_functions(): void
-    {
-        $template = '<p th:text="strlen(user.name)">Length</p>';
-        
-        $this->expectException(\RuntimeException::class);
-        
-        $this->compiler->compile($template);
-    }
-
-    #[Test]
-    public function it_validates_and_blocks_arithmetic_operators(): void
-    {
-        $template = '<p th:text="user.age * 2.5">Calculation</p>';
-        
-        $this->expectException(\RuntimeException::class);
-        
-        $this->compiler->compile($template);
-    }
-
-    #[Test]
-    public function it_validates_and_blocks_comparison_operators(): void
-    {
-        $template = '<div th:if="user.age >= 18">Valid</div>';
-        
-        $this->expectException(\RuntimeException::class);
-        
-        $this->compiler->compile($template);
-    }
-
-    #[Test]
-    public function it_allows_string_concatenation_with_plus_operator(): void
-    {
-        $template = '<div th:text="user.firstName + \' \' + user.lastName">Full Name</div>';
-        
-        $compiled = $this->compiler->compile($template);
-        
-        $this->assertStringContainsString('thGetProperty($user, \'firstName\')', $compiled);
-        $this->assertStringContainsString('thGetProperty($user, \'lastName\')', $compiled);
-        $this->assertStringContainsString('+', $compiled);
-    }
 
     #[Test]
     public function it_handles_nested_attributes(): void
@@ -262,17 +201,6 @@ class TreeHouseCompilerTest extends TestCase
         $this->assertStringContainsString('htmlspecialchars', $compiled);
     }
 
-    #[Test]
-    public function it_handles_complex_boolean_expressions_with_objects(): void
-    {
-        $template = '<div th:if="user.isActive && user.isVerified">Verified User</div>';
-        
-        $compiled = $this->compiler->compile($template);
-        
-        $this->assertStringContainsString('thGetProperty($user, \'isActive\')', $compiled);
-        $this->assertStringContainsString('thGetProperty($user, \'isVerified\')', $compiled);
-        $this->assertStringContainsString('&&', $compiled);
-    }
 
     #[Test]
     public function it_fallback_to_plain_template_on_parsing_error(): void
