@@ -19,7 +19,10 @@ class IfProcessor extends AbstractProcessor
 {
     public function process(DOMElement $node, string $expression): void
     {
-        $compiledExpression = $this->expressionCompiler->compileExpression($expression);
-        $this->wrapWithCondition($node, "if ({$compiledExpression})");
+        $compiledExpression = $this->expressionCompiler->compileConditional($expression);
+        $this->wrapWithCondition($node, "if {$compiledExpression}");
+        
+        // Remove the th:if attribute
+        $node->removeAttribute('th:if');
     }
 }

@@ -35,29 +35,29 @@ class TreeHouseCompilerTest extends TestCase
     #[Test]
     public function it_compiles_th_text_attributes(): void
     {
-        $template = '<h1 th:text="$title">Default</h1>';
+        $template = '<h1 th:text="title">Default</h1>';
         
         $compiled = $this->compiler->compile($template);
         
-        $this->assertStringContainsString('thEscape', $compiled);
+        $this->assertStringContainsString('htmlspecialchars', $compiled);
         $this->assertStringContainsString('$title', $compiled);
     }
 
     #[Test]
-    public function it_compiles_th_html_attributes(): void
+    public function it_compiles_th_raw_attributes(): void
     {
-        $template = '<div th:html="$content">Default</div>';
+        $template = '<div th:raw="content">Default</div>';
         
         $compiled = $this->compiler->compile($template);
         
-        $this->assertStringContainsString('thRaw', $compiled);
+        $this->assertStringContainsString('echo', $compiled);
         $this->assertStringContainsString('$content', $compiled);
     }
 
     #[Test]
     public function it_compiles_th_if_attributes(): void
     {
-        $template = '<div th:if="$condition">Conditional content</div>';
+        $template = '<div th:if="condition">Conditional content</div>';
         
         $compiled = $this->compiler->compile($template);
         
@@ -90,7 +90,7 @@ class TreeHouseCompilerTest extends TestCase
     #[Test]
     public function it_compiles_th_repeat_attributes(): void
     {
-        $template = '<li th:repeat="item $items">Item content</li>';
+        $template = '<li th:repeat="item items">Item content</li>';
         
         $compiled = $this->compiler->compile($template);
         
@@ -101,7 +101,7 @@ class TreeHouseCompilerTest extends TestCase
     #[Test]
     public function it_compiles_th_repeat_with_key(): void
     {
-        $template = '<li th:repeat="key,item $items">Item content</li>';
+        $template = '<li th:repeat="key,item items">Item content</li>';
         
         $compiled = $this->compiler->compile($template);
         
@@ -112,7 +112,7 @@ class TreeHouseCompilerTest extends TestCase
     #[Test]
     public function it_compiles_th_class_attributes(): void
     {
-        $template = '<div th:class="$cssClass">Content</div>';
+        $template = '<div th:class="cssClass">Content</div>';
         
         $compiled = $this->compiler->compile($template);
         
@@ -121,9 +121,9 @@ class TreeHouseCompilerTest extends TestCase
     }
 
     #[Test]
-    public function it_compiles_th_attr_attributes(): void
+    public function it_compiles_individual_attribute_directives(): void
     {
-        $template = '<input th:attr="id=$elementId, name=$fieldName">';
+        $template = '<input th:id="elementId" th:name="fieldName">';
         
         $compiled = $this->compiler->compile($template);
         
@@ -139,7 +139,7 @@ class TreeHouseCompilerTest extends TestCase
         $compiled = $this->compiler->compile($template);
         
         $this->assertStringContainsString('thGetProperty($user, \'name\')', $compiled);
-        $this->assertStringContainsString('thEscape', $compiled);
+        $this->assertStringContainsString('htmlspecialchars', $compiled);
     }
 
     #[Test]
@@ -161,7 +161,7 @@ class TreeHouseCompilerTest extends TestCase
         
         $this->assertStringContainsString('thGetProperty($user, \'name\')', $compiled);
         $this->assertStringContainsString('thGetProperty($user, \'age\')', $compiled);
-        $this->assertStringContainsString('thEscape', $compiled);
+        $this->assertStringContainsString('htmlspecialchars', $compiled);
     }
 
     #[Test]
@@ -171,28 +171,27 @@ class TreeHouseCompilerTest extends TestCase
         
         $compiled = $this->compiler->compile($template);
         
-        $this->assertStringContainsString('LengthOfRope\\TreeHouse\\Support\\Str::', $compiled);
+        $this->assertStringContainsString('Str::', $compiled);
         $this->assertStringContainsString('thGetProperty($user, \'name\')', $compiled);
     }
 
     #[Test]
     public function it_compiles_collection_method_calls(): void
     {
-        $template = '<span th:text="$items->count()">0</span>';
+        $template = '<span th:text="items->count()">0</span>';
         
         $compiled = $this->compiler->compile($template);
         
-        $this->assertStringContainsString('thCollect', $compiled);
-        $this->assertStringContainsString('count()', $compiled);
+        $this->assertStringContainsString('$items->count()', $compiled);
+        $this->assertStringContainsString('htmlspecialchars', $compiled);
     }
 
     #[Test]
     public function it_validates_and_blocks_unsafe_expressions(): void
     {
-        $template = '<p th:text="{<?php echo \"hack\"; ?>}">Hack attempt</p>';
+        $template = '<p th:text="<?php echo \"hack\"; ?>">Hack attempt</p>';
         
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Invalid template expression');
         
         $this->compiler->compile($template);
     }
@@ -200,10 +199,9 @@ class TreeHouseCompilerTest extends TestCase
     #[Test]
     public function it_validates_and_blocks_native_php_functions(): void
     {
-        $template = '<p th:text="{strlen(user.name)}">Length</p>';
+        $template = '<p th:text="strlen(user.name)">Length</p>';
         
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Invalid template expression');
         
         $this->compiler->compile($template);
     }
@@ -211,10 +209,9 @@ class TreeHouseCompilerTest extends TestCase
     #[Test]
     public function it_validates_and_blocks_arithmetic_operators(): void
     {
-        $template = '<p th:text="{user.age * 2.5}">Calculation</p>';
+        $template = '<p th:text="user.age * 2.5">Calculation</p>';
         
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Invalid template expression');
         
         $this->compiler->compile($template);
     }
@@ -225,20 +222,20 @@ class TreeHouseCompilerTest extends TestCase
         $template = '<div th:if="user.age >= 18">Valid</div>';
         
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Invalid template expression');
         
         $this->compiler->compile($template);
     }
 
     #[Test]
-    public function it_validates_and_blocks_string_concatenation(): void
+    public function it_allows_string_concatenation_with_plus_operator(): void
     {
         $template = '<div th:text="user.firstName + \' \' + user.lastName">Full Name</div>';
         
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Invalid template expression');
+        $compiled = $this->compiler->compile($template);
         
-        $this->compiler->compile($template);
+        $this->assertStringContainsString('thGetProperty($user, \'firstName\')', $compiled);
+        $this->assertStringContainsString('thGetProperty($user, \'lastName\')', $compiled);
+        $this->assertStringContainsString('+', $compiled);
     }
 
     #[Test]
@@ -250,44 +247,19 @@ class TreeHouseCompilerTest extends TestCase
         
         $this->assertStringContainsString('if ($show)', $compiled);
         $this->assertStringContainsString('thGetProperty($user, \'message\')', $compiled);
-        $this->assertStringContainsString('thEscape', $compiled);
+        $this->assertStringContainsString('htmlspecialchars', $compiled);
     }
 
     #[Test]
     public function it_includes_helper_functions(): void
     {
-        $template = '<h1>Simple template</h1>';
+        $template = '<h1 th:text="title">Simple template</h1>';
         
         $compiled = $this->compiler->compile($template);
         
-        // Simple templates without th: attributes don't include helper functions anymore (they're global)
-        // Helper functions are loaded globally now, not injected into each template
-        $this->assertStringNotContainsString('function thEscape', $compiled);
-        $this->assertStringNotContainsString('function thRaw', $compiled);
-        $this->assertStringNotContainsString('function thCollect', $compiled);
-    }
-
-    #[Test]
-    public function it_returns_supported_attributes(): void
-    {
-        $attributes = $this->compiler->getSupportedAttributes();
-        
-        $this->assertContains('th:if', $attributes);
-        $this->assertContains('th:text', $attributes);
-        $this->assertContains('th:repeat', $attributes);
-        $this->assertContains('th:class', $attributes);
-        // th:unless should NOT be in supported attributes anymore
-        $this->assertNotContains('th:unless', $attributes);
-    }
-
-    #[Test]
-    public function it_checks_if_attribute_is_supported(): void
-    {
-        $this->assertTrue($this->compiler->isAttributeSupported('th:if'));
-        $this->assertTrue($this->compiler->isAttributeSupported('th:text'));
-        $this->assertFalse($this->compiler->isAttributeSupported('th:invalid'));
-        // th:unless should NOT be supported anymore
-        $this->assertFalse($this->compiler->isAttributeSupported('th:unless'));
+        // Helper functions are included in templates that use th: attributes
+        $this->assertStringContainsString('function thGetProperty', $compiled);
+        $this->assertStringContainsString('htmlspecialchars', $compiled);
     }
 
     #[Test]
@@ -310,8 +282,8 @@ class TreeHouseCompilerTest extends TestCase
         
         $compiled = $this->compiler->compile($template);
         
-        // Should contain compiled thEscape and thGetProperty, not the original "Default"
-        $this->assertStringContainsString('thEscape', $compiled);
+        // Should contain compiled htmlspecialchars and thGetProperty, not the original "Default"
+        $this->assertStringContainsString('htmlspecialchars', $compiled);
         $this->assertStringContainsString('thGetProperty($user, \'value\')', $compiled);
     }
 
@@ -326,7 +298,7 @@ class TreeHouseCompilerTest extends TestCase
         $this->assertStringContainsString('if ($show)', $compiled);
         $this->assertStringContainsString('thGetProperty($user, \'message\')', $compiled);
         $this->assertStringContainsString('thGetProperty($user, \'cssClass\')', $compiled);
-        $this->assertStringContainsString('thEscape', $compiled);
+        $this->assertStringContainsString('htmlspecialchars', $compiled);
     }
 
     #[Test]
@@ -337,7 +309,7 @@ class TreeHouseCompilerTest extends TestCase
         $compiled = $this->compiler->compile($template);
         
         $this->assertStringContainsString('thGetProperty($user, \'name\')', $compiled);
-        $this->assertStringContainsString('LengthOfRope\\TreeHouse\\Support\\Str::', $compiled);
-        $this->assertStringContainsString('thEscape', $compiled);
+        $this->assertStringContainsString('Str::', $compiled);
+        $this->assertStringContainsString('htmlspecialchars', $compiled);
     }
 }

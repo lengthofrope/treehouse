@@ -22,5 +22,8 @@ class TextProcessor extends AbstractProcessor
         $compiledExpression = $this->expressionCompiler->compileText($expression);
         $phpCode = "<?php echo {$compiledExpression}; ?>";
         $this->replaceContent($node, $phpCode);
+        
+        // Remove the th:text attribute
+        $node->removeAttribute('th:text');
     }
 }
