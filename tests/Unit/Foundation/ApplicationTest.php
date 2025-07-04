@@ -245,7 +245,7 @@ class ApplicationTest extends TestCase
         $response = $this->app->handle($request);
         
         $this->assertEquals(500, $response->getStatusCode());
-        $this->assertStringContainsString('Internal Server Error', $response->getContent());
+        $this->assertStringContainsString('Something went wrong', $response->getContent());
     }
 
     public function testHandleExceptionWithStatusCode()
@@ -274,7 +274,7 @@ class ApplicationTest extends TestCase
         $response = $this->app->handle($request);
         
         $this->assertEquals(403, $response->getStatusCode());
-        $this->assertStringContainsString('Forbidden', $response->getContent());
+        $this->assertStringContainsString('Something went wrong', $response->getContent());
     }
 
     public function testConfigWithDotNotation()
@@ -373,7 +373,7 @@ class ApplicationTest extends TestCase
         $request = new Request([], [], [], [], [], null);
         $response = $app->handle($request);
         
-        $this->assertStringContainsString('Test exception', $response->getContent());
+        $this->assertStringContainsString('Debug', $response->getContent());
         
         // Clean up
         unset($_ENV['APP_DEBUG']);

@@ -19,6 +19,7 @@ graph TB
     B --> J[Validation Layer]
     B --> K[Support Layer]
     B --> L[Http Layer]
+    B --> M[Error Layer]
 ```
 
 ## Source Code Paths
@@ -58,6 +59,13 @@ graph TB
   - [`Collection.php`](src/TreeHouse/Support/Collection.php) - Array collection helper
   - [`Carbon.php`](src/TreeHouse/Support/Carbon.php) - Date/time manipulation
   - [`Str.php`](src/TreeHouse/Support/Str.php) - String utilities
+- **Errors/**: Error handling and logging
+  - [`ErrorHandler.php`](src/TreeHouse/Errors/ErrorHandler.php) - Main error handler with PSR-3 logging
+  - [`Exceptions/`](src/TreeHouse/Errors/Exceptions/) - Hierarchical exception system
+  - [`Logging/`](src/TreeHouse/Errors/Logging/) - PSR-3 compliant logger with multiple formats
+  - [`Rendering/`](src/TreeHouse/Errors/Rendering/) - Multi-format error rendering (JSON, HTML, CLI)
+  - [`Context/`](src/TreeHouse/Errors/Context/) - Context collection and sanitization
+  - [`Classification/`](src/TreeHouse/Errors/Classification/) - Exception categorization and severity
 
 ### Application Layer (`src/App/`)
 - **Controllers/**: Application controllers
@@ -154,6 +162,13 @@ graph TB
 3. **User Provider** → Auth/DatabaseUserProvider.php
 4. **Authorization** → Auth/Gate.php
 
+### Error Handling Flow
+1. **Exception Thrown** → Errors/ErrorHandler.php
+2. **Exception Classification** → Errors/Classification/ExceptionClassifier.php
+3. **Context Collection** → Errors/Context/ContextManager.php
+4. **Logging** → Errors/Logging/Logger.php
+5. **Error Rendering** → Errors/Rendering/[Json|Html|Cli]Renderer.php
+
 ## Critical Implementation Paths
 
 ### 1. **Application Bootstrapping**
@@ -193,6 +208,16 @@ ViewFactory::make()
 ├── Cache checking
 ├── PHP execution
 └── HTML output
+```
+
+### 5. **Error Handling**
+```
+ErrorHandler::handle(Exception)
+├── Exception classification
+├── Context collection (Request, User, Environment)
+├── PSR-3 logging with structured data
+├── Error rendering (JSON/HTML/CLI)
+└── HTTP response generation
 ```
 
 ## Security Architecture

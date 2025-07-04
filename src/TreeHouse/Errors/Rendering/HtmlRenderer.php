@@ -289,26 +289,26 @@ class HtmlRenderer implements RendererInterface
      */
     private function getUserMessage(Throwable $exception, bool $debug): string
     {
+        // In debug mode, always show actual exception message
+        if ($debug) {
+            return $exception->getMessage();
+        }
+
         // Use user message from BaseException if available
         if ($exception instanceof BaseException && $exception->getUserMessage()) {
             return $exception->getUserMessage();
         }
 
         // In production, use generic messages for security
-        if (!$debug) {
-            return match (true) {
-                str_contains(get_class($exception), 'Validation') => 'The submitted data contains errors. Please check your input and try again.',
-                str_contains(get_class($exception), 'Authentication') => 'You need to log in to access this resource.',
-                str_contains(get_class($exception), 'Authorization') => 'You don\'t have permission to access this resource.',
-                str_contains(get_class($exception), 'NotFound') => 'The page you\'re looking for could not be found.',
-                str_contains(get_class($exception), 'Database') => 'We\'re experiencing technical difficulties. Please try again later.',
-                str_contains(get_class($exception), 'System') => 'A system error occurred. Our team has been notified.',
-                default => 'Something went wrong. Please try again or contact support if the problem persists.'
-            };
-        }
-
-        // In debug mode, show actual exception message
-        return $exception->getMessage();
+        return match (true) {
+            str_contains(get_class($exception), 'Validation') => 'The submitted data contains errors. Please check your input and try again.',
+            str_contains(get_class($exception), 'Authentication') => 'You need to log in to access this resource.',
+            str_contains(get_class($exception), 'Authorization') => 'You don\'t have permission to access this resource.',
+            str_contains(get_class($exception), 'NotFound') => 'The page you\'re looking for could not be found.',
+            str_contains(get_class($exception), 'Database') => 'We\'re experiencing technical difficulties. Please try again later.',
+            str_contains(get_class($exception), 'System') => 'A system error occurred. Our team has been notified.',
+            default => 'Something went wrong. Please try again or contact support if the problem persists.'
+        };
     }
 
     /**
@@ -773,7 +773,19 @@ class HtmlRenderer implements RendererInterface
 
         // Check Accept header for HTML
         $accept = $request->header('accept', '');
-        return str_contains($accept, 'text/html') || str_contains($accept, '*/*');
+        
+        // If no accept header or it contains HTML, use HTML renderer
+        if (empty($accept) || str_contains($accept, 'text/html') || str_contains($accept, '*/*')) {
+            return true;
+        }
+        
+        // Don't handle explicit JSON requests
+        if (str_contains($accept, 'application/json')) {
+            return false;
+        }
+        
+        // Default to HTML for web requests
+        return true;
     }
 
     /**

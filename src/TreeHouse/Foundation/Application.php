@@ -269,7 +269,7 @@ class Application
         // Register render manager
         $this->container->singleton('error.renderer', function () {
             $config = $this->config['errors']['rendering'] ?? [];
-            $debug = $this->config['errors']['debug'] ?? false;
+            $debug = $this->isDebugMode(); // Use the same debug mode as ErrorHandler
             $defaultRenderer = $config['default_renderer'] ?? 'html';
             
             $renderManager = new RenderManager($debug, $defaultRenderer);
@@ -304,7 +304,8 @@ class Application
                 $this->make('error.classifier'),
                 $this->make('error.context'),
                 $this->make('error.logger'),
-                $config
+                $config,
+                $this->make('error.renderer')
             );
             
             return $errorHandler;

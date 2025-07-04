@@ -9,6 +9,7 @@ use LengthOfRope\TreeHouse\Errors\Context\ContextManager;
 use LengthOfRope\TreeHouse\Errors\Logging\ErrorLogger;
 use LengthOfRope\TreeHouse\Errors\Logging\LogLevel;
 use LengthOfRope\TreeHouse\Errors\Exceptions\BaseException;
+use LengthOfRope\TreeHouse\Errors\Rendering\RenderManager;
 use LengthOfRope\TreeHouse\Http\Request;
 use LengthOfRope\TreeHouse\Http\Response;
 use Throwable;
@@ -21,6 +22,7 @@ class ErrorHandler
     private ExceptionClassifier $classifier;
     private ContextManager $contextManager;
     private ErrorLogger $logger;
+    private ?RenderManager $renderManager;
     private array $config;
     private bool $debug;
 
@@ -28,11 +30,13 @@ class ErrorHandler
         ExceptionClassifier $classifier,
         ContextManager $contextManager,
         ErrorLogger $logger,
-        array $config = []
+        array $config = [],
+        ?RenderManager $renderManager = null
     ) {
         $this->classifier = $classifier;
         $this->contextManager = $contextManager;
         $this->logger = $logger;
+        $this->renderManager = $renderManager;
         $this->config = array_merge($this->getDefaultConfig(), $config);
         $this->debug = $this->config['debug'] ?? false;
     }
@@ -118,7 +122,7 @@ class ErrorHandler
         $statusCode = $this->getStatusCode($exception);
         
         // Generate response content
-        $content = $this->generateResponseContent($exception, $classification, $context, $format);
+        $content = $this->generateResponseContent($exception, $classification, $context, $format, $request);
         
         // Create response
         $response = new Response($content, $statusCode);
@@ -196,8 +200,15 @@ class ErrorHandler
         Throwable $exception,
         $classification,
         array $context,
-        string $format
+        string $format,
+        ?Request $request = null
     ): string {
+        // Use RenderManager if available
+        if ($this->renderManager) {
+            return $this->renderManager->renderContent($exception, $classification, $context, $request);
+        }
+
+        // Fallback to basic rendering
         $statusCode = $this->getStatusCode($exception);
         $data = $this->prepareResponseData($exception, $classification, $context);
         $data['status_code'] = $statusCode;
@@ -452,5 +463,21 @@ class ErrorHandler
     public function getLogger(): ErrorLogger
     {
         return $this->logger;
+    }
+
+    /**
+     * Set the render manager
+     */
+    public function setRenderManager(RenderManager $renderManager): void
+    {
+        $this->renderManager = $renderManager;
+    }
+
+    /**
+     * Get the render manager
+     */
+    public function getRenderManager(): ?RenderManager
+    {
+        return $this->renderManager;
     }
 }

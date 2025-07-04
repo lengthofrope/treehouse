@@ -10,11 +10,12 @@ TreeHouse is a modern, lightweight PHP web framework built entirely from scratch
 - **Developer Experience**: Offer rich CLI tools, testing support, and intuitive APIs for rapid development
 
 ## Key Features
-- **Multi-Layer Architecture**: Foundation, Database, Router, Auth, Console, Cache, Http, Security, Support, Validation, View
+- **Multi-Layer Architecture**: Foundation, Database, Router, Auth, Console, Cache, Http, Security, Support, Validation, View, Errors
 - **ActiveRecord ORM**: Eloquent-style models with relationships and query building
 - **Role-Based Access Control**: Comprehensive RBAC system with permissions and policies
-- **Template Engine**: ThymeLeaf-inspired HTML-valid templating with auth integration
+- **Template Engine**: HTML-valid templating with auth integration and error views
 - **CLI Framework**: Comprehensive console application with user management and development tools
+- **Error Handling**: PSR-3 compliant logging, hierarchical exceptions, multi-format rendering
 - **Security**: CSRF protection, AES-256-CBC encryption, password hashing, input sanitization
 - **Validation**: 25+ built-in validation rules with custom rule support
 - **Caching**: File-based caching with pattern matching and performance optimization

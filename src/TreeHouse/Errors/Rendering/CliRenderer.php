@@ -17,7 +17,7 @@ class CliRenderer implements RendererInterface
     private bool $colorSupport;
     private int $terminalWidth;
 
-    public function __construct(bool $colorSupport = null, int $terminalWidth = 80)
+    public function __construct(?bool $colorSupport = null, int $terminalWidth = 80)
     {
         $this->colorSupport = $colorSupport ?? $this->detectColorSupport();
         $this->terminalWidth = $terminalWidth;
@@ -441,8 +441,9 @@ class CliRenderer implements RendererInterface
      */
     public function canRender(?Request $request): bool
     {
-        // CLI renderer is used when there's no HTTP request (CLI environment)
-        return $request === null && php_sapi_name() === 'cli';
+        // CLI renderer is used ONLY when there's no HTTP request (true CLI environment)
+        // If there's a Request object, even in CLI mode (like tests), use other renderers
+        return $request === null;
     }
 
     /**
