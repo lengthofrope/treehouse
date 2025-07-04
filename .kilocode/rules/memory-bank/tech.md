@@ -81,12 +81,19 @@
 
 ## Template Engine
 
-### **Custom Template Syntax**
-- **HTML-Valid Templates**: Standard HTML with custom attributes
-- **Server-Side Rendering**: PHP-based template compilation
-- **Auth Integration**: Built-in authentication checks
-- **Conditional Rendering**: Custom directives for logic
-- **Loop Support**: Custom directives for collections
+### **Template Features Status**
+#### ✅ **Currently Implemented**
+- **Basic Directives**: `th:text`, `th:raw`, `th:if`, `th:repeat`
+- **Layout System**: `th:extend`, `th:section`, `th:yield`
+- **Object Access**: Deep dot notation (`user.profile.settings.theme`)
+- **Brace Expressions**: `{user.name}` in text content
+- **Universal Attributes**: `th:data-id="user.id"`, `th:src="user.avatar"`
+
+#### ❌ **Missing Features**
+- **Switch Logic**: `th:switch` / `th:case` / `th:default` - Not implemented
+- **Content Inclusion**: `th:fragment` / `th:include` / `th:replace` - Not implemented
+- **Local Variables**: `th:with` - Not implemented
+- **Form Helpers**: `th:field` / `th:errors` / `th:csrf` - Not implemented
 
 ### **Template Features**
 - **Compilation Caching**: Compiled templates cached to disk
