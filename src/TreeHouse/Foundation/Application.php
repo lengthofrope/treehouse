@@ -264,7 +264,27 @@ class Application
             $debug = $this->config['errors']['debug'] ?? false;
             $defaultRenderer = $config['default_renderer'] ?? 'html';
             
-            return new RenderManager($debug, $defaultRenderer);
+            $renderManager = new RenderManager($debug, $defaultRenderer);
+            
+            // Clear default renderers and register custom ones with dependencies
+            $renderManager->clearRenderers();
+            
+            // Register renderers with proper dependencies
+            $renderManager->registerRenderer(new \LengthOfRope\TreeHouse\Errors\Rendering\JsonRenderer());
+            $renderManager->registerRenderer(new \LengthOfRope\TreeHouse\Errors\Rendering\CliRenderer());
+            
+            // Register HtmlRenderer with ViewFactory injection
+            $viewFactory = $this->make('view');
+            $templatePath = $config['template_path'] ?? 'errors';
+            $fallbackToBuiltIn = $config['fallback_to_builtin'] ?? true;
+            $htmlRenderer = new \LengthOfRope\TreeHouse\Errors\Rendering\HtmlRenderer(
+                $viewFactory,
+                $templatePath,
+                $fallbackToBuiltIn
+            );
+            $renderManager->registerRenderer($htmlRenderer);
+            
+            return $renderManager;
         });
 
         // Register main error handler

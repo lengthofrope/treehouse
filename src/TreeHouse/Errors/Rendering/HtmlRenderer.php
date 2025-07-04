@@ -7,6 +7,7 @@ namespace LengthOfRope\TreeHouse\Errors\Rendering;
 use LengthOfRope\TreeHouse\Errors\Classification\ClassificationResult;
 use LengthOfRope\TreeHouse\Errors\Exceptions\BaseException;
 use LengthOfRope\TreeHouse\Http\Request;
+use LengthOfRope\TreeHouse\View\ViewFactory;
 use Throwable;
 
 /**
@@ -14,11 +15,15 @@ use Throwable;
  */
 class HtmlRenderer implements RendererInterface
 {
-    private array $templates = [];
+    private ?ViewFactory $viewFactory;
+    private string $templatePath;
+    private bool $fallbackToBuiltIn;
 
-    public function __construct(array $templates = [])
+    public function __construct(?ViewFactory $viewFactory = null, string $templatePath = '', bool $fallbackToBuiltIn = true)
     {
-        $this->templates = array_merge($this->getDefaultTemplates(), $templates);
+        $this->viewFactory = $viewFactory;
+        $this->templatePath = $templatePath ?: 'errors';
+        $this->fallbackToBuiltIn = $fallbackToBuiltIn;
     }
 
     /**
@@ -84,26 +89,26 @@ class HtmlRenderer implements RendererInterface
 
         // Use debug template in debug mode
         if ($debug) {
-            return $this->templates['debug'];
+            return 'debug';
         }
 
         // Use specific templates for common status codes
-        if (isset($this->templates[$statusCode])) {
-            return $this->templates[$statusCode];
-        }
+        $templateCandidates = [
+            (string) $statusCode,
+            $classification->category,
+            $classification->severity,
+            'generic'
+        ];
 
-        // Use category-specific templates
-        if (isset($this->templates[$classification->category])) {
-            return $this->templates[$classification->category];
-        }
-
-        // Use severity-specific templates
-        if (isset($this->templates[$classification->severity])) {
-            return $this->templates[$classification->severity];
+        // Return the first template that exists
+        foreach ($templateCandidates as $template) {
+            if ($this->templateExists($template)) {
+                return $template;
+            }
         }
 
         // Fall back to generic template
-        return $this->templates['generic'];
+        return 'generic';
     }
 
     /**
@@ -111,8 +116,53 @@ class HtmlRenderer implements RendererInterface
      */
     private function renderTemplate(string $template, array $data): string
     {
+        // Try to use ViewFactory first
+        if ($this->viewFactory) {
+            try {
+                $templatePath = $this->templatePath . '/' . $template;
+                return $this->viewFactory->render($templatePath, $data);
+            } catch (\Exception $e) {
+                // Fall back to built-in templates if ViewFactory fails
+                if (!$this->fallbackToBuiltIn) {
+                    throw $e;
+                }
+            }
+        }
+
+        // Fall back to built-in templates
+        return $this->renderBuiltInTemplate($template, $data);
+    }
+
+    /**
+     * Check if a template exists
+     */
+    private function templateExists(string $template): bool
+    {
+        if ($this->viewFactory) {
+            try {
+                $templatePath = $this->templatePath . '/' . $template;
+                // Try to check if template exists - this is a simple approach
+                // In a real implementation, ViewFactory might have a method to check existence
+                return true; // For now, assume all templates exist and let renderTemplate handle fallback
+            } catch (\Exception $e) {
+                return false;
+            }
+        }
+
+        // Check if built-in template exists
+        return in_array($template, ['generic', 'debug', '404', '500', 'security', 'critical']);
+    }
+
+    /**
+     * Render built-in template with data (fallback)
+     */
+    private function renderBuiltInTemplate(string $template, array $data): string
+    {
+        $builtInTemplates = $this->getDefaultTemplates();
+        $templateHtml = $builtInTemplates[$template] ?? $builtInTemplates['generic'];
+        
         // Simple template rendering - replace placeholders
-        $html = $template;
+        $html = $templateHtml;
         
         foreach ($data as $key => $value) {
             if (is_scalar($value) || is_null($value)) {
@@ -731,18 +781,22 @@ class HtmlRenderer implements RendererInterface
     }
 
     /**
-     * Set custom template
+     * Set custom template (deprecated - use ViewFactory templates instead)
      */
     public function setTemplate(string $key, string $template): void
     {
-        $this->templates[$key] = $template;
+        // This method is deprecated when using ViewFactory
+        // Templates should be managed through the ViewFactory system
+        throw new \RuntimeException('setTemplate is deprecated when using ViewFactory. Use template files instead.');
     }
 
     /**
-     * Get template
+     * Get template (deprecated - use ViewFactory templates instead)
      */
     public function getTemplate(string $key): ?string
     {
-        return $this->templates[$key] ?? null;
+        // This method is deprecated when using ViewFactory
+        // Templates should be managed through the ViewFactory system
+        throw new \RuntimeException('getTemplate is deprecated when using ViewFactory. Use template files instead.');
     }
 }

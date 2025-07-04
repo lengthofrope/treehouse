@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="{title} + ' - Debug Mode'">Error - Debug Mode</title>
+    <style>
+        body { 
+            font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace; 
+            margin: 0; 
+            padding: 20px; 
+            background: #1e1e1e; 
+            color: #d4d4d4; 
+            font-size: 14px; 
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+        }
+        .header { 
+            background: #dc3545; 
+            color: white; 
+            padding: 20px; 
+            border-radius: 4px; 
+            margin-bottom: 20px; 
+        }
+        .header h1 { 
+            margin: 0; 
+            font-size: 1.8em; 
+        }
+        .header p { 
+            margin: 10px 0 0; 
+            opacity: 0.9; 
+        }
+        .section { 
+            background: #252526; 
+            border: 1px solid #3e3e42; 
+            border-radius: 4px; 
+            margin-bottom: 20px; 
+        }
+        .section-header { 
+            background: #2d2d30; 
+            padding: 15px; 
+            border-bottom: 1px solid #3e3e42; 
+            font-weight: bold; 
+        }
+        .section-content { 
+            padding: 20px; 
+        }
+        .debug-data { 
+            background: #1e1e1e; 
+            border: 1px solid #3e3e42; 
+            padding: 15px; 
+            border-radius: 4px; 
+            overflow-x: auto; 
+            white-space: pre-wrap; 
+        }
+        .meta { 
+            color: #9cdcfe; 
+        }
+        .string { 
+            color: #ce9178; 
+        }
+        .number { 
+            color: #b5cea8; 
+        }
+        .boolean { 
+            color: #569cd6; 
+        }
+        .null { 
+            color: #569cd6; 
+        }
+        .debug-subsection {
+            margin-bottom: 20px;
+        }
+        .debug-subsection h4 {
+            color: #4ec9b0;
+            margin-bottom: 10px;
+        }
+        .debug-subsection pre {
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span th:text="{status_code}">500</span> - <span th:text="{title}">Error</span></h1>
+            <p th:text="{message}">An error occurred</p>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">Error Details</div>
+            <div class="section-content">
+                <strong>Category:</strong> <span th:text="{category}">system</span><br>
+                <strong>Severity:</strong> <span th:text="{severity}">high</span><br>
+                <strong>Request ID:</strong> <span th:text="{request_id}">req_123456</span><br>
+                <strong>Time:</strong> <span th:text="{timestamp}">2024-01-01 12:00:00</span>
+            </div>
+        </div>
+        
+        <div th:if="{debug_info}" class="section">
+            <div class="section-header">Debug Information</div>
+            <div class="section-content">
+                <div th:if="{debug_info.exception}" class="debug-subsection">
+                    <h4>Exception</h4>
+                    <div class="debug-data">
+                        <strong>Class:</strong> <span th:text="{debug_info.exception.class}">Exception</span><br>
+                        <strong>Message:</strong> <span th:text="{debug_info.exception.message}">Error message</span><br>
+                        <strong>File:</strong> <span th:text="{debug_info.exception.file}">file.php</span><br>
+                        <strong>Line:</strong> <span th:text="{debug_info.exception.line}">123</span><br>
+                        <strong>Trace:</strong><br>
+                        <pre th:text="{debug_info.exception.trace}">Stack trace...</pre>
+                    </div>
+                </div>
+                
+                <div th:if="{debug_info.classification}" class="debug-subsection">
+                    <h4>Classification</h4>
+                    <pre class="debug-data" th:text="{debug_info.classification | json}">Classification data...</pre>
+                </div>
+                
+                <div th:if="{debug_info.context}" class="debug-subsection">
+                    <h4>Context</h4>
+                    <pre class="debug-data" th:text="{debug_info.context | json}">Context data...</pre>
+                </div>
+                
+                <div th:if="{debug_info.previous}" class="debug-subsection">
+                    <h4>Previous Exception</h4>
+                    <div class="debug-data">
+                        <strong>Class:</strong> <span th:text="{debug_info.previous.class}">Exception</span><br>
+                        <strong>Message:</strong> <span th:text="{debug_info.previous.message}">Error message</span><br>
+                        <strong>File:</strong> <span th:text="{debug_info.previous.file}">file.php</span><br>
+                        <strong>Line:</strong> <span th:text="{debug_info.previous.line}">123</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
