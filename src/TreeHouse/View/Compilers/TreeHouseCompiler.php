@@ -394,19 +394,21 @@ class TreeHouseCompiler
      */
     protected function wrapWithHelpers(string $compiled): string
     {
-        return "<?php\n" .
-               "// TreeHouse Template Helper Functions\n" .
-               "if (!function_exists('thGetProperty')) {\n" .
-               "    function thGetProperty(\$object, \$property) {\n" .
-               "        if (is_array(\$object)) {\n" .
-               "            return \$object[\$property] ?? null;\n" .
-               "        }\n" .
-               "        if (is_object(\$object)) {\n" .
-               "            return \$object->{\$property} ?? null;\n" .
-               "        }\n" .
-               "        return null;\n" .
-               "    }\n" .
-               "}\n" .
-               "?>" . $compiled;
+        $helpers = "<?php\n" .
+                  "// TreeHouse Template Helper Functions\n" .
+                  "if (!function_exists('thGetProperty')) {\n" .
+                  "    function thGetProperty(\$object, \$property) {\n" .
+                  "        if (is_array(\$object)) {\n" .
+                  "            return \$object[\$property] ?? null;\n" .
+                  "        }\n" .
+                  "        if (is_object(\$object)) {\n" .
+                  "            return \$object->{\$property} ?? null;\n" .
+                  "        }\n" .
+                  "        return null;\n" .
+                  "    }\n" .
+                  "}\n" .
+                  "?>";
+        
+        return $helpers . $compiled;
     }
 }

@@ -285,4 +285,13 @@ class DemoController
 
         return new Response(view('components', $data)->render());
     }
+
+    /**
+     * Fragment functionality test
+     */
+    public function testFragment(): Response
+    {
+        // Use the test-fragment.html template file instead of inline template
+        return Response::html(view('test-fragment')->render());
+    }
 }
