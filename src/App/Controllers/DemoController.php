@@ -287,6 +287,94 @@ class DemoController
     }
 
     /**
+     * Layouts system demonstration
+     */
+    public function layouts(): Response
+    {
+        $data = [
+            'title' => 'TreeHouse Layout System Demo',
+            'showHero' => false,
+            'layouts' => [
+                'app' => [
+                    'name' => 'App Layout',
+                    'description' => 'Main application layout with navigation, hero section, and footer',
+                    'file' => 'layouts/app.th.html',
+                    'features' => [
+                        'Navigation bar with responsive design',
+                        'Optional hero section with th:if="showHero"',
+                        'Content section with th:yield="content"',
+                        'Footer with branding',
+                        'Mobile-responsive menu'
+                    ]
+                ],
+                'error' => [
+                    'name' => 'Error Layout',
+                    'description' => 'Specialized layout for error pages',
+                    'file' => 'layouts/error.th.html',
+                    'features' => [
+                        'Minimal design for error display',
+                        'Debug information support',
+                        'Clean error presentation'
+                    ]
+                ]
+            ],
+            'templateFeatures' => [
+                'th:extend' => [
+                    'name' => 'Layout Extension',
+                    'description' => 'Extend a parent layout template',
+                    'syntax' => 'th:extend="layouts/app"',
+                    'example' => 'Inherits the entire structure of the parent layout'
+                ],
+                'th:section' => [
+                    'name' => 'Content Sections',
+                    'description' => 'Define content blocks that fill layout slots',
+                    'syntax' => 'th:section="content"',
+                    'example' => 'Provides content for th:yield="content" in the layout'
+                ],
+                'th:yield' => [
+                    'name' => 'Content Slots',
+                    'description' => 'Define slots where child content will be inserted',
+                    'syntax' => 'th:yield="content"',
+                    'example' => 'Creates a placeholder for child template content'
+                ]
+            ],
+            'examples' => [
+                'basic' => [
+                    'title' => 'Basic Layout Usage',
+                    'description' => 'How to use a layout in your templates',
+                    'template' => '<!-- child-template.th.html -->
+<div th:extend="layouts/app">
+    <div th:section="content">
+        <h1>Page Title</h1>
+        <p>Your page content goes here</p>
+    </div>
+</div>',
+                    'result' => 'The child content replaces th:yield="content" in the app layout'
+                ],
+                'conditional' => [
+                    'title' => 'Conditional Layout Features',
+                    'description' => 'Using conditional directives in layouts',
+                    'template' => '<!-- In your controller -->
+$data = [
+    "showHero" => true,  // Controls hero section display
+    "title" => "Page Title"
+];
+
+<!-- In your template -->
+<div th:extend="layouts/app">
+    <div th:section="content">
+        <p>Content without hero section</p>
+    </div>
+</div>',
+                    'result' => 'Hero section appears when showHero is true'
+                ]
+            ]
+        ];
+
+        return Response::html(view('layouts-demo', $data)->render());
+    }
+
+    /**
      * Fragment functionality test
      */
     public function testFragment(): Response
