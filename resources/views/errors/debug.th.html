@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="{title} + ' - Debug Mode'">Error - Debug Mode</title>
+    <title th:text="{title}">Debug Error</title>
     <style>
         body { 
             font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace; 
@@ -12,6 +12,7 @@
             background: #1e1e1e; 
             color: #d4d4d4; 
             font-size: 14px; 
+            line-height: 1.6;
         }
         .container { 
             max-width: 1200px; 
@@ -70,34 +71,32 @@
         .null { 
             color: #569cd6; 
         }
-        .debug-subsection {
-            margin-bottom: 20px;
+        .trace-line {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #007acc;
+            background: rgba(0, 122, 204, 0.1);
         }
-        .debug-subsection h4 {
+        .file-path {
             color: #4ec9b0;
-            margin-bottom: 10px;
         }
-        .debug-subsection pre {
-            background: #1e1e1e;
-            border: 1px solid #3e3e42;
-            padding: 10px;
-            border-radius: 4px;
-            overflow-x: auto;
+        .line-number {
+            color: #b5cea8;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1><span th:text="{status_code}">500</span> - <span th:text="{title}">Error</span></h1>
-            <p th:text="{message}">An error occurred</p>
+            <h1 th:text="{status_code} + ' - ' + {title}">Error - Debug Mode</h1>
+            <p th:text="{message}">Debug information</p>
         </div>
         
         <div class="section">
             <div class="section-header">Error Details</div>
             <div class="section-content">
-                <strong>Category:</strong> <span th:text="{category}">system</span><br>
-                <strong>Severity:</strong> <span th:text="{severity}">high</span><br>
+                <strong>Category:</strong> <span th:text="{category}">unknown</span><br>
+                <strong>Severity:</strong> <span th:text="{severity}">unknown</span><br>
                 <strong>Request ID:</strong> <span th:text="{request_id}">req_123456</span><br>
                 <strong>Time:</strong> <span th:text="{timestamp}">2024-01-01 12:00:00</span>
             </div>
@@ -106,37 +105,28 @@
         <div th:if="{debug_info}" class="section">
             <div class="section-header">Debug Information</div>
             <div class="section-content">
-                <div th:if="{debug_info.exception}" class="debug-subsection">
-                    <h4>Exception</h4>
-                    <div class="debug-data">
-                        <strong>Class:</strong> <span th:text="{debug_info.exception.class}">Exception</span><br>
-                        <strong>Message:</strong> <span th:text="{debug_info.exception.message}">Error message</span><br>
-                        <strong>File:</strong> <span th:text="{debug_info.exception.file}">file.php</span><br>
-                        <strong>Line:</strong> <span th:text="{debug_info.exception.line}">123</span><br>
-                        <strong>Trace:</strong><br>
-                        <pre th:text="{debug_info.exception.trace}">Stack trace...</pre>
+                <div class="debug-data" th:raw="{debug_info}">Debug data will appear here</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">Stack Trace</div>
+            <div class="section-content">
+                <div class="debug-data">
+                    <div th:if="{exception.trace}" th:each="line : {exception.trace}">
+                        <div class="trace-line">
+                            <span class="file-path" th:text="{line.file}">file.php</span>:<span class="line-number" th:text="{line.line}">123</span>
+                            <br><strong th:text="{line.function}">function()</strong>
+                        </div>
                     </div>
                 </div>
-                
-                <div th:if="{debug_info.classification}" class="debug-subsection">
-                    <h4>Classification</h4>
-                    <pre class="debug-data" th:text="{debug_info.classification | json}">Classification data...</pre>
-                </div>
-                
-                <div th:if="{debug_info.context}" class="debug-subsection">
-                    <h4>Context</h4>
-                    <pre class="debug-data" th:text="{debug_info.context | json}">Context data...</pre>
-                </div>
-                
-                <div th:if="{debug_info.previous}" class="debug-subsection">
-                    <h4>Previous Exception</h4>
-                    <div class="debug-data">
-                        <strong>Class:</strong> <span th:text="{debug_info.previous.class}">Exception</span><br>
-                        <strong>Message:</strong> <span th:text="{debug_info.previous.message}">Error message</span><br>
-                        <strong>File:</strong> <span th:text="{debug_info.previous.file}">file.php</span><br>
-                        <strong>Line:</strong> <span th:text="{debug_info.previous.line}">123</span>
-                    </div>
-                </div>
+            </div>
+        </div>
+        
+        <div th:if="{context}" class="section">
+            <div class="section-header">Request Context</div>
+            <div class="section-content">
+                <div class="debug-data" th:raw="{context}">Context data will appear here</div>
             </div>
         </div>
     </div>

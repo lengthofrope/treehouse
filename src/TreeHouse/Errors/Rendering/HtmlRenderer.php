@@ -66,7 +66,11 @@ class HtmlRenderer implements RendererInterface
             'is_critical' => $classification->isCritical,
             'timestamp' => date('Y-m-d H:i:s'),
             'request_id' => $this->generateRequestId($context),
-            'debug' => $debug
+            'debug' => $debug,
+            // Additional data for the error layout
+            'icon' => $this->getErrorIcon($statusCode),
+            'heading' => $this->getErrorTitle($statusCode, $classification),
+            'error_type' => $statusCode >= 500 ? 'error' : ''
         ];
 
         // Add debug information if in debug mode
@@ -478,6 +482,22 @@ class HtmlRenderer implements RendererInterface
         
         // Generate a new request ID
         return uniqid('req_', true);
+    }
+
+    /**
+     * Get error icon based on status code
+     */
+    private function getErrorIcon(int $statusCode): string
+    {
+        return match ($statusCode) {
+            404 => '🔍',
+            403 => '🔒',
+            401 => '🔐',
+            422 => '📝',
+            429 => '⏱️',
+            500, 502, 503 => '⚠️',
+            default => '❓'
+        };
     }
 
     /**
