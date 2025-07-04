@@ -31,14 +31,17 @@ class YieldProcessor extends AbstractProcessor
             $sectionName = trim($sectionName, '\'"');
         }
         
-        // Generate PHP code to yield the section
+        // Generate PHP code to yield the section with null safety
         if ($defaultValue) {
-            $php = "<?php echo \$this->yieldSection('{$sectionName}', {$defaultValue}); ?>";
+            $php = "<?php echo \$this->yieldSection('{$sectionName}', {$defaultValue}) ?: ''; ?>";
         } else {
-            $php = "<?php echo \$this->yieldSection('{$sectionName}'); ?>";
+            $php = "<?php echo \$this->yieldSection('{$sectionName}', '') ?: ''; ?>";
         }
         
         // Replace the element content with the yield PHP code
         $this->replaceContent($node, $php);
+        
+        // Remove the th:yield attribute
+        $node->removeAttribute('th:yield');
     }
 }
