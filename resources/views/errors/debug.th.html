@@ -102,10 +102,14 @@
             </div>
         </div>
         
-        <div th:if="{debug_info}" class="section">
+        <div class="section">
             <div class="section-header">Debug Information</div>
             <div class="section-content">
-                <div class="debug-data" th:raw="{debug_info}">Debug data will appear here</div>
+                <div class="debug-data">
+                    <strong>Exception:</strong> <span th:text="{message}">Exception message</span><br>
+                    <strong>File:</strong> <span th:text="{category}">File path</span><br>
+                    <strong>Severity:</strong> <span th:text="{severity}">Severity level</span>
+                </div>
             </div>
         </div>
         
@@ -113,22 +117,12 @@
             <div class="section-header">Stack Trace</div>
             <div class="section-content">
                 <div class="debug-data">
-                    <div th:if="{exception.trace}" th:each="line : {exception.trace}">
-                        <div class="trace-line">
-                            <span class="file-path" th:text="{line.file}">file.php</span>:<span class="line-number" th:text="{line.line}">123</span>
-                            <br><strong th:text="{line.function}">function()</strong>
-                        </div>
-                    </div>
+                    <strong>Request ID:</strong> <span th:text="{request_id}">Request ID</span><br>
+                    <strong>Timestamp:</strong> <span th:text="{timestamp}">Timestamp</span>
                 </div>
             </div>
         </div>
         
-        <div th:if="{context}" class="section">
-            <div class="section-header">Request Context</div>
-            <div class="section-content">
-                <div class="debug-data" th:raw="{context}">Context data will appear here</div>
-            </div>
-        </div>
     </div>
 </body>
 </html>

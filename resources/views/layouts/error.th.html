@@ -98,12 +98,13 @@
             <strong>Time:</strong> <span th:text="{timestamp}">2024-01-01 12:00:00</span>
         </div>
         
-        <div th:if="{suggestions}" class="suggestions-section">
+        <div class="suggestions-section">
             <h3>What can you do?</h3>
             <ul class="suggestions-list">
                 <li th:repeat="suggestion in {suggestions}" th:text="{suggestion}">Try refreshing the page</li>
             </ul>
         </div>
+        
     </div>
 </body>
 </html>
