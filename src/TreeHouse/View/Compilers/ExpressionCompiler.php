@@ -239,11 +239,14 @@ class ExpressionCompiler
         // "item : items" -> foreach($items as $item)
         // "key,item : items" -> foreach($items as $key => $item)
         // "item in items" -> foreach($items as $item)
+        // "item items" -> foreach($items as $item) [legacy format]
+        // "key,item items" -> foreach($items as $key => $item) [legacy format]
 
         if (preg_match('/^(\w+)\s*:\s*(.+)$/', $expression, $matches)) {
             // Simple format: item : items
             $value = '$' . $matches[1];
-            $iterable = $this->compileExpression($matches[2]);
+            $iterableExpr = $this->stripBraces(trim($matches[2]));
+            $iterable = $this->compileExpression($iterableExpr);
             return ['iterable' => $iterable, 'key' => null, 'value' => $value];
         }
 
@@ -251,17 +254,53 @@ class ExpressionCompiler
             // Key-value format: key,item : items
             $key = '$' . $matches[1];
             $value = '$' . $matches[2];
-            $iterable = $this->compileExpression($matches[3]);
+            $iterableExpr = $this->stripBraces(trim($matches[3]));
+            $iterable = $this->compileExpression($iterableExpr);
             return ['iterable' => $iterable, 'key' => $key, 'value' => $value];
         }
 
         if (preg_match('/^(\w+)\s+in\s+(.+)$/', $expression, $matches)) {
             // Alternative format: item in items
             $value = '$' . $matches[1];
-            $iterable = $this->compileExpression($matches[2]);
+            $iterableExpr = $this->stripBraces(trim($matches[2]));
+            $iterable = $this->compileExpression($iterableExpr);
+            return ['iterable' => $iterable, 'key' => null, 'value' => $value];
+        }
+
+        // Legacy formats for backward compatibility
+        if (preg_match('/^(\w+),\s*(\w+)\s+(.+)$/', $expression, $matches)) {
+            // Key-value legacy format: key,item items
+            $key = '$' . $matches[1];
+            $value = '$' . $matches[2];
+            $iterableExpr = $this->stripBraces(trim($matches[3]));
+            $iterable = $this->compileExpression($iterableExpr);
+            return ['iterable' => $iterable, 'key' => $key, 'value' => $value];
+        }
+
+        if (preg_match('/^(\w+)\s+(.+)$/', $expression, $matches)) {
+            // Simple legacy format: item items
+            $value = '$' . $matches[1];
+            $iterableExpr = $this->stripBraces(trim($matches[2]));
+            $iterable = $this->compileExpression($iterableExpr);
             return ['iterable' => $iterable, 'key' => null, 'value' => $value];
         }
 
         throw new \InvalidArgumentException("Invalid repeat expression: {$expression}");
+    }
+
+    /**
+     * Strip braces from simple variable expressions
+     *
+     * @param string $expression
+     * @return string
+     */
+    private function stripBraces(string $expression): string
+    {
+        // Strip braces only if it's a simple variable expression (no operators or spaces)
+        if (preg_match('/^\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}$/', $expression, $matches)) {
+            return trim($matches[1]);
+        }
+        
+        return $expression;
     }
 }
