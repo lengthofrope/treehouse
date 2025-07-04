@@ -31,7 +31,9 @@ class TreeHouseCompiler
      * Processing order for directives (critical for correct compilation)
      */
     protected array $processingOrder = [
-        'th:extend', 'th:section', 'th:yield', 'th:if', 'th:repeat', 'th:text', 'th:raw'
+        'th:extend', 'th:section', 'th:yield', 'th:fragment', 'th:with', 'th:switch',
+        'th:if', 'th:repeat', 'th:include', 'th:replace', 'th:method', 'th:csrf',
+        'th:field', 'th:errors', 'th:text', 'th:raw'
     ];
 
     public function __construct(
@@ -50,11 +52,29 @@ class TreeHouseCompiler
     protected function initializeProcessors(): void
     {
         $this->processors = [
+            // Layout and structure
             'th:extend' => new Processors\ExtendProcessor($this->expressionCompiler),
             'th:section' => new Processors\SectionProcessor($this->expressionCompiler),
             'th:yield' => new Processors\YieldProcessor($this->expressionCompiler),
+            'th:fragment' => new Processors\FragmentProcessor($this->expressionCompiler),
+            
+            // Variables and logic
+            'th:with' => new Processors\WithProcessor($this->expressionCompiler),
+            'th:switch' => new Processors\SwitchProcessor($this->expressionCompiler),
             'th:if' => new Processors\IfProcessor($this->expressionCompiler),
             'th:repeat' => new Processors\RepeatProcessor($this->expressionCompiler),
+            
+            // Content inclusion
+            'th:include' => new Processors\IncludeProcessor($this->expressionCompiler),
+            'th:replace' => new Processors\ReplaceProcessor($this->expressionCompiler),
+            
+            // Form handling
+            'th:method' => new Processors\MethodProcessor($this->expressionCompiler),
+            'th:csrf' => new Processors\CsrfProcessor($this->expressionCompiler),
+            'th:field' => new Processors\FieldProcessor($this->expressionCompiler),
+            'th:errors' => new Processors\ErrorsProcessor($this->expressionCompiler),
+            
+            // Content rendering
             'th:text' => new Processors\TextProcessor($this->expressionCompiler),
             'th:raw' => new Processors\RawProcessor($this->expressionCompiler)
         ];
