@@ -1,0 +1,1 @@
+Read .kilocode/rules/memory-bank/memory-bank-instructions.md
