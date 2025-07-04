@@ -32,8 +32,9 @@ class TreeHouseCompiler
      */
     protected array $processingOrder = [
         'th:extend', 'th:section', 'th:yield', 'th:fragment', 'th:with', 'th:switch',
-        'th:if', 'th:repeat', 'th:include', 'th:replace', 'th:method', 'th:csrf',
-        'th:field', 'th:errors', 'th:text', 'th:raw'
+        'th:case', 'th:default', 'th:if', 'th:unless', 'th:repeat', 'th:include',
+        'th:replace', 'th:method', 'th:csrf', 'th:field', 'th:errors', 'th:text',
+        'th:raw', 'th:html'
     ];
 
     public function __construct(
@@ -61,7 +62,10 @@ class TreeHouseCompiler
             // Variables and logic
             'th:with' => new Processors\WithProcessor($this->expressionCompiler),
             'th:switch' => new Processors\SwitchProcessor($this->expressionCompiler),
+            'th:case' => new Processors\SwitchProcessor($this->expressionCompiler), // Same processor handles case
+            'th:default' => new Processors\SwitchProcessor($this->expressionCompiler), // Same processor handles default
             'th:if' => new Processors\IfProcessor($this->expressionCompiler),
+            'th:unless' => new Processors\IfProcessor($this->expressionCompiler), // Same processor handles unless
             'th:repeat' => new Processors\RepeatProcessor($this->expressionCompiler),
             
             // Content inclusion
@@ -76,7 +80,8 @@ class TreeHouseCompiler
             
             // Content rendering
             'th:text' => new Processors\TextProcessor($this->expressionCompiler),
-            'th:raw' => new Processors\RawProcessor($this->expressionCompiler)
+            'th:raw' => new Processors\RawProcessor($this->expressionCompiler),
+            'th:html' => new Processors\RawProcessor($this->expressionCompiler) // Same as raw
         ];
     }
 

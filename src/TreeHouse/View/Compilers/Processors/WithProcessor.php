@@ -24,7 +24,8 @@ class WithProcessor extends AbstractProcessor
         
         $phpCode = "<?php ";
         foreach ($assignments as $variable => $value) {
-            $compiledValue = $this->expressionCompiler->compileExpression($value);
+            // Use calculation context to allow arithmetic operators
+            $compiledValue = $this->expressionCompiler->compileCalculation($value);
             $phpCode .= "\${$variable} = {$compiledValue}; ";
         }
         $phpCode .= "?>";

@@ -30,7 +30,16 @@ class SwitchProcessor extends AbstractProcessor
             if ($child instanceof DOMElement) {
                 if ($child->hasAttribute('th:case')) {
                     $caseValue = $child->getAttribute('th:case');
-                    $compiledCaseValue = $this->expressionCompiler->compileExpression($caseValue);
+                    
+                    // Handle string literals vs expressions
+                    if (preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/', $caseValue)) {
+                        // Simple string literal like "admin", "user"
+                        $compiledCaseValue = "'{$caseValue}'";
+                    } else {
+                        // Complex expression
+                        $compiledCaseValue = $this->expressionCompiler->compileExpression($caseValue);
+                    }
+                    
                     $cases[] = [
                         'value' => $compiledCaseValue,
                         'element' => $child

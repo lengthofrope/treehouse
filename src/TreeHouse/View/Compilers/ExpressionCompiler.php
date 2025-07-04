@@ -33,12 +33,12 @@ class ExpressionCompiler
      * @return string Compiled PHP expression
      * @throws \InvalidArgumentException If expression is invalid
      */
-    public function compileExpression(string $expression): string
+    public function compileExpression(string $expression, string $context = 'general'): string
     {
         $expression = trim($expression);
 
-        // Validate expression first
-        if (!$this->validator->validate($expression)) {
+        // Validate expression first with context
+        if (!$this->validator->validate($expression, $context)) {
             throw new \InvalidArgumentException(
                 $this->validator->getValidationError($expression)
             );
@@ -46,6 +46,18 @@ class ExpressionCompiler
 
         // Compile the expression
         return $this->doCompile($expression);
+    }
+    
+    /**
+     * Compile a calculation expression (allows arithmetic operators)
+     *
+     * @param string $expression The template expression
+     * @return string Compiled PHP expression
+     * @throws \InvalidArgumentException If expression is invalid
+     */
+    public function compileCalculation(string $expression): string
+    {
+        return $this->compileExpression($expression, 'calculation');
     }
 
     /**
