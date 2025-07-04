@@ -66,6 +66,7 @@ class ContextManager
         $startTime = microtime(true);
         $context = [];
         $errors = [];
+        $executedCollectors = [];
 
         foreach ($this->collectors as $collector) {
             // Check if we've exceeded max execution time
@@ -91,8 +92,8 @@ class ContextManager
                 // Merge collector context
                 $context = array_merge_recursive($context, $collectorContext);
 
-                // Add collection metadata
-                $context['_meta']['collectors'][$collector->getName()] = [
+                // Track executed collectors
+                $executedCollectors[$collector->getName()] = [
                     'executed' => true,
                     'execution_time' => round(($collectorEndTime - $collectorStartTime) * 1000, 2), // ms
                     'priority' => $collector->getPriority()
@@ -108,8 +109,8 @@ class ContextManager
 
                 $errors[] = $error;
 
-                // Add error metadata
-                $context['_meta']['collectors'][$collector->getName()] = [
+                // Track failed collectors
+                $executedCollectors[$collector->getName()] = [
                     'executed' => false,
                     'error' => $error,
                     'priority' => $collector->getPriority()
@@ -122,21 +123,25 @@ class ContextManager
             }
         }
 
-        // Add collection metadata
-        $context['_meta']['collection'] = [
-            'total_time' => round((microtime(true) - $startTime) * 1000, 2), // ms
-            'collectors_count' => count($this->collectors),
-            'executed_count' => count(array_filter(
-                $context['_meta']['collectors'] ?? [],
-                fn($meta) => $meta['executed'] ?? false
-            )),
-            'errors_count' => count($errors),
-            'timestamp' => time()
-        ];
+        // Only add metadata if we have collectors or errors
+        if (!empty($executedCollectors) || !empty($errors)) {
+            $context['_meta']['collectors'] = $executedCollectors;
+            
+            $context['_meta']['collection'] = [
+                'total_time' => round((microtime(true) - $startTime) * 1000, 2), // ms
+                'collectors_count' => count($this->collectors),
+                'executed_count' => count(array_filter(
+                    $executedCollectors,
+                    fn($meta) => $meta['executed'] ?? false
+                )),
+                'errors_count' => count($errors),
+                'timestamp' => time()
+            ];
 
-        // Add errors if any occurred
-        if (!empty($errors)) {
-            $context['_meta']['errors'] = $errors;
+            // Add errors if any occurred
+            if (!empty($errors)) {
+                $context['_meta']['errors'] = $errors;
+            }
         }
 
         return $context;

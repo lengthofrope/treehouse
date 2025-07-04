@@ -34,6 +34,9 @@ class ExceptionClassifier
     public const CATEGORY_TYPE = 'type';
     public const CATEGORY_LOGIC = 'logic';
     public const CATEGORY_RUNTIME = 'runtime';
+    public const CATEGORY_FILESYSTEM = 'filesystem';
+    public const CATEGORY_NETWORK = 'network';
+    public const CATEGORY_GENERAL = 'general';
     public const CATEGORY_UNKNOWN = 'unknown';
 
     /**
@@ -51,8 +54,8 @@ class ExceptionClassifier
         // TreeHouse exceptions
         AuthenticationException::class => [
             'category' => self::CATEGORY_AUTHENTICATION,
-            'severity' => self::SEVERITY_MEDIUM,
-            'should_report' => true,
+            'severity' => self::SEVERITY_HIGH,
+            'should_report' => false,
             'log_level' => LogLevel::WARNING
         ],
         AuthorizationException::class => [
@@ -165,6 +168,11 @@ class ExceptionClassifier
      * Security-sensitive exception patterns
      */
     private array $securityPatterns = [
+        '/sql.*injection/i',
+        '/xss.*attack/i',
+        '/csrf.*token/i',
+        '/unauthorized.*access/i',
+        '/suspicious.*file.*upload/i',
         '/password/i',
         '/token/i',
         '/secret/i',
@@ -183,12 +191,77 @@ class ExceptionClassifier
      */
     private array $criticalPatterns = [
         '/out of memory/i',
-        '/disk.*full/i',
+        '/disk.*space.*full/i',
+        '/database.*connection.*pool.*exhausted/i',
+        '/service.*unavailable/i',
+        '/fatal.*system.*error/i',
         '/cannot allocate/i',
         '/segmentation fault/i',
         '/fatal error/i',
         '/maximum execution time/i',
         '/allowed memory size/i'
+    ];
+
+    /**
+     * Validation error patterns
+     */
+    private array $validationPatterns = [
+        '/validation.*failed/i',
+        '/invalid.*input/i',
+        '/required.*field.*missing/i',
+        '/format.*validation.*error/i',
+        '/validation.*error/i',
+        '/field.*is.*required/i',
+        '/must.*be/i',
+        '/should.*be/i',
+        '/expected/i',
+        '/format.*is.*invalid/i',
+        '/does.*not.*match/i',
+        '/out.*of.*range/i',
+        '/too.*long/i',
+        '/too.*short/i',
+        '/minimum.*length/i',
+        '/maximum.*length/i',
+        '/invalid.*email/i',
+        '/invalid.*url/i',
+        '/invalid.*date/i',
+        '/invalid.*number/i',
+        '/invalid.*format/i'
+    ];
+
+    /**
+     * HTTP error patterns
+     */
+    private array $httpPatterns = [
+        '/http.*\d{3}/i',
+        '/not.*found/i',
+        '/internal.*server.*error/i',
+        '/bad.*request/i',
+        '/method.*not.*allowed/i'
+    ];
+
+    /**
+     * Filesystem error patterns
+     */
+    private array $filesystemPatterns = [
+        '/file.*not.*found/i',
+        '/permission.*denied.*accessing.*file/i',
+        '/unable.*to.*write.*to.*directory/i',
+        '/file.*upload.*failed/i',
+        '/no such file or directory/i',
+        '/permission denied/i',
+        '/is not readable/i',
+        '/is not writable/i'
+    ];
+
+    /**
+     * Network error patterns
+     */
+    private array $networkPatterns = [
+        '/connection.*timeout/i',
+        '/network.*unreachable/i',
+        '/dns.*resolution.*failed/i',
+        '/ssl.*handshake.*failed/i'
     ];
 
     /**
@@ -281,7 +354,7 @@ class ExceptionClassifier
         
         // Default classification
         return [
-            'category' => self::CATEGORY_UNKNOWN,
+            'category' => self::CATEGORY_GENERAL,
             'severity' => self::SEVERITY_MEDIUM,
             'should_report' => true,
             'log_level' => LogLevel::ERROR
@@ -299,16 +372,49 @@ class ExceptionClassifier
             'category' => null
         ];
         
-        // Check security patterns
+        // Check validation patterns first (highest priority)
+        foreach ($this->validationPatterns as $pattern) {
+            if (preg_match($pattern, $message)) {
+                $analysis['category'] = self::CATEGORY_VALIDATION;
+                $analysis['is_validation'] = true;
+                return $analysis;
+            }
+        }
+        
+        // Check filesystem patterns before security to avoid conflicts
+        foreach ($this->filesystemPatterns as $pattern) {
+            if (preg_match($pattern, $message)) {
+                $analysis['category'] = self::CATEGORY_FILESYSTEM;
+                return $analysis;
+            }
+        }
+        
+        // Check security patterns (but filesystem takes priority for file-related errors)
         foreach ($this->securityPatterns as $pattern) {
             if (preg_match($pattern, $message)) {
                 $analysis['is_security'] = true;
                 $analysis['category'] = self::CATEGORY_SECURITY;
-                break;
+                return $analysis;
             }
         }
         
-        // Check critical patterns
+        // Check HTTP patterns
+        foreach ($this->httpPatterns as $pattern) {
+            if (preg_match($pattern, $message)) {
+                $analysis['category'] = self::CATEGORY_HTTP;
+                return $analysis;
+            }
+        }
+        
+        // Check network patterns
+        foreach ($this->networkPatterns as $pattern) {
+            if (preg_match($pattern, $message)) {
+                $analysis['category'] = self::CATEGORY_NETWORK;
+                return $analysis;
+            }
+        }
+        
+        // Check critical patterns (affects severity but not category)
         foreach ($this->criticalPatterns as $pattern) {
             if (preg_match($pattern, $message)) {
                 $analysis['is_critical'] = true;
@@ -324,15 +430,19 @@ class ExceptionClassifier
      */
     private function determineSeverity(Throwable $exception, array $rules, array $messageAnalysis): string
     {
-        // Critical patterns override everything
+        // Validation errors should be low severity (highest priority)
+        if (isset($messageAnalysis['is_validation']) && $messageAnalysis['is_validation']) {
+            return self::SEVERITY_LOW;
+        }
+        
+        // Critical patterns override everything else
         if ($messageAnalysis['is_critical']) {
             return self::SEVERITY_CRITICAL;
         }
         
-        // Security issues are at least medium severity
+        // Security issues are critical severity
         if ($messageAnalysis['is_security']) {
-            $defaultSeverity = $rules['severity'];
-            return $this->getHigherSeverity($defaultSeverity, self::SEVERITY_MEDIUM);
+            return self::SEVERITY_CRITICAL;
         }
         
         return $rules['severity'];
@@ -343,6 +453,11 @@ class ExceptionClassifier
      */
     private function shouldReport(Throwable $exception, array $rules, array $messageAnalysis): bool
     {
+        // Validation errors should not be reported (highest priority)
+        if (isset($messageAnalysis['is_validation']) && $messageAnalysis['is_validation']) {
+            return false;
+        }
+        
         // Always report security issues
         if ($messageAnalysis['is_security']) {
             return true;
@@ -472,6 +587,9 @@ class ExceptionClassifier
             self::CATEGORY_TYPE,
             self::CATEGORY_LOGIC,
             self::CATEGORY_RUNTIME,
+            self::CATEGORY_FILESYSTEM,
+            self::CATEGORY_NETWORK,
+            self::CATEGORY_GENERAL,
             self::CATEGORY_UNKNOWN
         ];
     }

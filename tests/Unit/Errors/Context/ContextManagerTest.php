@@ -188,6 +188,10 @@ class ContextManagerTest extends TestCase
 
     public function testCollectorOverride(): void
     {
+        // Set server variables so RequestCollector will run
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/test';
+
         $collector1 = new RequestCollector();
         $collector2 = new EnvironmentCollector();
 

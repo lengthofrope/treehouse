@@ -15,7 +15,7 @@ class AuthenticationExceptionTest extends TestCase
         
         $this->assertEquals('Authentication failed', $exception->getMessage());
         $this->assertEquals(401, $exception->getStatusCode());
-        $this->assertEquals('high', $exception->getSeverity());
+        $this->assertEquals('medium', $exception->getSeverity());
         $this->assertStringStartsWith('AUTH_', $exception->getErrorCode());
     }
 

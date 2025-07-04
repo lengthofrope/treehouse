@@ -53,27 +53,39 @@ class DatabaseException extends BaseException
      * Create a new database exception
      *
      * @param string $message Exception message
-     * @param string|null $query SQL query that failed
-     * @param array<string, mixed> $bindings Query parameters
-     * @param array<string, mixed> $connectionInfo Database connection info
+     * @param string|null $errorCode Custom error code (optional)
+     * @param array<string, mixed> $context Additional context data
+     * @param array<string, mixed> $options Additional options (user_message, query, bindings, etc.)
      * @param Throwable|null $previous Previous exception (usually PDOException)
      */
     public function __construct(
         string $message = 'Database operation failed',
-        ?string $query = null,
-        array $bindings = [],
-        array $connectionInfo = [],
+        ?string $errorCode = null,
+        array $context = [],
+        array $options = [],
         ?Throwable $previous = null
     ) {
-        $this->query = $query;
-        $this->bindings = $bindings;
-        $this->connectionInfo = $this->sanitizeConnectionInfo($connectionInfo);
+        // Extract database-specific options
+        $this->query = $options['query'] ?? null;
+        $this->bindings = $options['bindings'] ?? [];
+        $this->connectionInfo = $this->sanitizeConnectionInfo($options['connection_info'] ?? []);
 
-        $context = [
-            'query' => $this->query,
-            'bindings_count' => count($bindings),
-            'connection' => $this->connectionInfo,
-        ];
+        // Merge database context only if values are provided
+        $databaseContext = [];
+        
+        if ($this->query !== null) {
+            $databaseContext['query'] = $this->query;
+        }
+        
+        if (!empty($this->bindings)) {
+            $databaseContext['bindings_count'] = count($this->bindings);
+        }
+        
+        if (!empty($this->connectionInfo)) {
+            $databaseContext['connection'] = $this->connectionInfo;
+        }
+        
+        $context = array_merge($context, $databaseContext);
 
         // Add PDO-specific information if available
         if ($previous instanceof PDOException) {
@@ -85,7 +97,23 @@ class DatabaseException extends BaseException
 
         parent::__construct($message, 0, $previous, $context);
         
-        $this->userMessage = 'A database error occurred. Please try again later.';
+        // Set custom error code if provided
+        if ($errorCode !== null) {
+            $this->errorCode = $errorCode;
+        }
+        
+        // Set user message from options or default
+        $this->userMessage = $options['user_message'] ?? 'A database error occurred. Please try again later.';
+    }
+
+    /**
+     * Generate a unique error code for database exceptions
+     */
+    protected function generateErrorCode(): void
+    {
+        if (empty($this->errorCode)) {
+            $this->errorCode = 'DB_' . str_pad((string)random_int(1, 999), 3, '0', STR_PAD_LEFT);
+        }
     }
 
     /**
@@ -186,7 +214,7 @@ class DatabaseException extends BaseException
             $message,
             null,
             [],
-            ['host' => $host, 'database' => $database],
+            ['connection_info' => ['host' => $host, 'database' => $database]],
             $previous
         );
     }
@@ -203,7 +231,13 @@ class DatabaseException extends BaseException
     {
         $message = 'Database query execution failed';
         
-        return new static($message, $query, $bindings, [], $previous);
+        return new static(
+            $message,
+            null,
+            [],
+            ['query' => $query, 'bindings' => $bindings],
+            $previous
+        );
     }
 
     /**
@@ -217,7 +251,7 @@ class DatabaseException extends BaseException
     {
         $message = "Database transaction {$operation} failed";
         
-        return new static($message, null, [], [], $previous);
+        return new static($message, null, ['operation' => $operation], [], $previous);
     }
 
     /**
@@ -237,7 +271,7 @@ class DatabaseException extends BaseException
             'direction' => $direction,
         ];
         
-        return new static($message, null, [], $context, $previous);
+        return new static($message, null, $context, [], $previous);
     }
 
     /**

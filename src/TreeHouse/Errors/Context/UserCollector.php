@@ -25,10 +25,6 @@ class UserCollector implements ContextCollectorInterface
      */
     public function collect(Throwable $exception): array
     {
-        if (!$this->auth) {
-            return [];
-        }
-
         $context = [
             'user' => [
                 'authenticated' => false,
@@ -36,6 +32,10 @@ class UserCollector implements ContextCollectorInterface
                 'timestamp' => time()
             ]
         ];
+
+        if (!$this->auth) {
+            return $context;
+        }
 
         try {
             if ($this->auth->check()) {
@@ -283,8 +283,8 @@ class UserCollector implements ContextCollectorInterface
      */
     public function shouldCollect(Throwable $exception): bool
     {
-        // Always try to collect user context if auth manager is available
-        return $this->auth !== null;
+        // Always collect user context (even if just guest info)
+        return true;
     }
 
     /**

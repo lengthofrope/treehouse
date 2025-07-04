@@ -86,6 +86,16 @@ class AuthenticationException extends BaseException
     }
 
     /**
+     * Generate a unique error code for authentication exceptions
+     */
+    protected function generateErrorCode(): void
+    {
+        if (empty($this->errorCode)) {
+            $this->errorCode = 'AUTH_' . str_pad((string)random_int(1, 999), 3, '0', STR_PAD_LEFT);
+        }
+    }
+
+    /**
      * Sanitize attempt details to remove sensitive information
      *
      * @param array<string, mixed> $details

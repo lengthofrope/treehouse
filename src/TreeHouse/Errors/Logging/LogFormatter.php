@@ -62,14 +62,14 @@ class LogFormatter
     {
         $data = [
             'timestamp' => $this->getTimestamp(),
-            'level' => $level,
+            'level' => strtoupper($level),
             'message' => $this->interpolate($message, $context),
             'context' => $this->sanitizeContext($context),
             'memory_usage' => memory_get_usage(true),
             'process_id' => getmypid(),
         ];
 
-        return json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        return json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 
     /**
@@ -81,8 +81,9 @@ class LogFormatter
         $interpolatedMessage = $this->interpolate($message, $context);
         $pid = getmypid();
         $memory = $this->formatBytes(memory_get_usage(true));
+        $upperLevel = strtoupper($level);
         
-        $line = "[{$timestamp}] {$level}: {$interpolatedMessage} [PID: {$pid}] [Memory: {$memory}]";
+        $line = "[{$timestamp}] {$upperLevel}: {$interpolatedMessage} [PID: {$pid}] [Memory: {$memory}]";
         
         // Add context if present
         if (!empty($context)) {
@@ -100,8 +101,9 @@ class LogFormatter
     {
         $timestamp = $this->getTimestamp();
         $interpolatedMessage = $this->interpolate($message, $context);
+        $upperLevel = strtoupper($level);
         
-        return "[{$timestamp}] {$level}: {$interpolatedMessage}";
+        return "[{$timestamp}] {$upperLevel}: {$interpolatedMessage}";
     }
 
     /**
@@ -210,7 +212,10 @@ class LogFormatter
         
         if (method_exists($exception, 'getContext')) {
             /** @var \LengthOfRope\TreeHouse\Errors\Exceptions\BaseException $exception */
-            $data['context'] = $this->sanitizeContext($exception->getContext());
+            $context = $exception->getContext();
+            if (!empty($context)) {
+                $data['context'] = $this->sanitizeContext($context);
+            }
         }
         
         // Include stack trace in debug mode
@@ -231,10 +236,25 @@ class LogFormatter
         $parts = [];
         
         foreach ($context as $key => $value) {
-            if (is_scalar($value) || (is_object($value) && method_exists($value, '__toString'))) {
-                $parts[] = "{$key}=" . json_encode($value);
+            if ($value instanceof \Throwable) {
+                // Handle exceptions directly
+                $exceptionInfo = get_class($value) . ': ' . $value->getMessage();
+                
+                // Always include file info for better debugging
+                $exceptionInfo .= ' in ' . $value->getFile() . ':' . $value->getLine();
+                
+                $parts[] = "{$key}=\"{$exceptionInfo}\"";
+            } elseif (is_scalar($value) || (is_object($value) && method_exists($value, '__toString'))) {
+                $parts[] = "{$key}=" . json_encode($value, JSON_UNESCAPED_UNICODE);
             } elseif (is_array($value)) {
-                $parts[] = "{$key}=" . json_encode($value);
+                // Check if this is a formatted exception array
+                if (isset($value['class']) && isset($value['message'])) {
+                    // This is a formatted exception - show key details
+                    $exceptionInfo = $value['class'] . ': ' . $value['message'];
+                    $parts[] = "{$key}=\"{$exceptionInfo}\"";
+                } else {
+                    $parts[] = "{$key}=" . json_encode($value, JSON_UNESCAPED_UNICODE);
+                }
             } else {
                 $parts[] = "{$key}=" . gettype($value);
             }
@@ -248,7 +268,7 @@ class LogFormatter
      */
     private function getTimestamp(): string
     {
-        $format = $this->config['timestamp_format'] ?? 'Y-m-d H:i:s';
+        $format = $this->config['timestamp_format'] ?? 'Y-m-d\TH:i:sP';
         $timezone = $this->config['timezone'] ?? 'UTC';
         
         $date = new \DateTime('now', new \DateTimeZone($timezone));

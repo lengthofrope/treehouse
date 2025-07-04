@@ -231,13 +231,21 @@ class Application
 
         // Register context collectors
         $this->container->singleton('error.context.request', function () {
-            $config = $this->config['errors']['context']['collectors']['request'] ?? [];
-            return new RequestCollector($config);
+            // RequestCollector takes a Request object, not config array
+            // It will fall back to PHP globals if no Request is provided
+            return new RequestCollector(null);
         });
 
         $this->container->singleton('error.context.user', function () {
-            $config = $this->config['errors']['context']['collectors']['user'] ?? [];
-            return new UserCollector($config);
+            // UserCollector takes an AuthManager, not config array
+            // Try to get the auth manager, but allow null if not available
+            try {
+                $authManager = $this->make('auth');
+                return new UserCollector($authManager);
+            } catch (\Exception $e) {
+                // If auth manager is not available, create with null
+                return new UserCollector(null);
+            }
         });
 
         $this->container->singleton('error.context.environment', function () {
