@@ -61,7 +61,7 @@ class TreeHouseCompilerTest extends TestCase
         
         $compiled = $this->compiler->compile($template);
         
-        $this->assertStringContainsString('if ($condition)', $compiled);
+        $this->assertStringContainsString('!empty((isset($condition) ? $condition : null))', $compiled);
         $this->assertStringContainsString('endif', $compiled);
     }
 
@@ -94,7 +94,7 @@ class TreeHouseCompilerTest extends TestCase
         
         $compiled = $this->compiler->compile($template);
         
-        $this->assertStringContainsString('foreach ($items as $item)', $compiled);
+        $this->assertStringContainsString('foreach ((isset($items) ? $items : null) as $item)', $compiled);
         $this->assertStringContainsString('endforeach', $compiled);
     }
 
@@ -105,7 +105,7 @@ class TreeHouseCompilerTest extends TestCase
         
         $compiled = $this->compiler->compile($template);
         
-        $this->assertStringContainsString('foreach ($items as $key => $item)', $compiled);
+        $this->assertStringContainsString('foreach ((isset($items) ? $items : null) as $key => $item)', $compiled);
         $this->assertStringContainsString('endforeach', $compiled);
     }
 
@@ -184,7 +184,7 @@ class TreeHouseCompilerTest extends TestCase
         
         $compiled = $this->compiler->compile($template);
         
-        $this->assertStringContainsString('if ($show)', $compiled);
+        $this->assertStringContainsString('!empty($show)', $compiled);
         $this->assertStringContainsString('thGetProperty($user, \'message\')', $compiled);
         $this->assertStringContainsString('htmlspecialchars', $compiled);
     }
@@ -223,7 +223,7 @@ class TreeHouseCompilerTest extends TestCase
         $compiled = $this->compiler->compile($template);
         
         // Should contain all transformations
-        $this->assertStringContainsString('if ($show)', $compiled);
+        $this->assertStringContainsString('!empty($show)', $compiled);
         $this->assertStringContainsString('thGetProperty($user, \'message\')', $compiled);
         $this->assertStringContainsString('thGetProperty($user, \'cssClass\')', $compiled);
         $this->assertStringContainsString('htmlspecialchars', $compiled);
