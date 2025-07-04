@@ -46,12 +46,13 @@ The TreeHouse framework currently has basic error handling mechanisms:
 
 ### Core Principles
 
-1. **Comprehensive Coverage**: Handle all error types (type, validation, database, HTTP, system)
-2. **Developer Experience**: Rich debugging information in development
-3. **User Experience**: Clean, informative error pages in production
-4. **Performance**: Minimal overhead during normal operation
-5. **Security**: Safe error exposure without sensitive data leaks
-6. **Extensibility**: Easy to add new error types and handlers
+1. **PSR-3 Compliance**: Full PSR-3 Logger Interface implementation with zero external dependencies
+2. **Comprehensive Coverage**: Handle all error types (type, validation, database, HTTP, system)
+3. **Developer Experience**: Rich debugging information in development
+4. **User Experience**: Clean, informative error pages in production
+5. **Performance**: Minimal overhead during normal operation
+6. **Security**: Safe error exposure without sensitive data leaks
+7. **Extensibility**: Easy to add new error types and handlers
 
 ### Key Features
 
@@ -225,17 +226,65 @@ resources/views/errors/
     └── error-context.th.html  # Error context display
 ```
 
-### 4. Logging Infrastructure
+### 4. PSR-3 Compliant Logging Infrastructure
 
-#### ErrorLogger
+#### PSR-3 LoggerInterface Implementation (Zero Dependencies)
+TreeHouse implements PSR-3 without external dependencies by including the interface directly:
+
 ```php
-class ErrorLogger
+// src/TreeHouse/Logging/LoggerInterface.php
+namespace LengthOfRope\TreeHouse\Logging;
+
+interface LoggerInterface
 {
-    public function log(Throwable $exception, array $context = []): void
-    public function emergency(string $message, array $context = []): void
-    public function alert(string $message, array $context = []): void
-    public function critical(string $message, array $context = []): void
-    public function error(string $message, array $context = []): void
+    public function emergency(string|\Stringable $message, array $context = []): void;
+    public function alert(string|\Stringable $message, array $context = []): void;
+    public function critical(string|\Stringable $message, array $context = []): void;
+    public function error(string|\Stringable $message, array $context = []): void;
+    public function warning(string|\Stringable $message, array $context = []): void;
+    public function notice(string|\Stringable $message, array $context = []): void;
+    public function info(string|\Stringable $message, array $context = []): void;
+    public function debug(string|\Stringable $message, array $context = []): void;
+    public function log(mixed $level, string|\Stringable $message, array $context = []): void;
+}
+```
+
+#### ErrorLogger (PSR-3 Compliant)
+```php
+use LengthOfRope\TreeHouse\Logging\LoggerInterface;
+
+class ErrorLogger implements LoggerInterface
+{
+    public function emergency(string|\Stringable $message, array $context = []): void
+    public function alert(string|\Stringable $message, array $context = []): void
+    public function critical(string|\Stringable $message, array $context = []): void
+    public function error(string|\Stringable $message, array $context = []): void
+    public function warning(string|\Stringable $message, array $context = []): void
+    public function notice(string|\Stringable $message, array $context = []): void
+    public function info(string|\Stringable $message, array $context = []): void
+    public function debug(string|\Stringable $message, array $context = []): void
+    public function log(mixed $level, string|\Stringable $message, array $context = []): void
+    
+    // TreeHouse-specific methods
+    public function logException(Throwable $exception, array $context = []): void
+}
+```
+
+#### PSR-3 Log Levels
+```php
+// src/TreeHouse/Logging/LogLevel.php
+namespace LengthOfRope\TreeHouse\Logging;
+
+class LogLevel
+{
+    public const EMERGENCY = 'emergency';
+    public const ALERT     = 'alert';
+    public const CRITICAL  = 'critical';
+    public const ERROR     = 'error';
+    public const WARNING   = 'warning';
+    public const NOTICE    = 'notice';
+    public const INFO      = 'info';
+    public const DEBUG     = 'debug';
 }
 ```
 
@@ -291,6 +340,7 @@ class ErrorMiddleware implements MiddlewareInterface
 ## Implementation Plan
 
 ### Phase 1: Core Foundation (Week 1)
+- [ ] Implement PSR-3 LoggerInterface (zero-dependency)
 - [ ] Create base exception classes
 - [ ] Implement error classification system
 - [ ] Build context collection infrastructure
@@ -336,12 +386,41 @@ private function handleException(\Throwable $exception): Response
 Register error handling services in the container:
 
 ```php
+// Register PSR-3 compliant logger
+$this->container->singleton(LoggerInterface::class, function ($container) {
+    return new ErrorLogger(
+        $container->make('config')->get('logging.default_channel'),
+        $container->make('config')->get('logging.channels')
+    );
+});
+
+// Alias for convenience
+$this->container->alias('logger', LoggerInterface::class);
+
+// Register error handling services
 $this->container->singleton('error.handler', ErrorHandler::class);
 $this->container->singleton('error.classifier', ExceptionClassifier::class);
 $this->container->singleton('error.logger', ErrorLogger::class);
 ```
 
-### 3. Middleware Stack
+### 3. Helper Function Integration
+Add PSR-3 compliant helper function:
+
+```php
+// src/TreeHouse/Support/helpers.php
+if (!function_exists('logger')) {
+    function logger(string $message = null, array $context = []): LoggerInterface|null
+    {
+        if ($message === null) {
+            return app(LoggerInterface::class);
+        }
+        
+        return app(LoggerInterface::class)->info($message, $context);
+    }
+}
+```
+
+### 4. Middleware Stack
 Add error middleware to the router pipeline:
 
 ```php
@@ -351,7 +430,7 @@ $router->middleware([
 ]);
 ```
 
-### 4. Existing Code Enhancement
+### 5. Existing Code Enhancement
 - Enhance ValidationException with new features
 - Update database operations to use DatabaseException
 - Replace generic exceptions with specific types

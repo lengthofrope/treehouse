@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace LengthOfRope\TreeHouse\Validation;
 
-use Exception;
+use LengthOfRope\TreeHouse\Errors\Exceptions\BaseException;
 
 /**
  * Validation Exception
@@ -17,13 +17,24 @@ use Exception;
  * - Multiple errors per field support
  * - Original data preservation
  * - JSON serialization for API responses
+ * - Enhanced error handling with BaseException features
  *
  * @package LengthOfRope\TreeHouse\Validation
  * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
-class ValidationException extends Exception
+class ValidationException extends BaseException
 {
+    /**
+     * Default error severity for validation errors
+     */
+    protected string $severity = 'low';
+
+    /**
+     * Default HTTP status code for validation errors
+     */
+    protected int $statusCode = 422;
+
     /**
      * The validation errors
      *
@@ -50,7 +61,20 @@ class ValidationException extends Exception
         $this->errors = $errors;
         $this->data = $data;
         
-        parent::__construct($message);
+        // Add validation-specific context
+        $context = [
+            'validation_errors' => $errors,
+            'field_count' => count($errors),
+            'error_count' => array_sum(array_map('count', $errors)),
+            'failed_fields' => array_keys($errors),
+        ];
+        
+        parent::__construct($message, 0, null, $context);
+        
+        $this->userMessage = 'The provided data is invalid. Please check the errors and try again.';
+        
+        // Validation errors usually shouldn't be reported (they're user errors)
+        $this->reportable = false;
     }
 
     /**
@@ -146,11 +170,16 @@ class ValidationException extends Exception
      */
     public function toArray(): array
     {
-        return [
-            'message' => $this->getMessage(),
+        $array = parent::toArray();
+        
+        // Add validation-specific information
+        $array['validation'] = [
             'errors' => $this->errors,
-            'data' => $this->data
+            'data' => $this->data,
+            'summary' => $this->getSummary(),
         ];
+        
+        return $array;
     }
 
     /**
