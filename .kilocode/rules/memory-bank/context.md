@@ -10,6 +10,10 @@
 - **Community**: Prepare for open-source release with contribution guidelines
 
 ## Recent Major Changes
+- **Missing Template Functions Implementation**: Complete implementation of all missing template functions from the object support plan
+- **Advanced Template Features**: Added `th:switch`, `th:case`, `th:default`, `th:with`, `th:fragment`, `th:include`, `th:replace`, `th:field`, `th:errors`, `th:csrf`, `th:method`
+- **Expression Validation Enhancement**: Fixed overly restrictive validation to properly support variables with double underscores (`__treehouse_config`, `__vite_assets`)
+- **Template Caching Resolution**: Resolved homepage caching issue where old cached templates prevented new validation logic from taking effect
 - **Template Compilation Fixes**: Complete resolution of template compilation issues in both debug and production modes
 - **Error Template System**: Fixed raw `th:` directives appearing instead of compiled HTML in error pages
 - **Expression Handling**: Enhanced brace expression processing and validation for complex template expressions
@@ -22,7 +26,7 @@
 - **Error Handling Layer**: Complete PSR-3 compliant error handling system with hierarchical exceptions, structured logging, and multi-format rendering
 - **ActiveRecord ORM**: Fully implemented with relationships, query builder, and model events
 - **Authentication System**: Complete RBAC with roles, permissions, and policy-based authorization
-- **Template Engine**: Custom templating with HTML-valid syntax, proper expression compilation, and auth integration
+- **Template Engine**: Custom templating with HTML-valid syntax, proper expression compilation, complete advanced features, and auth integration
 - **CLI Framework**: Comprehensive console application with database migrations and user management
 - **Dependency Injection**: Service container with automatic dependency resolution
 
@@ -31,7 +35,7 @@
 - **Database Layer**: ✅ Complete - ActiveRecord, QueryBuilder, migrations, relationships
 - **Router Layer**: ✅ Complete - URL routing, middleware, request/response handling
 - **Auth Layer**: ✅ Complete - RBAC, guards, permissions, policies
-- **View Layer**: ✅ Complete - Template engine with robust compilation, expression handling, and caching
+- **View Layer**: ✅ Complete - Template engine with robust compilation, all advanced features, expression handling, and caching
 - **Console Layer**: ✅ Complete - CLI framework with commands and helpers
 - **Security Layer**: ✅ Complete - CSRF, encryption, hashing, sanitization
 - **Validation Layer**: ✅ Complete - 25+ rules with custom rule support
@@ -58,6 +62,10 @@
 - CLI commands may need additional validation
 
 ## Recent Technical Fixes (January 2025)
+- **Missing Template Functions**: Implemented all missing template functions from the template object support plan
+- **New Processor Classes**: Created 9 new directive processors (SwitchProcessor, WithProcessor, FragmentProcessor, IncludeProcessor, ReplaceProcessor, CsrfProcessor, FieldProcessor, ErrorsProcessor, MethodProcessor)
+- **Expression Validation Fix**: Resolved overly restrictive validation that was blocking variables with double underscores and other valid patterns
+- **Template Caching Issue**: Fixed homepage caching problem where cached templates prevented new compilation logic from taking effect
 - **Template Compilation**: Fixed silent failures in production mode where templates fell back to raw `th:` directives
 - **Expression Processing**: Enhanced `RepeatProcessor` to use proper `compileIteration()` method for expressions like `"suggestion in {suggestions}"`
 - **Brace Handling**: Added consistent brace stripping across all template directive processors
@@ -87,3 +95,6 @@
 - **Framework Integration**: ✅ Complete - All layers (Router, View, Database, Auth) use TreeHouse exceptions
 - **Error Views**: ✅ Complete - Template-based error pages with shared layouts (404, 500, debug) and proper compilation
 - **Template Compilation**: ✅ Complete - Robust expression handling, debug information display, and production mode stability
+- **Advanced Template Features**: ✅ Complete - All missing template functions implemented (switch/case, fragments, form handling, local variables)
+- **Expression Validation**: ✅ Complete - Supports all variable patterns including double underscores, dot notation, boolean logic, and framework helpers
+- **Template Caching**: ✅ Complete - Proper cache invalidation and compilation with new validation logic

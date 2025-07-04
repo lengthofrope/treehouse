@@ -22,17 +22,28 @@ class CsrfProcessor extends AbstractProcessor
         // Generate PHP code to inject CSRF token
         $phpCode = "<?php\n";
         $phpCode .= "// CSRF Token\n";
-        $phpCode .= "if (function_exists('csrf_token')) {\n";
-        $phpCode .= "    echo '<input type=\"hidden\" name=\"_token\" value=\"' . htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') . '\">';\n";
-        $phpCode .= "} elseif (isset(\$__csrf_token)) {\n";
-        $phpCode .= "    echo '<input type=\"hidden\" name=\"_token\" value=\"' . htmlspecialchars(\$__csrf_token, ENT_QUOTES, 'UTF-8') . '\">';\n";
+        $phpCode .= "if (function_exists('csrfField')) {\n";
+        $phpCode .= "    echo csrfField();\n";
+        $phpCode .= "} elseif (function_exists('csrfToken')) {\n";
+        $phpCode .= "    echo '<input type=\"hidden\" name=\"_token\" value=\"' . htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') . '\">';\n";
         $phpCode .= "} elseif (session_status() === PHP_SESSION_ACTIVE && isset(\$_SESSION['_token'])) {\n";
         $phpCode .= "    echo '<input type=\"hidden\" name=\"_token\" value=\"' . htmlspecialchars(\$_SESSION['_token'], ENT_QUOTES, 'UTF-8') . '\">';\n";
+        $phpCode .= "} else {\n";
+        $phpCode .= "    // Generate fallback token\n";
+        $phpCode .= "    \$token = bin2hex(random_bytes(32));\n";
+        $phpCode .= "    echo '<input type=\"hidden\" name=\"_token\" value=\"' . htmlspecialchars(\$token, ENT_QUOTES, 'UTF-8') . '\">';\n";
         $phpCode .= "}\n";
         $phpCode .= "?>";
         
         // Insert CSRF token as first child of form element
-        $this->insertPhpBefore($node->firstChild ?: $node, $phpCode);
+        $commentNode = $node->ownerDocument->createComment("TH_PHP_BEFORE:" . base64_encode($phpCode));
+        
+        // Insert as the first child of the form
+        if ($node->firstChild) {
+            $node->insertBefore($commentNode, $node->firstChild);
+        } else {
+            $node->appendChild($commentNode);
+        }
         
         // Remove the th:csrf attribute
         $node->removeAttribute('th:csrf');
