@@ -346,12 +346,11 @@ class TreeHouseCompiler
         // Remove the temporary XML declaration we added for UTF-8 handling
         $html = preg_replace('/<\?xml encoding="UTF-8"\?>/', '', $html);
         
-        // Convert HTML entities back to UTF-8 characters for better emoji support
-        // But preserve entities inside <code> and <pre> blocks
-        $html = $this->preserveEntitiesInCodeBlocks($html);
-        
-        // Process PHP content markers
+        // Process PHP content markers FIRST (before any entity decoding)
         $processedHtml = $this->processPhpMarkers($html);
+        
+        // Then handle entity decoding while preserving code blocks
+        $processedHtml = $this->preserveEntitiesInCodeBlocks($processedHtml);
         
         // Final UTF-8 entity decoding to ensure emojis display correctly
         $processedHtml = preg_replace_callback('/&#(\d+);/', function($matches) {
@@ -367,60 +366,68 @@ class TreeHouseCompiler
     protected function processPhpMarkers(string $html): string
     {
         // Convert all PHP markers back to actual PHP code
+        // Apply HTML entity decoding only to the PHP code content, not the entire document
         $html = preg_replace_callback('/<!--TH_PHP_CONTENT:([^-]+)-->/', function ($matches) {
-            return base64_decode($matches[1]);
+            $decoded = base64_decode($matches[1]);
+            // Only decode HTML entities within the PHP code itself
+            return html_entity_decode($decoded, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }, $html);
         
         $html = preg_replace_callback('/<!--TH_PHP_BEFORE:([^-]+)-->/', function ($matches) {
-            return base64_decode($matches[1]);
+            $decoded = base64_decode($matches[1]);
+            return html_entity_decode($decoded, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }, $html);
         
         $html = preg_replace_callback('/<!--TH_PHP_AFTER:([^-]+)-->/', function ($matches) {
-            return base64_decode($matches[1]);
+            $decoded = base64_decode($matches[1]);
+            return html_entity_decode($decoded, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }, $html);
         
         $html = preg_replace_callback('/<!--TH_PHP_REPLACE:([^-]+)-->/', function ($matches) {
-            return base64_decode($matches[1]);
+            $decoded = base64_decode($matches[1]);
+            return html_entity_decode($decoded, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }, $html);
         
         $html = preg_replace_callback('/<!--TH_PHP_ATTR:([^-]+)-->/', function ($matches) {
-            return base64_decode($matches[1]);
+            $decoded = base64_decode($matches[1]);
+            return html_entity_decode($decoded, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }, $html);
         
         return $html;
     }
 
     /**
-     * Preserve HTML entities inside code and pre blocks while decoding elsewhere
+     * Selectively decode HTML entities while preserving markup entities in code blocks
      */
     protected function preserveEntitiesInCodeBlocks(string $html): string
     {
-        // Find all <code> and <pre> blocks and temporarily replace them with placeholders
-        $codeBlocks = [];
-        $placeholder = 'TH_CODE_BLOCK_';
-        $counter = 0;
+        // Instead of global entity decoding, only decode specific emoji-related numeric entities
+        // This preserves &lt; &gt; &amp; etc. in code blocks while still supporting emojis
         
-        // Match <code> blocks (including nested tags)
-        $html = preg_replace_callback('/<code\b[^>]*>.*?<\/code>/s', function($matches) use (&$codeBlocks, $placeholder, &$counter) {
-            $key = $placeholder . $counter++;
-            $codeBlocks[$key] = $matches[0];
-            return $key;
+        // Only decode numeric character references for emoji support (&#xxxx; format)
+        $html = preg_replace_callback('/&#(\d+);/', function($matches) {
+            $codePoint = (int)$matches[1];
+            // Only decode if it's likely an emoji or special character (above basic ASCII)
+            if ($codePoint > 127) {
+                return mb_chr($codePoint, 'UTF-8');
+            }
+            // Keep basic ASCII numeric entities as-is
+            return $matches[0];
         }, $html);
         
-        // Match <pre> blocks (including nested tags)
-        $html = preg_replace_callback('/<pre\b[^>]*>.*?<\/pre>/s', function($matches) use (&$codeBlocks, $placeholder, &$counter) {
-            $key = $placeholder . $counter++;
-            $codeBlocks[$key] = $matches[0];
-            return $key;
-        }, $html);
+        // Decode some safe named entities that won't interfere with code display
+        $safeEntities = [
+            '&nbsp;' => ' ',
+            '&ndash;' => '–',
+            '&mdash;' => '—',
+            '&lsquo;' => "'",
+            '&rsquo;' => "'",
+            '&ldquo;' => '"',
+            '&rdquo;' => '"',
+            '&hellip;' => '…'
+        ];
         
-        // Decode HTML entities in the remaining content (for emoji support)
-        $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        
-        // Restore the code blocks with their original entities preserved
-        foreach ($codeBlocks as $key => $block) {
-            $html = str_replace($key, $block, $html);
-        }
+        $html = str_replace(array_keys($safeEntities), array_values($safeEntities), $html);
         
         return $html;
     }
