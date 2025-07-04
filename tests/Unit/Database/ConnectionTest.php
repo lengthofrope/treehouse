@@ -71,8 +71,8 @@ class ConnectionTest extends TestCase
         
         $connection = new Connection($invalidConfig);
         
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Database connection failed');
+        $this->expectException(\LengthOfRope\TreeHouse\Errors\Exceptions\DatabaseException::class);
+        $this->expectExceptionMessage("Failed to connect to database 'invalid-db' on host '127.0.0.1'");
         $connection->connect();
     }
 

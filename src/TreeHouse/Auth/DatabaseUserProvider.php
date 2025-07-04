@@ -8,6 +8,7 @@ use LengthOfRope\TreeHouse\Database\Connection;
 use LengthOfRope\TreeHouse\Database\QueryBuilder;
 use LengthOfRope\TreeHouse\Security\Hash;
 use LengthOfRope\TreeHouse\Support\Str;
+use LengthOfRope\TreeHouse\Errors\Exceptions\AuthenticationException;
 use InvalidArgumentException;
 
 /**
@@ -212,7 +213,7 @@ class DatabaseUserProvider implements UserProvider
      *
      * @param mixed $user User instance
      * @return mixed
-     * @throws InvalidArgumentException
+     * @throws AuthenticationException
      */
     protected function getUserId(mixed $user): mixed
     {
@@ -230,7 +231,7 @@ class DatabaseUserProvider implements UserProvider
             return $user['id'];
         }
 
-        throw new InvalidArgumentException('User must have an ID or implement getAuthIdentifier method');
+        throw new AuthenticationException('User must have an ID or implement getAuthIdentifier method', 'AUTH_INVALID_USER_ID');
     }
 
     /**
@@ -238,7 +239,7 @@ class DatabaseUserProvider implements UserProvider
      *
      * @param mixed $user User instance
      * @return string
-     * @throws InvalidArgumentException
+     * @throws AuthenticationException
      */
     protected function getUserPassword(mixed $user): string
     {
@@ -256,7 +257,7 @@ class DatabaseUserProvider implements UserProvider
             return $user['password'];
         }
 
-        throw new InvalidArgumentException('User must have a password or implement getAuthPassword method');
+        throw new AuthenticationException('User must have a password or implement getAuthPassword method', 'AUTH_INVALID_USER_PASSWORD');
     }
 
     /**

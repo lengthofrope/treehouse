@@ -228,10 +228,11 @@ class RouterTest extends TestCase
     public function testDispatchNotFound(): void
     {
         $request = $this->createMockRequest('GET', '/nonexistent');
-        $response = $this->router->dispatch($request);
-
-        $this->assertEquals(404, $response->getStatusCode());
-        $this->assertEquals('Not Found', $response->getContent());
+        
+        $this->expectException(\LengthOfRope\TreeHouse\Router\Exceptions\RouteNotFoundException::class);
+        $this->expectExceptionMessage('Route not found: GET /nonexistent');
+        
+        $this->router->dispatch($request);
     }
 
     public function testDispatchWithControllerString(): void

@@ -115,8 +115,8 @@ class CreateUsersTableMigrationTest extends TestCase
         ", ['test@example.com', 'password1', 'User 1']);
         
         // Try to insert second user with same email - should fail
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessageMatches('/UNIQUE constraint failed|Duplicate entry/');
+        $this->expectException(\LengthOfRope\TreeHouse\Errors\Exceptions\DatabaseException::class);
+        $this->expectExceptionMessage('Database query execution failed');
         
         $this->connection->query("
             INSERT INTO users (email, password, name)

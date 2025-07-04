@@ -169,10 +169,11 @@ class MethodSpoofingTest extends TestCase
             ]
         );
 
-        $response = $this->router->dispatch($request);
+        // Should throw RouteNotFoundException because GET /users/123 is not registered
+        $this->expectException(\LengthOfRope\TreeHouse\Router\Exceptions\RouteNotFoundException::class);
+        $this->expectExceptionMessage('Route not found: GET /users/123');
         
-        // Should return 404 because GET /users/123 is not registered
-        $this->assertEquals(404, $response->getStatusCode());
+        $this->router->dispatch($request);
     }
 
     public function testMethodSpoofingWithEmptyValue(): void

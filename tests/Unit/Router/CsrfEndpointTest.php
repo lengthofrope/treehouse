@@ -133,10 +133,11 @@ class CsrfEndpointTest extends TestCase
             'REQUEST_URI' => '/_csrf/token'
         ]);
 
-        $response = $this->router->dispatch($postRequest);
+        // Should throw RouteNotFoundException since POST is not registered for this endpoint
+        $this->expectException(\LengthOfRope\TreeHouse\Router\Exceptions\RouteNotFoundException::class);
+        $this->expectExceptionMessage('Route not found: POST /_csrf/token');
         
-        // Should return 404 since POST is not registered for this endpoint
-        $this->assertEquals(404, $response->getStatusCode());
+        $this->router->dispatch($postRequest);
     }
 
     public function testCsrfTokenIsValidLength(): void

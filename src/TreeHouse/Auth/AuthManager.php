@@ -7,6 +7,7 @@ namespace LengthOfRope\TreeHouse\Auth;
 use LengthOfRope\TreeHouse\Http\Session;
 use LengthOfRope\TreeHouse\Http\Cookie;
 use LengthOfRope\TreeHouse\Security\Hash;
+use LengthOfRope\TreeHouse\Errors\Exceptions\AuthenticationException;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -91,7 +92,7 @@ class AuthManager
      *
      * @param string|null $name Guard name
      * @return Guard
-     * @throws InvalidArgumentException
+     * @throws AuthenticationException
      */
     public function guard(?string $name = null): Guard
     {
@@ -109,7 +110,7 @@ class AuthManager
      *
      * @param string|null $name Provider name
      * @return UserProvider
-     * @throws InvalidArgumentException
+     * @throws AuthenticationException
      */
     public function createUserProvider(?string $name = null): UserProvider
     {
@@ -125,7 +126,7 @@ class AuthManager
             case 'database':
                 return $this->providers[$name] = $this->createDatabaseProvider($config);
             default:
-                throw new InvalidArgumentException("Authentication user provider [{$driver}] is not defined.");
+                throw new AuthenticationException("Authentication user provider [{$driver}] is not defined.", 'AUTH_INVALID_PROVIDER');
         }
     }
 
@@ -320,14 +321,14 @@ class AuthManager
      *
      * @param string $name Guard name
      * @return Guard
-     * @throws InvalidArgumentException
+     * @throws AuthenticationException
      */
     protected function resolve(string $name): Guard
     {
         $config = $this->getConfig($name);
 
         if (is_null($config)) {
-            throw new InvalidArgumentException("Auth guard [{$name}] is not defined.");
+            throw new AuthenticationException("Auth guard [{$name}] is not defined.", 'AUTH_INVALID_GUARD');
         }
 
         $driver = $config['driver'] ?? 'session';
@@ -336,7 +337,7 @@ class AuthManager
             case 'session':
                 return $this->createSessionDriver($name, $config);
             default:
-                throw new InvalidArgumentException("Auth driver [{$driver}] for guard [{$name}] is not defined.");
+                throw new AuthenticationException("Auth driver [{$driver}] for guard [{$name}] is not defined.", 'AUTH_INVALID_DRIVER');
         }
     }
 
@@ -386,18 +387,18 @@ class AuthManager
      *
      * @param string|null $provider Provider name
      * @return array
-     * @throws InvalidArgumentException
+     * @throws AuthenticationException
      */
     protected function getProviderConfiguration(?string $provider): array
     {
         if ($provider = $provider ?: $this->getDefaultUserProvider()) {
             if (!isset($this->config['providers'][$provider])) {
-                throw new InvalidArgumentException('Authentication user provider is not defined.');
+                throw new AuthenticationException('Authentication user provider is not defined.', 'AUTH_PROVIDER_NOT_DEFINED');
             }
             return $this->config['providers'][$provider];
         }
 
-        throw new InvalidArgumentException('Authentication user provider is not defined.');
+        throw new AuthenticationException('Authentication user provider is not defined.', 'AUTH_PROVIDER_NOT_DEFINED');
     }
 
     /**

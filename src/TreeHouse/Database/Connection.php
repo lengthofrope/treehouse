@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace LengthOfRope\TreeHouse\Database;
 
 use LengthOfRope\TreeHouse\Support\Arr;
+use LengthOfRope\TreeHouse\Errors\Exceptions\DatabaseException;
 use PDO;
 use PDOException;
 use PDOStatement;
-use RuntimeException;
 
 /**
  * Database Connection Manager
@@ -76,7 +76,7 @@ class Connection
      * Get PDO instance
      * 
      * @return PDO
-     * @throws RuntimeException
+     * @throws DatabaseException
      */
     public function getPdo(): PDO
     {
@@ -90,7 +90,7 @@ class Connection
     /**
      * Connect to database
      * 
-     * @throws RuntimeException
+     * @throws DatabaseException
      */
     public function connect(): void
     {
@@ -103,7 +103,11 @@ class Connection
                 $this->config['options']
             );
         } catch (PDOException $e) {
-            throw new RuntimeException('Database connection failed: ' . $e->getMessage(), 0, $e);
+            throw DatabaseException::connectionFailed(
+                $this->config['host'] ?? 'unknown',
+                $this->config['database'] ?? 'unknown',
+                $e
+            );
         }
     }
 
@@ -132,7 +136,7 @@ class Connection
      * @param string $query SQL query
      * @param array $bindings Parameter bindings
      * @return PDOStatement
-     * @throws RuntimeException
+     * @throws DatabaseException
      */
     public function query(string $query, array $bindings = []): PDOStatement
     {
@@ -148,7 +152,7 @@ class Connection
             
             return $statement;
         } catch (PDOException $e) {
-            throw new RuntimeException('Query execution failed: ' . $e->getMessage(), 0, $e);
+            throw DatabaseException::queryFailed($query, $bindings, $e);
         }
     }
 
@@ -296,7 +300,7 @@ class Connection
      * 
      * @param callable $callback Callback to execute
      * @return mixed Callback result
-     * @throws RuntimeException
+     * @throws DatabaseException
      */
     public function transaction(callable $callback): mixed
     {
@@ -393,7 +397,7 @@ class Connection
                 $results = $this->select($query);
                 return Arr::pluck($results, 'tablename');
             default:
-                throw new RuntimeException("Unsupported driver: {$driver}");
+                throw new DatabaseException("Unsupported database driver: {$driver}", 'DB_UNSUPPORTED_DRIVER');
         }
     }
 
@@ -429,7 +433,7 @@ class Connection
                 $query = "SELECT column_name FROM information_schema.columns WHERE table_name = ?";
                 return Arr::pluck($this->select($query, [$table]), 'column_name');
             default:
-                throw new RuntimeException("Unsupported driver: {$driver}");
+                throw new DatabaseException("Unsupported database driver: {$driver}", 'DB_UNSUPPORTED_DRIVER');
         }
     }
 
@@ -461,7 +465,7 @@ class Connection
                     $this->config['database']
                 );
             default:
-                throw new RuntimeException("Unsupported driver: {$driver}");
+                throw new DatabaseException("Unsupported database driver: {$driver}", 'DB_UNSUPPORTED_DRIVER');
         }
     }
 

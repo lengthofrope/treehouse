@@ -8,6 +8,7 @@ use LengthOfRope\TreeHouse\Http\Session;
 use LengthOfRope\TreeHouse\Http\Cookie;
 use LengthOfRope\TreeHouse\Security\Hash;
 use LengthOfRope\TreeHouse\Support\Str;
+use LengthOfRope\TreeHouse\Errors\Exceptions\AuthenticationException;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -389,7 +390,7 @@ class SessionGuard implements Guard
      *
      * @param mixed $user
      * @return mixed
-     * @throws InvalidArgumentException
+     * @throws AuthenticationException
      */
     protected function getUserId(mixed $user): mixed
     {
@@ -407,7 +408,7 @@ class SessionGuard implements Guard
             return $user['id'];
         }
 
-        throw new InvalidArgumentException('User must have an ID or implement getAuthIdentifier method');
+        throw new AuthenticationException('User must have an ID or implement getAuthIdentifier method', 'AUTH_INVALID_USER_ID');
     }
 
     /**
@@ -503,7 +504,7 @@ class SessionGuard implements Guard
             return $user[$this->rememberTokenName];
         }
 
-        throw new RuntimeException('User must have a remember token');
+        throw new AuthenticationException('User must have a remember token', 'AUTH_MISSING_REMEMBER_TOKEN');
     }
 
     /**
