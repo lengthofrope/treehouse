@@ -47,14 +47,11 @@ class ViewFactory
         
         // Only set paths and cache_path as fallbacks if not provided
         if (!isset($config['paths'])) {
-            $defaultConfig['paths'] = [
-                getcwd() . '/resources/views',
-                getcwd() . '/templates',
-            ];
+            $defaultConfig['paths'] = $this->getDefaultViewPaths();
         }
         
         if (!isset($config['cache_path'])) {
-            $defaultConfig['cache_path'] = getcwd() . '/storage/views';
+            $defaultConfig['cache_path'] = $this->getDefaultCachePath();
         }
         
         $this->config = array_merge($defaultConfig, $config);
@@ -279,5 +276,66 @@ class ViewFactory
         }
         
         return $this;
+    }
+
+    /**
+     * Get default view paths with intelligent vendor detection
+     */
+    protected function getDefaultViewPaths(): array
+    {
+        // Check if we're running as a vendor dependency
+        $reflector = new \ReflectionClass(static::class);
+        $frameworkDir = dirname($reflector->getFileName(), 4); // Go up from src/TreeHouse/View/ViewFactory.php
+        
+        // If we're in vendor/, look for the consuming project's views
+        if (str_contains($frameworkDir, '/vendor/')) {
+            $projectRoot = $this->findProjectRoot($frameworkDir);
+            return [
+                $projectRoot . '/resources/views',
+                $projectRoot . '/templates',
+                $projectRoot . '/views',
+            ];
+        }
+        
+        // If we're running standalone, use current working directory
+        return [
+            getcwd() . '/resources/views',
+            getcwd() . '/templates',
+        ];
+    }
+
+    /**
+     * Get default cache path with intelligent vendor detection
+     */
+    protected function getDefaultCachePath(): string
+    {
+        // Check if we're running as a vendor dependency
+        $reflector = new \ReflectionClass(static::class);
+        $frameworkDir = dirname($reflector->getFileName(), 4); // Go up from src/TreeHouse/View/ViewFactory.php
+        
+        // If we're in vendor/, look for the consuming project's storage
+        if (str_contains($frameworkDir, '/vendor/')) {
+            $projectRoot = $this->findProjectRoot($frameworkDir);
+            return $projectRoot . '/storage/views';
+        }
+        
+        // If we're running standalone, use current working directory
+        return getcwd() . '/storage/views';
+    }
+
+    /**
+     * Find the project root directory when running as vendor dependency
+     */
+    protected function findProjectRoot(string $vendorPath): string
+    {
+        // Extract project root from vendor path
+        // vendor path typically looks like: /path/to/project/vendor/lengthofrope/treehouse-framework
+        $parts = explode('/vendor/', $vendorPath);
+        if (count($parts) >= 2) {
+            return $parts[0];
+        }
+        
+        // Fallback to current working directory
+        return getcwd();
     }
 }

@@ -69,15 +69,12 @@ class ViewEngine
         $this->cache = $cache;
         $this->compiler = new TreeHouseCompiler();
         
-        // Set paths - only use getcwd() fallback if no paths provided at all
+        // Set paths - only use intelligent fallback if no paths provided at all
         if (!empty($paths)) {
             $this->paths = $paths;
         } else {
             // Fallback paths when no configuration is provided
-            $this->paths = [
-                getcwd() . '/resources/views',
-                getcwd() . '/templates'
-            ];
+            $this->paths = $this->getDefaultViewPaths();
         }
         
         // Auto-inject auth context and TreeHouse assets into all templates
@@ -436,5 +433,47 @@ class ViewEngine
         $this->share('vite', function(string $path) {
             return vite($path);
         });
+    }
+
+    /**
+     * Get default view paths with intelligent vendor detection
+     */
+    protected function getDefaultViewPaths(): array
+    {
+        // Check if we're running as a vendor dependency
+        $reflector = new \ReflectionClass(static::class);
+        $frameworkDir = dirname($reflector->getFileName(), 4); // Go up from src/TreeHouse/View/ViewEngine.php
+        
+        // If we're in vendor/, look for the consuming project's views
+        if (str_contains($frameworkDir, '/vendor/')) {
+            $projectRoot = $this->findProjectRoot($frameworkDir);
+            return [
+                $projectRoot . '/resources/views',
+                $projectRoot . '/templates',
+                $projectRoot . '/views',
+            ];
+        }
+        
+        // If we're running standalone, use current working directory
+        return [
+            getcwd() . '/resources/views',
+            getcwd() . '/templates',
+        ];
+    }
+
+    /**
+     * Find the project root directory when running as vendor dependency
+     */
+    protected function findProjectRoot(string $vendorPath): string
+    {
+        // Extract project root from vendor path
+        // vendor path typically looks like: /path/to/project/vendor/lengthofrope/treehouse-framework
+        $parts = explode('/vendor/', $vendorPath);
+        if (count($parts) >= 2) {
+            return $parts[0];
+        }
+        
+        // Fallback to current working directory
+        return getcwd();
     }
 }
