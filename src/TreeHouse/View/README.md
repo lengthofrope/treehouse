@@ -125,6 +125,14 @@ The view system supports multiple file extensions in order of preference:
 <div th:if="user.isActive">User is active</div>
 <div th:unless="user.isActive">User is inactive</div>
 
+<!-- Switch/case conditionals -->
+<div th:switch="user.role">
+    <div th:case="admin">Administrator Dashboard</div>
+    <div th:case="editor">Content Editor Panel</div>
+    <div th:case="user">User Profile</div>
+    <div th:default>Guest Access</div>
+</div>
+
 <!-- Authentication conditionals -->
 <nav th:auth>
     <a href="/dashboard">Dashboard</a>
@@ -165,6 +173,23 @@ The view system supports multiple file extensions in order of preference:
 </div>
 ```
 
+### Local Variables
+
+```html
+<!-- Create local variables with th:with -->
+<div th:with="fullName=user.firstName + ' ' + user.lastName">
+    <h1>Welcome, {fullName}!</h1>
+    <p>User ID: {user.id}</p>
+</div>
+
+<!-- Multiple variables -->
+<div th:with="total=price * quantity, tax=total * 0.08">
+    <p>Subtotal: ${total}</p>
+    <p>Tax: ${tax}</p>
+    <p>Total: ${total + tax}</p>
+</div>
+```
+
 ### Attributes
 
 ```html
@@ -198,6 +223,36 @@ Any HTML attribute can be prefixed with `th:` for dynamic values:
 
 <!-- Custom attributes -->
 <element th:custom-attr="someValue" th:another-attr="anotherValue">
+```
+
+### Form Handling
+
+```html
+<!-- CSRF protection -->
+<form method="POST" action="/contact" th:csrf>
+    <!-- Form fields here -->
+</form>
+
+<!-- HTTP method spoofing -->
+<form method="POST" action="/users/1" th:method="PUT" th:csrf>
+    <!-- Update form -->
+</form>
+
+<!-- Dynamic method from variable -->
+<form method="POST" action="/contact" th:method="form.contact.method" th:csrf>
+    <!-- Method determined at runtime -->
+</form>
+
+<!-- Form field binding -->
+<form th:csrf>
+    <input th:field="user.name" type="text" placeholder="Name">
+    <div th:errors="user.name" class="error-text"></div>
+    
+    <input th:field="user.email" type="email" placeholder="Email">
+    <div th:errors="user.email" class="error-text"></div>
+    
+    <button type="submit">Save</button>
+</form>
 ```
 
 ### Expressions
@@ -270,6 +325,29 @@ Any HTML attribute can be prefixed with `th:` for dynamic values:
         <p>This is the main content.</p>
     </div>
 </div>
+```
+
+### Template Fragments
+
+```html
+<!-- Define reusable fragments -->
+<div th:fragment="userCard(user)">
+    <div class="card">
+        <h3>{user.name}</h3>
+        <p>{user.email}</p>
+        <span class="status">{user.status}</span>
+    </div>
+</div>
+
+<!-- Include fragment content -->
+<div th:include="fragments::userCard(currentUser)">
+    <!-- Content will be inserted here -->
+</div>
+
+<!-- Replace entire element with fragment -->
+<placeholder th:replace="fragments::userCard(currentUser)">
+    <!-- This element will be completely replaced -->
+</placeholder>
 ```
 
 ### Programmatic Layout Usage
@@ -358,14 +436,18 @@ The TreeHouseCompiler transforms `.th.html` and `.th.php` templates:
 The compiler processes these `th:` attributes in order:
 
 1. **Conditionals**: `th:if`, `th:unless`, `th:auth`, `th:guest`
-2. **Authorization**: `th:role`, `th:permission`
-3. **Loops**: `th:repeat`
-4. **Content**: `th:text`, `th:html`
-5. **Attributes**: `th:attr`, `th:class`, `th:style`
-6. **Layout**: `th:extend`, `th:section`, `th:yield`
-7. **Components**: `th:component`
-8. **Removal**: `th:remove`
-9. **Universal**: Any `th:*` attribute
+2. **Switch/Case**: `th:switch`, `th:case`, `th:default`
+3. **Authorization**: `th:role`, `th:permission`
+4. **Local Variables**: `th:with`
+5. **Loops**: `th:repeat`
+6. **Content**: `th:text`, `th:html`, `th:raw`
+7. **Fragments**: `th:fragment`, `th:include`, `th:replace`
+8. **Form Handling**: `th:field`, `th:errors`, `th:csrf`, `th:method`
+9. **Attributes**: `th:attr`, `th:class`, `th:style`
+10. **Layout**: `th:extend`, `th:section`, `th:yield`
+11. **Components**: `th:component`
+12. **Removal**: `th:remove`
+13. **Universal**: Any `th:*` attribute
 
 ### Caching
 
@@ -429,6 +511,38 @@ old($key, $default)         // Old input value
 csrfToken()                 // CSRF token
 csrfField()                 // CSRF field HTML
 methodField($method)        // HTTP method field
+formMethod($method, $csrf)  // Method + CSRF fields
+```
+
+### TreeHouse Asset Helpers
+
+```php
+// TreeHouse framework assets
+treehouseAsset($path)           // TreeHouse asset URL
+treehouseConfig($config)        // TreeHouse JS configuration
+treehouseJs($modules)           // TreeHouse JavaScript
+treehouseCss($minified)         // TreeHouse CSS
+treehouseSetup($options)        // Complete TreeHouse setup
+treehouseLogo($alt, $attrs)     // TreeHouse logo
+treehouseFavicons()             // TreeHouse favicons
+
+// Vite integration
+vite($path)                     // Vite asset URL
+viteAssets($entry)              // Vite script and CSS tags
+```
+
+### Security Helpers
+
+```php
+// CSRF protection
+csrfToken()                     // Get CSRF token
+csrfField($dynamic)             // CSRF field HTML
+csrfMeta($dynamic)              // CSRF meta tag
+csrfSetup($options)             // Complete CSRF setup
+
+// HTTP method spoofing
+methodField($method)            // Method spoofing field
+formMethod($method, $csrf)      // Method + CSRF fields
 ```
 
 ## Advanced Features
@@ -615,6 +729,36 @@ class ViewTest extends TestCase
         $this->assertStringContains('btn-primary', $html);
         $this->assertStringContains('Test', $html);
     }
+}
+```
+
+### Advanced Template Features
+
+```php
+// Test switch/case functionality
+public function testSwitchCaseRendering()
+{
+    $html = render('profile', ['user' => ['role' => 'admin']]);
+    $this->assertStringContains('Administrator Dashboard', $html);
+    
+    $html = render('profile', ['user' => ['role' => 'unknown']]);
+    $this->assertStringContains('Guest Access', $html);
+}
+
+// Test form functionality
+public function testFormRendering()
+{
+    $html = render('contact-form', ['form' => ['method' => 'POST']]);
+    $this->assertStringContains('method="POST"', $html);
+    $this->assertStringContains('name="_token"', $html);
+}
+
+// Test fragment functionality
+public function testFragmentRendering()
+{
+    $html = render('user-list', ['users' => [['name' => 'John']]]);
+    $this->assertStringContains('John', $html);
+    $this->assertStringContains('class="card"', $html);
 }
 ```
 

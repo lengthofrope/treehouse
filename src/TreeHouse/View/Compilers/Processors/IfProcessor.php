@@ -19,10 +19,19 @@ class IfProcessor extends AbstractProcessor
 {
     public function process(DOMElement $node, string $expression): void
     {
-        $compiledExpression = $this->expressionCompiler->compileConditional($expression);
-        $this->wrapWithCondition($node, "if {$compiledExpression}");
+        // Check if this is th:unless
+        $isUnless = $node->hasAttribute('th:unless');
         
-        // Remove the th:if attribute
-        $node->removeAttribute('th:if');
+        if ($isUnless) {
+            // For th:unless, compile with negation
+            $compiledExpression = $this->expressionCompiler->compileNegatedConditional($expression);
+            $this->wrapWithCondition($node, "if {$compiledExpression}");
+            $node->removeAttribute('th:unless');
+        } else {
+            // For th:if, use condition as-is
+            $compiledExpression = $this->expressionCompiler->compileConditional($expression);
+            $this->wrapWithCondition($node, "if {$compiledExpression}");
+            $node->removeAttribute('th:if');
+        }
     }
 }

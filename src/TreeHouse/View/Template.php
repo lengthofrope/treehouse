@@ -183,7 +183,17 @@ class Template
      */
     public function yieldSection(string $name, string $default = ''): string
     {
-        return $this->sections[$name] ?? $default;
+        // Safely return section content or default, ensuring no undefined variable warnings
+        if (isset($this->sections[$name])) {
+            return $this->sections[$name];
+        }
+        
+        // If no default provided and it's the 'content' section, return empty string
+        if ($name === 'content' && $default === '') {
+            return '';
+        }
+        
+        return $default;
     }
 
     /**
@@ -346,8 +356,25 @@ class Template
              */
             public function csrfToken(): string
             {
-                // This would typically get CSRF token from session
-                return 'csrf_token_placeholder';
+                // Use the global csrfToken function if available
+                if (function_exists('csrfToken')) {
+                    return \csrfToken();
+                }
+                
+                // Check session for CSRF token
+                if (session_status() === PHP_SESSION_ACTIVE) {
+                    if (isset($_SESSION['_token'])) {
+                        return $_SESSION['_token'];
+                    }
+                    
+                    // Generate and store new CSRF token
+                    $token = bin2hex(random_bytes(32));
+                    $_SESSION['_token'] = $token;
+                    return $token;
+                }
+                
+                // Generate a token if no session available (fallback)
+                return bin2hex(random_bytes(32));
             }
 
             /**

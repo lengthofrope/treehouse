@@ -33,17 +33,25 @@ class ExpressionValidator
     ];
 
     /**
-     * Blocked operators
+     * Blocked operators (move complex logic to backend)
      */
     private const BLOCKED_OPERATORS = [
-        // Arithmetic (except + which is allowed for string concatenation)
-        '-', '*', '/', '%',
-        // Comparison
-        '==', '!=', '<', '>', '<=', '>=', '===', '!==',
-        // Assignment
-        '=', '+=', '-=', '*=', '/=', '%=', '.=',
-        // Bitwise
-        '&', '|', '^', '<<', '>>', '~'
+        // Assignment (never allowed in templates)
+        '+=', '-=', '*=', '/=', '%=', '.=',
+        // Bitwise (never allowed in templates)
+        '^', '<<', '>>', '~',
+        // Complex comparison (use backend boolean properties instead)
+        '===', '!=='
+    ];
+    
+    /**
+     * Context-sensitive blocked operators
+     */
+    private const CONTEXT_BLOCKED_OPERATORS = [
+        // These are blocked in conditional contexts but allowed in th:with and calculations
+        'conditional' => ['==', '!=', '<', '>', '<=', '>='],
+        // These are more permissive now - allowed in th:with for calculations
+        'calculation' => []
     ];
 
     /**
@@ -57,9 +65,10 @@ class ExpressionValidator
      * Validate an expression
      *
      * @param string $expression The expression to validate
+     * @param string $context The context (conditional, calculation, etc.)
      * @return bool True if valid, false otherwise
      */
-    public function validate(string $expression): bool
+    public function validate(string $expression, string $context = 'general'): bool
     {
         // Remove whitespace for easier parsing
         $cleaned = preg_replace('/\s+/', ' ', trim($expression));
@@ -76,15 +85,25 @@ class ExpressionValidator
         // Remove string literals to avoid false positives with operators inside strings
         $tempCleaned = preg_replace('/["\'][^"\']*["\']/', '__STRING__', $tempCleaned);
         
-        // Check for blocked operators in the temp string
+        // Check for always-blocked operators
         foreach (self::BLOCKED_OPERATORS as $operator) {
             if (strpos($tempCleaned, $operator) !== false) {
-                // Special case: allow != in boolean context but not comparison
-                if ($operator === '!=' && $this->isInBooleanContext($cleaned, $operator)) {
-                    continue;
-                }
                 return false;
             }
+        }
+        
+        // Check context-sensitive operators
+        if (isset(self::CONTEXT_BLOCKED_OPERATORS[$context])) {
+            foreach (self::CONTEXT_BLOCKED_OPERATORS[$context] as $operator) {
+                if (strpos($tempCleaned, $operator) !== false) {
+                    return false;
+                }
+            }
+        }
+        
+        // Check for single & or | (but allow && and ||)
+        if (preg_match('/&(?!&)/', $tempCleaned) || preg_match('/\|(?!\|)/', $tempCleaned)) {
+            return false;
         }
 
         // Check for valid patterns
@@ -102,24 +121,30 @@ class ExpressionValidator
         // Remove valid patterns and see what's left
         $remaining = $expression;
 
-        // Remove framework helpers
+        // Remove framework helpers first (most specific)
         foreach (self::ALLOWED_HELPERS as $helper) {
             $remaining = preg_replace('/\b' . preg_quote($helper, '/') . '\w+\([^)]*\)/', '', $remaining);
         }
 
-        // Remove variables with dot notation (with or without $ prefix)
-        $remaining = preg_replace('/\$?\w+(\.\w+)*/', '', $remaining);
-
-        // Remove method calls
+        // Remove method calls (before variables to avoid conflicts)
         $remaining = preg_replace('/\w+\([^)]*\)/', '', $remaining);
+
+        // Remove variables with dot notation (with or without $ prefix)
+        $remaining = preg_replace('/\$?[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*/', '', $remaining);
+
+        // Remove simple variables including those with double underscores (like __treehouse_config)
+        $remaining = preg_replace('/\b[a-zA-Z_][a-zA-Z0-9_]*\b/', '', $remaining);
 
         // Remove boolean operators
         foreach (self::ALLOWED_BOOLEAN_OPERATORS as $operator) {
             $remaining = str_replace($operator, '', $remaining);
         }
 
-        // Remove the + operator (allowed for string concatenation)
-        $remaining = str_replace('+', '', $remaining);
+        // Remove arithmetic operators (now allowed for calculations)
+        $remaining = str_replace(['+', '-', '*', '/', '%'], '', $remaining);
+        
+        // Remove comparison operators when used with framework helpers (more permissive)
+        $remaining = preg_replace('/\b(==|!=|>=?|<=?)\b/', '', $remaining);
 
         // Remove parentheses
         $remaining = str_replace(['(', ')'], '', $remaining);
@@ -138,7 +163,7 @@ class ExpressionValidator
     }
 
     /**
-     * Check if operator is in boolean context
+     * Check if operator is in boolean context (now more permissive)
      *
      * @param string $expression
      * @param string $operator
@@ -146,8 +171,18 @@ class ExpressionValidator
      */
     private function isInBooleanContext(string $expression, string $operator): bool
     {
-        // For now, be conservative and don't allow != at all
-        // This can be refined later if needed
+        // Allow boolean operators in conditional contexts
+        if (in_array($operator, ['&&', '||', '!'])) {
+            return true;
+        }
+        
+        // Allow framework helper calls with parameters
+        foreach (self::ALLOWED_HELPERS as $helper) {
+            if (strpos($expression, $helper) !== false) {
+                return true;
+            }
+        }
+        
         return false;
     }
 

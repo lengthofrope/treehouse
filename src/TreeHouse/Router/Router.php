@@ -634,11 +634,89 @@ class Router
             ]), 419);
             $response->setHeader('Content-Type', 'application/json');
         } else {
-            $response = new Response('CSRF Token Mismatch', 419);
-            $response->setHeader('Content-Type', 'text/plain');
+            // Try to render a proper error page using the view system
+            try {
+                // Load view helpers if not already loaded
+                if (!function_exists('view')) {
+                    require_once dirname(__DIR__) . '/View/helpers.php';
+                }
+                
+                // Try to render the security error view with proper data
+                $errorData = [
+                    'title' => 'Security Error - CSRF Token Mismatch',
+                    'icon' => '🔒',
+                    'heading' => 'CSRF Token Mismatch',
+                    'error_type' => 'error',
+                    'message' => 'The request could not be completed due to an invalid or missing CSRF token. This is a security measure to protect against cross-site request forgery attacks.',
+                    'code' => 419,
+                    'request_id' => uniqid('req_'),
+                    'timestamp' => date('Y-m-d H:i:s'),
+                    'suggestions' => [
+                        'Refresh the page and try again',
+                        'Clear your browser cache and cookies',
+                        'If the problem persists, contact support'
+                    ]
+                ];
+                
+                $content = view('errors.security', $errorData)->render();
+                $response = new Response($content, 419);
+                $response->setHeader('Content-Type', 'text/html');
+            } catch (\Exception $e) {
+                // Fallback to basic error page if view rendering fails
+                $content = $this->generateBasicErrorPage(419, 'CSRF Token Mismatch', 'The request could not be completed due to an invalid or missing CSRF token. Please refresh the page and try again.', '🔒');
+                $response = new Response($content, 419);
+                $response->setHeader('Content-Type', 'text/html');
+            }
         }
         
         return $response;
+    }
+    
+    /**
+     * Generate a basic HTML error page as fallback
+     *
+     * @param int $code HTTP status code
+     * @param string $title Error title
+     * @param string $message Error message
+     * @param string $icon Error icon (emoji)
+     * @return string HTML content
+     */
+    protected function generateBasicErrorPage(int $code, string $title, string $message, string $icon = '❌'): string
+    {
+        $html = <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{$code} - {$title}</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; background: #f8f9fa; }
+        .container { max-width: 600px; margin: 100px auto; padding: 40px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+        .error-icon { font-size: 80px; margin-bottom: 20px; }
+        .error-code { font-size: 48px; font-weight: bold; color: #dc3545; margin-bottom: 10px; }
+        .error-title { font-size: 24px; font-weight: 600; color: #343a40; margin-bottom: 16px; }
+        .error-message { font-size: 16px; color: #6c757d; line-height: 1.5; margin-bottom: 30px; }
+        .btn { display: inline-block; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; font-weight: 500; margin: 0 5px; }
+        .btn:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #5a6268; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="error-icon">{$icon}</div>
+        <div class="error-code">{$code}</div>
+        <div class="error-title">{$title}</div>
+        <div class="error-message">{$message}</div>
+        <a href="/" class="btn">Go Home</a>
+        <a href="javascript:history.back()" class="btn btn-secondary">Go Back</a>
+    </div>
+</body>
+</html>
+HTML;
+        
+        return $html;
     }
 
     /**

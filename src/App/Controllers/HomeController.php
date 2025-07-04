@@ -12,20 +12,12 @@ class HomeController
 {
     private ViewFactory $view;
     
-    public function __construct()
-    {
-        $this->view = new ViewFactory([
-            'paths' => [__DIR__ . '/../../../resources/views'],
-            'cache_path' => __DIR__ . '/../../../storage/views',
-            'cache_enabled' => true,
-        ]);
-    }
-    
     public function index(): Response
     {
-        $content = $this->view->make('home', [
+        $content = view('home', [
             'title' => 'Welcome to TreeHouse',
-            'message' => 'Your TreeHouse application is running successfully!'
+            'message' => 'Your TreeHouse application is running successfully!',
+            'showHero' => true, 
         ])->render();
         
         return new Response($content);
@@ -33,7 +25,7 @@ class HomeController
     
     public function about(): Response
     {
-        $content = $this->view->make('about', [
+        $content = view('about', [
             'title' => 'About TreeHouse',
             'message' => 'TreeHouse is a modern PHP framework built for rapid development.'
         ])->render();

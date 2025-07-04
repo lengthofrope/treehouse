@@ -33,12 +33,12 @@ class ExpressionCompiler
      * @return string Compiled PHP expression
      * @throws \InvalidArgumentException If expression is invalid
      */
-    public function compileExpression(string $expression): string
+    public function compileExpression(string $expression, string $context = 'general'): string
     {
         $expression = trim($expression);
 
-        // Validate expression first
-        if (!$this->validator->validate($expression)) {
+        // Validate expression first with context
+        if (!$this->validator->validate($expression, $context)) {
             throw new \InvalidArgumentException(
                 $this->validator->getValidationError($expression)
             );
@@ -47,6 +47,7 @@ class ExpressionCompiler
         // Compile the expression
         return $this->doCompile($expression);
     }
+    
 
     /**
      * Perform the actual compilation
@@ -78,7 +79,8 @@ class ExpressionCompiler
     {
         // Pattern to match variable.property chains
         // Matches: $user.name, user.name, $user.profile.email, user.profile.email, etc.
-        $pattern = '/(\$?)(\w+)((?:\.\w+)+)/';
+        // But NOT numeric decimals like 0.08, 3.14, etc.
+        $pattern = '/(\$?)([a-zA-Z_][a-zA-Z0-9_]*)((?:\.[a-zA-Z_][a-zA-Z0-9_]*)+)/';
 
         return preg_replace_callback($pattern, function ($matches) {
             $hasPrefix = !empty($matches[1]);
@@ -128,8 +130,8 @@ class ExpressionCompiler
                 return $word;
             }
             
-            // Convert to PHP variable
-            return '$' . $word;
+            // Convert to safe PHP variable access
+            return "(isset(\${$word}) ? \${$word} : null)";
         }, $expression);
     }
 
@@ -149,8 +151,28 @@ class ExpressionCompiler
         
         $compiled = $this->compileExpression($cleanExpression);
         
-        // Wrap in boolean context to ensure proper evaluation
-        return "({$compiled})";
+        // Wrap in boolean context with null safety
+        return "(!empty({$compiled}))";
+    }
+
+    /**
+     * Compile a negated conditional expression for th:unless
+     *
+     * @param string $expression
+     * @return string
+     */
+    public function compileNegatedConditional(string $expression): string
+    {
+        // Strip braces only if it's a simple variable expression (no operators or spaces)
+        $cleanExpression = trim($expression);
+        if (preg_match('/^\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}$/', $cleanExpression, $matches)) {
+            $cleanExpression = trim($matches[1]);
+        }
+        
+        $compiled = $this->compileExpression($cleanExpression);
+        
+        // Wrap in negated boolean context with null safety
+        return "(empty({$compiled}))";
     }
 
     /**
@@ -169,8 +191,8 @@ class ExpressionCompiler
         
         $compiled = $this->compileExpression($cleanExpression);
         
-        // Ensure output is escaped
-        return "htmlspecialchars((string)({$compiled}), ENT_QUOTES, 'UTF-8')";
+        // Ensure output is escaped with null safety
+        return "htmlspecialchars((string)({$compiled} ?? ''), ENT_QUOTES, 'UTF-8')";
     }
 
     /**
@@ -189,8 +211,8 @@ class ExpressionCompiler
         
         $compiled = $this->compileExpression($cleanExpression);
         
-        // No escaping for raw output
-        return "(string)({$compiled})";
+        // No escaping for raw output with null safety
+        return "(string)({$compiled} ?? '')";
     }
 
     /**
@@ -205,7 +227,7 @@ class ExpressionCompiler
         $compiled = preg_replace_callback('/\{([^}]+)\}/', function ($matches) {
             $expression = trim($matches[1]);
             $compiledExpression = $this->compileExpression($expression);
-            return "' . htmlspecialchars((string)({$compiledExpression}), ENT_QUOTES, 'UTF-8') . '";
+            return "' . htmlspecialchars((string)({$compiledExpression} ?? ''), ENT_QUOTES, 'UTF-8') . '";
         }, $content);
         
         // If we had replacements, wrap in concatenation

@@ -40,7 +40,8 @@ class DemoController
                     'avatar' => 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
                     'url' => '/users/123'
                 ],
-                'role' => [
+                'role' => 'admin',
+                'roleDetails' => [
                     'name' => 'Admin',
                     'permissions' => ['read', 'write', 'delete']
                 ],
@@ -53,6 +54,21 @@ class DemoController
                     'css_class' => 'bg-purple-100 text-purple-800'
                 ],
                 'is_premium' => true,
+                'is_active' => true,
+                'firstName' => 'John',
+                'lastName' => 'Doe',
+                'experience' => 'Senior',
+                'title' => 'Senior Developer',
+                'department' => 'Engineering',
+                'email' => 'john@example.com',
+                'name' => 'John Doe',
+                'avatar' => 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+                'statusClass' => 'bg-green-100 text-green-800',
+                'preferences' => [
+                    ['name' => 'Dark Theme'],
+                    ['name' => 'Email Notifications'],
+                    ['name' => 'Desktop Alerts']
+                ],
                 'activity' => [
                     'last_login' => '2024-06-29 15:30:00'
                 ],
@@ -83,10 +99,48 @@ class DemoController
                 'database' => [
                     'host' => 'localhost'
                 ]
+            ],
+            'sampleUsers' => [
+                'john' => [
+                    'id' => 1,
+                    'name' => 'John Doe',
+                    'title' => 'Senior Developer',
+                    'email' => 'john@example.com',
+                    'department' => 'Engineering',
+                    'avatar' => 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+                    'status' => 'Online',
+                    'statusClass' => 'bg-green-100 text-green-800'
+                ],
+                'jane' => [
+                    'id' => 2,
+                    'name' => 'Jane Smith',
+                    'title' => 'Product Manager',
+                    'email' => 'jane@example.com',
+                    'department' => 'Product',
+                    'avatar' => 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
+                    'status' => 'Away',
+                    'statusClass' => 'bg-yellow-100 text-yellow-800'
+                ]
+            ],
+            'product' => [
+                'price' => 99.99,
+                'quantity' => 2
+            ],
+            'form' => [
+                'user' => [
+                    'name' => 'John Doe',
+                    'email' => 'john@example.com'
+                ],
+                'api' => [
+                    'data' => '{"test": "data"}'
+                ],
+                'settings' => [
+                    'apiMethod' => 'POST'
+                ]
             ]
         ];
 
-        return new Response(view('templating', $data)->render());
+        return Response::html(view('templating', $data)->render());
     }
 
     /**
@@ -230,5 +284,14 @@ class DemoController
         ];
 
         return new Response(view('components', $data)->render());
+    }
+
+    /**
+     * Fragment functionality test
+     */
+    public function testFragment(): Response
+    {
+        // Use the test-fragment.html template file instead of inline template
+        return Response::html(view('test-fragment')->render());
     }
 }

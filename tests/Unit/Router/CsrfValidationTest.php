@@ -64,7 +64,9 @@ class CsrfValidationTest extends TestCase
 
         $response = $this->router->dispatch($request);
         $this->assertEquals(419, $response->getStatusCode());
-        $this->assertEquals('CSRF Token Mismatch', $response->getContent());
+        $this->assertStringContainsString('CSRF Token Mismatch', $response->getContent());
+        $this->assertStringContainsString('🔒', $response->getContent()); // Security icon
+        $this->assertStringContainsString('text/html', $response->getHeader('Content-Type'));
     }
 
     public function testPostRequestWithValidCsrfTokenSucceeds(): void
@@ -99,7 +101,9 @@ class CsrfValidationTest extends TestCase
 
         $response = $this->router->dispatch($request);
         $this->assertEquals(419, $response->getStatusCode());
-        $this->assertEquals('CSRF Token Mismatch', $response->getContent());
+        $this->assertStringContainsString('CSRF Token Mismatch', $response->getContent());
+        $this->assertStringContainsString('🔒', $response->getContent()); // Security icon
+        $this->assertStringContainsString('text/html', $response->getHeader('Content-Type'));
     }
 
     public function testPutRequestWithValidCsrfTokenSucceeds(): void
@@ -134,7 +138,9 @@ class CsrfValidationTest extends TestCase
 
         $response = $this->router->dispatch($request);
         $this->assertEquals(419, $response->getStatusCode());
-        $this->assertEquals('CSRF Token Mismatch', $response->getContent());
+        $this->assertStringContainsString('CSRF Token Mismatch', $response->getContent());
+        $this->assertStringContainsString('🔒', $response->getContent()); // Security icon
+        $this->assertStringContainsString('text/html', $response->getHeader('Content-Type'));
     }
 
     public function testDeleteRequestWithValidCsrfTokenSucceeds(): void
@@ -236,6 +242,8 @@ class CsrfValidationTest extends TestCase
 
         $response = $this->router->dispatch($request);
         $this->assertEquals(419, $response->getStatusCode());
-        $this->assertEquals('CSRF Token Mismatch', $response->getContent());
+        $this->assertStringContainsString('CSRF Token Mismatch', $response->getContent());
+        $this->assertStringContainsString('🔒', $response->getContent()); // Security icon
+        $this->assertStringContainsString('text/html', $response->getHeader('Content-Type'));
     }
 }

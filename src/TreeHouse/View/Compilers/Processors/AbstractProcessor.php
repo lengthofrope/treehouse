@@ -66,8 +66,10 @@ abstract class AbstractProcessor implements DirectiveProcessorInterface
      */
     protected function replaceElement(DOMElement $node, string $phpCode): void
     {
-        $textNode = $node->ownerDocument->createTextNode($phpCode);
-        $node->parentNode->insertBefore($textNode, $node);
+        // Use PHP marker system to ensure proper processing
+        $marker = "<!--TH_PHP_REPLACE:" . base64_encode($phpCode) . "-->";
+        $commentNode = $node->ownerDocument->createComment("TH_PHP_REPLACE:" . base64_encode($phpCode));
+        $node->parentNode->insertBefore($commentNode, $node);
         $this->removeNode($node);
     }
 

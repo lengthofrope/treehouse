@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fragment Test</title>
+</head>
+<body>
+    <!-- Define a simple fragment -->
+    <div th:fragment="testCard(name)" class="card">
+        <h3>Hello {name}!</h3>
+        <p>This is a test fragment</p>
+    </div>
+    
+    <!-- Use the fragment -->
+    <div th:include="testCard('World')">
+        <!-- This should be replaced with the fragment content -->
+    </div>
+    
+    <!-- Replace with fragment -->
+    <div th:replace="testCard('Universe')">
+        <!-- This entire div should be replaced -->
+    </div>
+</body>
+</html>

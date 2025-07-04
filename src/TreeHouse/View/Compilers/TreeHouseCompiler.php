@@ -31,7 +31,10 @@ class TreeHouseCompiler
      * Processing order for directives (critical for correct compilation)
      */
     protected array $processingOrder = [
-        'th:extend', 'th:section', 'th:yield', 'th:if', 'th:repeat', 'th:text', 'th:raw'
+        'th:extend', 'th:section', 'th:yield', 'th:fragment', 'th:switch',
+        'th:case', 'th:default', 'th:if', 'th:unless', 'th:repeat', 'th:include',
+        'th:replace', 'th:method', 'th:csrf', 'th:field', 'th:errors', 'th:text',
+        'th:raw', 'th:html'
     ];
 
     public function __construct(
@@ -50,13 +53,34 @@ class TreeHouseCompiler
     protected function initializeProcessors(): void
     {
         $this->processors = [
+            // Layout and structure
             'th:extend' => new Processors\ExtendProcessor($this->expressionCompiler),
             'th:section' => new Processors\SectionProcessor($this->expressionCompiler),
             'th:yield' => new Processors\YieldProcessor($this->expressionCompiler),
+            'th:fragment' => new Processors\FragmentProcessor($this->expressionCompiler),
+            
+            // Variables and logic
+            'th:switch' => new Processors\SwitchProcessor($this->expressionCompiler),
+            'th:case' => new Processors\SwitchProcessor($this->expressionCompiler), // Same processor handles case
+            'th:default' => new Processors\SwitchProcessor($this->expressionCompiler), // Same processor handles default
             'th:if' => new Processors\IfProcessor($this->expressionCompiler),
+            'th:unless' => new Processors\IfProcessor($this->expressionCompiler), // Same processor handles unless
             'th:repeat' => new Processors\RepeatProcessor($this->expressionCompiler),
+            
+            // Content inclusion
+            'th:include' => new Processors\IncludeProcessor($this->expressionCompiler),
+            'th:replace' => new Processors\ReplaceProcessor($this->expressionCompiler),
+            
+            // Form handling
+            'th:method' => new Processors\MethodProcessor($this->expressionCompiler),
+            'th:csrf' => new Processors\CsrfProcessor($this->expressionCompiler),
+            'th:field' => new Processors\FieldProcessor($this->expressionCompiler),
+            'th:errors' => new Processors\ErrorsProcessor($this->expressionCompiler),
+            
+            // Content rendering
             'th:text' => new Processors\TextProcessor($this->expressionCompiler),
-            'th:raw' => new Processors\RawProcessor($this->expressionCompiler)
+            'th:raw' => new Processors\RawProcessor($this->expressionCompiler),
+            'th:html' => new Processors\RawProcessor($this->expressionCompiler) // Same as raw
         ];
     }
 
@@ -121,8 +145,11 @@ class TreeHouseCompiler
         $useInternalErrors = libxml_use_internal_errors(true);
         
         try {
-            // Try to load as HTML
-            if (!$dom->loadHTML($template, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD)) {
+            // Ensure proper UTF-8 encoding by adding XML declaration
+            $template = '<?xml encoding="UTF-8">' . $template;
+            
+            // Try to load as HTML with proper UTF-8 handling
+            if (!$dom->loadHTML($template, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NOENT)) {
                 throw new RuntimeException('Failed to parse template as HTML');
             }
         } finally {
@@ -316,8 +343,21 @@ class TreeHouseCompiler
             }
         }
         
-        // Process PHP content markers
-        return $this->processPhpMarkers($html);
+        // Remove the temporary XML declaration we added for UTF-8 handling
+        $html = preg_replace('/<\?xml encoding="UTF-8"\?>/', '', $html);
+        
+        // Process PHP content markers FIRST (before any entity decoding)
+        $processedHtml = $this->processPhpMarkers($html);
+        
+        // Then handle entity decoding while preserving code blocks
+        $processedHtml = $this->preserveEntitiesInCodeBlocks($processedHtml);
+        
+        // Final UTF-8 entity decoding to ensure emojis display correctly
+        $processedHtml = preg_replace_callback('/&#(\d+);/', function($matches) {
+            return mb_chr((int)$matches[1], 'UTF-8');
+        }, $processedHtml);
+        
+        return $processedHtml;
     }
 
     /**
@@ -326,25 +366,68 @@ class TreeHouseCompiler
     protected function processPhpMarkers(string $html): string
     {
         // Convert all PHP markers back to actual PHP code
+        // Apply HTML entity decoding only to the PHP code content, not the entire document
         $html = preg_replace_callback('/<!--TH_PHP_CONTENT:([^-]+)-->/', function ($matches) {
-            return base64_decode($matches[1]);
+            $decoded = base64_decode($matches[1]);
+            // Only decode HTML entities within the PHP code itself
+            return html_entity_decode($decoded, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }, $html);
         
         $html = preg_replace_callback('/<!--TH_PHP_BEFORE:([^-]+)-->/', function ($matches) {
-            return base64_decode($matches[1]);
+            $decoded = base64_decode($matches[1]);
+            return html_entity_decode($decoded, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }, $html);
         
         $html = preg_replace_callback('/<!--TH_PHP_AFTER:([^-]+)-->/', function ($matches) {
-            return base64_decode($matches[1]);
+            $decoded = base64_decode($matches[1]);
+            return html_entity_decode($decoded, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }, $html);
         
         $html = preg_replace_callback('/<!--TH_PHP_REPLACE:([^-]+)-->/', function ($matches) {
-            return base64_decode($matches[1]);
+            $decoded = base64_decode($matches[1]);
+            return html_entity_decode($decoded, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }, $html);
         
         $html = preg_replace_callback('/<!--TH_PHP_ATTR:([^-]+)-->/', function ($matches) {
-            return base64_decode($matches[1]);
+            $decoded = base64_decode($matches[1]);
+            return html_entity_decode($decoded, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }, $html);
+        
+        return $html;
+    }
+
+    /**
+     * Selectively decode HTML entities while preserving markup entities in code blocks
+     */
+    protected function preserveEntitiesInCodeBlocks(string $html): string
+    {
+        // Instead of global entity decoding, only decode specific emoji-related numeric entities
+        // This preserves &lt; &gt; &amp; etc. in code blocks while still supporting emojis
+        
+        // Only decode numeric character references for emoji support (&#xxxx; format)
+        $html = preg_replace_callback('/&#(\d+);/', function($matches) {
+            $codePoint = (int)$matches[1];
+            // Only decode if it's likely an emoji or special character (above basic ASCII)
+            if ($codePoint > 127) {
+                return mb_chr($codePoint, 'UTF-8');
+            }
+            // Keep basic ASCII numeric entities as-is
+            return $matches[0];
+        }, $html);
+        
+        // Decode some safe named entities that won't interfere with code display
+        $safeEntities = [
+            '&nbsp;' => ' ',
+            '&ndash;' => '–',
+            '&mdash;' => '—',
+            '&lsquo;' => "'",
+            '&rsquo;' => "'",
+            '&ldquo;' => '"',
+            '&rdquo;' => '"',
+            '&hellip;' => '…'
+        ];
+        
+        $html = str_replace(array_keys($safeEntities), array_values($safeEntities), $html);
         
         return $html;
     }
@@ -354,19 +437,21 @@ class TreeHouseCompiler
      */
     protected function wrapWithHelpers(string $compiled): string
     {
-        return "<?php\n" .
-               "// TreeHouse Template Helper Functions\n" .
-               "if (!function_exists('thGetProperty')) {\n" .
-               "    function thGetProperty(\$object, \$property) {\n" .
-               "        if (is_array(\$object)) {\n" .
-               "            return \$object[\$property] ?? null;\n" .
-               "        }\n" .
-               "        if (is_object(\$object)) {\n" .
-               "            return \$object->{\$property} ?? null;\n" .
-               "        }\n" .
-               "        return null;\n" .
-               "    }\n" .
-               "}\n" .
-               "?>" . $compiled;
+        $helpers = "<?php\n" .
+                  "// TreeHouse Template Helper Functions\n" .
+                  "if (!function_exists('thGetProperty')) {\n" .
+                  "    function thGetProperty(\$object, \$property) {\n" .
+                  "        if (is_array(\$object)) {\n" .
+                  "            return \$object[\$property] ?? null;\n" .
+                  "        }\n" .
+                  "        if (is_object(\$object)) {\n" .
+                  "            return \$object->{\$property} ?? null;\n" .
+                  "        }\n" .
+                  "        return null;\n" .
+                  "    }\n" .
+                  "}\n" .
+                  "?>";
+        
+        return $helpers . $compiled;
     }
 }
