@@ -140,7 +140,7 @@ class DemoController
             ]
         ];
 
-        return new Response(view('templating', $data)->render());
+        return Response::html(view('templating', $data)->render());
     }
 
     /**

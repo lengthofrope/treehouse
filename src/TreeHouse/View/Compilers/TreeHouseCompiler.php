@@ -145,8 +145,11 @@ class TreeHouseCompiler
         $useInternalErrors = libxml_use_internal_errors(true);
         
         try {
-            // Try to load as HTML
-            if (!$dom->loadHTML($template, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD)) {
+            // Ensure proper UTF-8 encoding by adding XML declaration
+            $template = '<?xml encoding="UTF-8">' . $template;
+            
+            // Try to load as HTML with proper UTF-8 handling
+            if (!$dom->loadHTML($template, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NOENT)) {
                 throw new RuntimeException('Failed to parse template as HTML');
             }
         } finally {
@@ -340,8 +343,21 @@ class TreeHouseCompiler
             }
         }
         
+        // Remove the temporary XML declaration we added for UTF-8 handling
+        $html = preg_replace('/<\?xml encoding="UTF-8"\?>/', '', $html);
+        
+        // Convert HTML entities back to UTF-8 characters for better emoji support
+        $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        
         // Process PHP content markers
-        return $this->processPhpMarkers($html);
+        $processedHtml = $this->processPhpMarkers($html);
+        
+        // Final UTF-8 entity decoding to ensure emojis display correctly
+        $processedHtml = preg_replace_callback('/&#(\d+);/', function($matches) {
+            return mb_chr((int)$matches[1], 'UTF-8');
+        }, $processedHtml);
+        
+        return $processedHtml;
     }
 
     /**
