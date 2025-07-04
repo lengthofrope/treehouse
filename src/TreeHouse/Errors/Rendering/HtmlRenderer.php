@@ -75,7 +75,16 @@ class HtmlRenderer implements RendererInterface
 
         // Add debug information if in debug mode
         if ($debug) {
-            $data['debug_info'] = $this->prepareDebugInfo($exception, $classification, $context);
+            $debugInfo = $this->prepareDebugInfo($exception, $classification, $context);
+            $data['debug_info'] = $debugInfo;
+            
+            // Add individual debug fields to avoid array-to-string conversion in templates
+            if (isset($debugInfo['exception'])) {
+                $data['exception_class'] = $debugInfo['exception']['class'] ?? '';
+                $data['exception_file'] = $debugInfo['exception']['file'] ?? '';
+                $data['exception_line'] = $debugInfo['exception']['line'] ?? '';
+                $data['exception_trace'] = $debugInfo['exception']['trace'] ?? '';
+            }
         }
 
         // Add suggestions for common errors

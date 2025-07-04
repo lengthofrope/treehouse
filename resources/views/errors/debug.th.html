@@ -103,12 +103,13 @@
         </div>
         
         <div class="section">
-            <div class="section-header">Debug Information</div>
+            <div class="section-header">Exception Details</div>
             <div class="section-content">
                 <div class="debug-data">
                     <strong>Exception:</strong> <span th:text="{message}">Exception message</span><br>
-                    <strong>File:</strong> <span th:text="{category}">File path</span><br>
-                    <strong>Severity:</strong> <span th:text="{severity}">Severity level</span>
+                    <strong>Class:</strong> <span th:text="{exception_class}">Exception class</span><br>
+                    <strong>File:</strong> <span th:text="{exception_file}">File path</span><br>
+                    <strong>Line:</strong> <span th:text="{exception_line}">Line number</span>
                 </div>
             </div>
         </div>
@@ -117,8 +118,7 @@
             <div class="section-header">Stack Trace</div>
             <div class="section-content">
                 <div class="debug-data">
-                    <strong>Request ID:</strong> <span th:text="{request_id}">Request ID</span><br>
-                    <strong>Timestamp:</strong> <span th:text="{timestamp}">Timestamp</span>
+                    <pre th:text="{exception_trace}">Stack trace will appear here</pre>
                 </div>
             </div>
         </div>
