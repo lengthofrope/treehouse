@@ -25,6 +25,8 @@ class SwitchProcessor extends AbstractProcessor
         $cases = [];
         $defaultCase = null;
         $switchVariable = '$__switch_' . uniqid();
+        $firstCaseElement = null;
+        $lastCaseElement = null;
         
         foreach ($node->childNodes as $child) {
             if ($child instanceof DOMElement) {
@@ -44,17 +46,33 @@ class SwitchProcessor extends AbstractProcessor
                         'value' => $compiledCaseValue,
                         'element' => $child
                     ];
+                    
+                    // Track first and last case elements BEFORE removing attributes
+                    if ($firstCaseElement === null) {
+                        $firstCaseElement = $child;
+                    }
+                    $lastCaseElement = $child;
+                    
                     $child->removeAttribute('th:case');
                 } elseif ($child->hasAttribute('th:default')) {
                     $defaultCase = $child;
+                    
+                    // Track first and last case elements BEFORE removing attributes
+                    if ($firstCaseElement === null) {
+                        $firstCaseElement = $child;
+                    }
+                    $lastCaseElement = $child;
+                    
                     $child->removeAttribute('th:default');
                 }
             }
         }
         
-        // Generate PHP switch statement
-        $phpCode = "<?php {$switchVariable} = {$compiledExpression}; switch ({$switchVariable}): ";
-        $this->insertPhpBefore($node, $phpCode);
+        // Generate PHP switch statement before first case
+        if ($firstCaseElement) {
+            $phpCode = "<?php {$switchVariable} = {$compiledExpression}; switch ({$switchVariable}): ?>";
+            $this->insertPhpBefore($firstCaseElement, $phpCode);
+        }
         
         // Process each case
         foreach ($cases as $case) {
@@ -70,9 +88,11 @@ class SwitchProcessor extends AbstractProcessor
             $this->insertPhpBefore($defaultCase, $defaultPhp);
         }
         
-        // Close switch statement
-        $endPhp = "<?php endswitch; ?>";
-        $this->insertPhpAfter($node, $endPhp);
+        // Close switch statement after last case/default
+        if ($lastCaseElement) {
+            $endPhp = "<?php endswitch; ?>";
+            $this->insertPhpAfter($lastCaseElement, $endPhp);
+        }
         
         // Remove the th:switch attribute
         $node->removeAttribute('th:switch');

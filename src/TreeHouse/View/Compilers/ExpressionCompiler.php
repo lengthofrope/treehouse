@@ -48,17 +48,6 @@ class ExpressionCompiler
         return $this->doCompile($expression);
     }
     
-    /**
-     * Compile a calculation expression (allows arithmetic operators)
-     *
-     * @param string $expression The template expression
-     * @return string Compiled PHP expression
-     * @throws \InvalidArgumentException If expression is invalid
-     */
-    public function compileCalculation(string $expression): string
-    {
-        return $this->compileExpression($expression, 'calculation');
-    }
 
     /**
      * Perform the actual compilation
@@ -90,7 +79,8 @@ class ExpressionCompiler
     {
         // Pattern to match variable.property chains
         // Matches: $user.name, user.name, $user.profile.email, user.profile.email, etc.
-        $pattern = '/(\$?)(\w+)((?:\.\w+)+)/';
+        // But NOT numeric decimals like 0.08, 3.14, etc.
+        $pattern = '/(\$?)([a-zA-Z_][a-zA-Z0-9_]*)((?:\.[a-zA-Z_][a-zA-Z0-9_]*)+)/';
 
         return preg_replace_callback($pattern, function ($matches) {
             $hasPrefix = !empty($matches[1]);
@@ -163,6 +153,26 @@ class ExpressionCompiler
         
         // Wrap in boolean context with null safety
         return "(!empty({$compiled}))";
+    }
+
+    /**
+     * Compile a negated conditional expression for th:unless
+     *
+     * @param string $expression
+     * @return string
+     */
+    public function compileNegatedConditional(string $expression): string
+    {
+        // Strip braces only if it's a simple variable expression (no operators or spaces)
+        $cleanExpression = trim($expression);
+        if (preg_match('/^\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}$/', $cleanExpression, $matches)) {
+            $cleanExpression = trim($matches[1]);
+        }
+        
+        $compiled = $this->compileExpression($cleanExpression);
+        
+        // Wrap in negated boolean context with null safety
+        return "(empty({$compiled}))";
     }
 
     /**

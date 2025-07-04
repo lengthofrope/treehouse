@@ -5,7 +5,7 @@
             <h1 class="text-4xl font-bold text-gray-900 mb-4">TreeHouse Templating Engine</h1>
             <p class="text-xl text-gray-600 max-w-3xl mx-auto">
                 Explore the complete power of TreeHouse templates with advanced conditionals,
-                fragments, form handling, local variables, and safe variable access.
+                fragments, form handling, and safe variable access.
             </p>
         </div>
 
@@ -48,48 +48,6 @@
             </div>
         </div>
 
-        <!-- Local Variables -->
-        <div class="treehouse-card p-6 mb-8">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-6">📝 Local Variables with th:with</h2>
-            
-            <div class="mb-6">
-                <h3 class="text-lg font-medium text-gray-800 mb-3">Creating Computed Values</h3>
-                <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-green-500 mb-3">
-                    <div th:with="fullName=user.firstName + ' ' + user.lastName, userLevel=user.experience + ' Level'">
-                        <div class="bg-white p-4 rounded border">
-                            <h4 class="font-bold text-gray-800">User Information</h4>
-                            <p><strong>Full Name:</strong> {fullName}</p>
-                            <p><strong>Experience:</strong> {userLevel}</p>
-                            <p><strong>User ID:</strong> {user.id}</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mb-4">
-                    <h4 class="font-medium text-gray-800 mb-2">Complex Calculations</h4>
-                    <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-purple-500">
-                        <div th:with="subtotal=product.price * product.quantity, tax=subtotal * 0.08, total=subtotal + tax">
-                            <div class="bg-white p-4 rounded border">
-                                <h5 class="font-bold text-gray-800">Order Summary</h5>
-                                <p><strong>Subtotal:</strong> ${subtotal}</p>
-                                <p><strong>Tax (8%):</strong> ${tax}</p>
-                                <p><strong>Total:</strong> ${total}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="text-sm text-gray-600 bg-gray-100 p-3 rounded">
-                    <strong>Template Code:</strong><br>
-                    <code class="text-xs">
-&lt;div th:with="fullName=user.firstName + ' ' + user.lastName"&gt;<br>
-&nbsp;&nbsp;&lt;p&gt;Welcome, {fullName}!&lt;/p&gt;<br>
-&lt;/div&gt;
-                    </code>
-                </div>
-            </div>
-        </div>
-
         <!-- Template Fragments -->
         <div class="treehouse-card p-6 mb-8">
             <h2 class="text-2xl font-semibold text-gray-900 mb-6">🧩 Template Fragments</h2>
@@ -102,7 +60,7 @@
                 <div th:fragment="userCard(user, showActions)" class="hidden">
                     <div class="bg-white rounded-lg shadow-md p-6 border">
                         <div class="flex items-center space-x-4 mb-4">
-                            <img th:src="user.avatar" th:alt="user.name + ' Avatar'"
+                            <img th:src="user.avatar" th:alt="user.name"
                                  class="w-12 h-12 rounded-full border-2 border-gray-300">
                             <div>
                                 <h4 class="font-semibold text-gray-900">{user.name}</h4>
@@ -112,7 +70,7 @@
                         <div class="space-y-2 mb-4">
                             <p><strong>Email:</strong> {user.email}</p>
                             <p><strong>Department:</strong> {user.department}</p>
-                            <span th:class="'px-2 py-1 rounded-full text-xs ' + user.statusClass">{user.status}</span>
+                            <span th:class="user.statusClass">{user.status}</span>
                         </div>
                         <div th:if="showActions" class="flex space-x-2">
                             <button class="bg-treehouse-600 text-white px-3 py-1 rounded text-sm hover:bg-treehouse-700">
@@ -331,16 +289,16 @@ TreeHouse automatically wraps variables in safe checks:<br>
                     <h3 class="text-lg font-medium text-gray-800 mb-3">Dynamic Attributes</h3>
                     <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-green-500 mb-3">
                         <div class="space-y-3">
-                            <img th:src="user.profile.avatar" th:alt="user.profile.name + ' Avatar'"
+                            <img th:src="user.profile.avatar" th:alt="user.profile.name"
                                  class="w-12 h-12 rounded-full border-2 border-gray-300">
-                            <a th:href="'/users/' + user.id" class="text-blue-600 hover:underline">
+                            <a th:href="user.profile.url" class="text-blue-600 hover:underline">
                                 View {user.profile.name}'s Profile
                             </a>
                             <button th:data-user-id="user.id" th:data-role="user.role.name"
                                     class="bg-treehouse-600 text-white px-3 py-2 rounded text-sm">
                                 User Actions
                             </button>
-                            <div th:class="'status-' + user.status + ' p-2 rounded'">
+                            <div th:class="user.statusClass">
                                 Dynamic CSS Classes
                             </div>
                         </div>
@@ -352,9 +310,9 @@ TreeHouse automatically wraps variables in safe checks:<br>
                 <strong>Template Code:</strong><br>
                 <code class="text-xs">
 &lt;p&gt;{user.profile.name}&lt;/p&gt;<br>
-&lt;img th:src="user.profile.avatar" th:alt="user.profile.name + ' Avatar'"&gt;<br>
-&lt;a th:href="'/users/' + user.id"&gt;View Profile&lt;/a&gt;<br>
-&lt;div th:class="'status-' + user.status"&gt;Dynamic class&lt;/div&gt;
+&lt;img th:src="user.profile.avatar" th:alt="user.profile.name"&gt;<br>
+&lt;a th:href="user.profile.url"&gt;View Profile&lt;/a&gt;<br>
+&lt;div th:class="user.statusClass"&gt;Dynamic class&lt;/div&gt;
                 </code>
             </div>
         </div>
@@ -377,10 +335,10 @@ TreeHouse automatically wraps variables in safe checks:<br>
                 <div class="bg-green-50 p-4 rounded-lg border border-green-200">
                     <h3 class="font-semibold text-green-900 mb-2">📝 Template Features</h3>
                     <ul class="text-sm text-green-800 space-y-1">
-                        <li>• Local variables (th:with)</li>
                         <li>• Template fragments</li>
                         <li>• Include/replace directives</li>
                         <li>• Fragment parameters</li>
+                        <li>• Dot notation access</li>
                     </ul>
                 </div>
                 

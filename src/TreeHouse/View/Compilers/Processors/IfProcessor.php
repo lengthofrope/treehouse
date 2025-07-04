@@ -22,14 +22,14 @@ class IfProcessor extends AbstractProcessor
         // Check if this is th:unless
         $isUnless = $node->hasAttribute('th:unless');
         
-        $compiledExpression = $this->expressionCompiler->compileConditional($expression);
-        
         if ($isUnless) {
-            // For th:unless, negate the condition
-            $this->wrapWithCondition($node, "if !{$compiledExpression}");
+            // For th:unless, compile with negation
+            $compiledExpression = $this->expressionCompiler->compileNegatedConditional($expression);
+            $this->wrapWithCondition($node, "if {$compiledExpression}");
             $node->removeAttribute('th:unless');
         } else {
             // For th:if, use condition as-is
+            $compiledExpression = $this->expressionCompiler->compileConditional($expression);
             $this->wrapWithCondition($node, "if {$compiledExpression}");
             $node->removeAttribute('th:if');
         }

@@ -31,7 +31,7 @@ class TreeHouseCompiler
      * Processing order for directives (critical for correct compilation)
      */
     protected array $processingOrder = [
-        'th:extend', 'th:section', 'th:yield', 'th:fragment', 'th:with', 'th:switch',
+        'th:extend', 'th:section', 'th:yield', 'th:fragment', 'th:switch',
         'th:case', 'th:default', 'th:if', 'th:unless', 'th:repeat', 'th:include',
         'th:replace', 'th:method', 'th:csrf', 'th:field', 'th:errors', 'th:text',
         'th:raw', 'th:html'
@@ -60,7 +60,6 @@ class TreeHouseCompiler
             'th:fragment' => new Processors\FragmentProcessor($this->expressionCompiler),
             
             // Variables and logic
-            'th:with' => new Processors\WithProcessor($this->expressionCompiler),
             'th:switch' => new Processors\SwitchProcessor($this->expressionCompiler),
             'th:case' => new Processors\SwitchProcessor($this->expressionCompiler), // Same processor handles case
             'th:default' => new Processors\SwitchProcessor($this->expressionCompiler), // Same processor handles default
