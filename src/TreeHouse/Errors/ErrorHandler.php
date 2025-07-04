@@ -166,6 +166,16 @@ class ErrorHandler
             return $exception->getStatusCode();
         }
 
+        // Check if exception has a getStatusCode method
+        if (method_exists($exception, 'getStatusCode')) {
+            return call_user_func([$exception, 'getStatusCode']);
+        }
+
+        // Handle specific framework exceptions
+        if ($exception instanceof \LengthOfRope\TreeHouse\Router\RouteNotFoundException) {
+            return 404;
+        }
+
         // Default status codes for common exceptions
         return match (get_class($exception)) {
             'InvalidArgumentException' => 400,
@@ -188,7 +198,9 @@ class ErrorHandler
         array $context,
         string $format
     ): string {
+        $statusCode = $this->getStatusCode($exception);
         $data = $this->prepareResponseData($exception, $classification, $context);
+        $data['status_code'] = $statusCode;
 
         return match ($format) {
             'json' => $this->generateJsonResponse($data),
@@ -203,11 +215,13 @@ class ErrorHandler
      */
     private function prepareResponseData(Throwable $exception, $classification, array $context): array
     {
+        $statusCode = $this->getStatusCode($exception);
         $data = [
             'error' => true,
             'message' => $this->getUserMessage($exception),
             'type' => $classification->category,
-            'timestamp' => time()
+            'timestamp' => time(),
+            'status_code' => $statusCode
         ];
 
         // Add debug information if in debug mode
@@ -242,12 +256,13 @@ class ErrorHandler
 
         // In production, use generic messages for security
         if (!$this->debug) {
-            return match (true) {
-                $exception instanceof \InvalidArgumentException => 'Invalid request parameters.',
-                str_contains(get_class($exception), 'Unauthorized') => 'Authentication required.',
-                str_contains(get_class($exception), 'Forbidden') => 'Access denied.',
-                str_contains(get_class($exception), 'NotFound') => 'The requested resource was not found.',
-                default => 'An error occurred while processing your request.'
+            $statusCode = $this->getStatusCode($exception);
+            return match ($statusCode) {
+                404 => 'Page Not Found',
+                403 => 'Forbidden',
+                401 => 'Unauthorized',
+                422 => 'Validation Error',
+                default => 'Internal Server Error'
             };
         }
 

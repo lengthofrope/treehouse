@@ -100,7 +100,7 @@ class ClassificationResult
      */
     public function getTagsByPrefix(string $prefix): array
     {
-        return array_filter($this->tags, fn($tag) => str_starts_with($tag, $prefix . ':'));
+        return array_values(array_filter($this->tags, fn($tag) => str_starts_with($tag, $prefix . ':')));
     }
 
     /**

@@ -298,13 +298,16 @@ class Application
         // Register main error handler
         $this->container->singleton('error.handler', function () {
             $config = $this->config['errors'] ?? [];
+            $config['debug'] = $this->isDebugMode(); // Explicitly set debug mode
             
-            return new ErrorHandler(
+            $errorHandler = new ErrorHandler(
                 $this->make('error.classifier'),
                 $this->make('error.context'),
                 $this->make('error.logger'),
                 $config
             );
+            
+            return $errorHandler;
         });
     }
 
