@@ -136,6 +136,7 @@ class NewProjectCommand extends Command
             'public/assets',
             'public/build',
             'resources/views/layouts',
+            'resources/views/errors',
             'resources/js',
             'resources/css',
             'storage/cache',
@@ -177,14 +178,28 @@ class NewProjectCommand extends Command
         $this->copyFrameworkFile('public/index.php', $basePath . '/public/index.php', $projectName, $output);
         $this->copyFrameworkFile('public/.htaccess', $basePath . '/public/.htaccess', $projectName, $output);
         $this->copyFrameworkFile('src/App/Controllers/HomeController.php', $basePath . '/src/App/Controllers/HomeController.php', $projectName, $output);
+        $this->copyFrameworkFile('src/App/Controllers/DemoController.php', $basePath . '/src/App/Controllers/DemoController.php', $projectName, $output);
         
         // Models
         $this->copyFrameworkFile('src/App/Models/User.php', $basePath . '/src/App/Models/User.php', $projectName, $output);
         
         // Views - use existing framework views as templates
         $this->copyFrameworkFile('resources/views/layouts/app.th.html', $basePath . '/resources/views/layouts/app.th.html', $projectName, $output);
+        $this->copyFrameworkFile('resources/views/layouts/minimal.th.html', $basePath . '/resources/views/layouts/minimal.th.html', $projectName, $output);
+        $this->copyFrameworkFile('resources/views/layouts/error.th.html', $basePath . '/resources/views/layouts/error.th.html', $projectName, $output);
         $this->copyFrameworkFile('resources/views/home.th.html', $basePath . '/resources/views/home.th.html', $projectName, $output);
         $this->copyFrameworkFile('resources/views/about.th.html', $basePath . '/resources/views/about.th.html', $projectName, $output);
+        $this->copyFrameworkFile('resources/views/templating.th.html', $basePath . '/resources/views/templating.th.html', $projectName, $output);
+        $this->copyFrameworkFile('resources/views/components.th.html', $basePath . '/resources/views/components.th.html', $projectName, $output);
+        $this->copyFrameworkFile('resources/views/layouts-demo.th.html', $basePath . '/resources/views/layouts-demo.th.html', $projectName, $output);
+        $this->copyFrameworkFile('resources/views/minimal-example.th.html', $basePath . '/resources/views/minimal-example.th.html', $projectName, $output);
+        $this->copyFrameworkFile('resources/views/test-fragment.th.html', $basePath . '/resources/views/test-fragment.th.html', $projectName, $output);
+        
+        // Error views
+        $this->copyFrameworkFile('resources/views/errors/404.th.html', $basePath . '/resources/views/errors/404.th.html', $projectName, $output);
+        $this->copyFrameworkFile('resources/views/errors/500.th.html', $basePath . '/resources/views/errors/500.th.html', $projectName, $output);
+        $this->copyFrameworkFile('resources/views/errors/debug.th.html', $basePath . '/resources/views/errors/debug.th.html', $projectName, $output);
+        $this->copyFrameworkFile('resources/views/errors/generic.th.html', $basePath . '/resources/views/errors/generic.th.html', $projectName, $output);
         
         // Environment file
         $this->copyFrameworkFile('.env.example', $basePath . '/.env.example', $projectName, $output);
@@ -852,12 +867,43 @@ PHP;
 
 declare(strict_types=1);
 
-use LengthOfRope\TreeHouse\Router\Router;
+use LengthOfRope\TreeHouse\Http\Response;
+use LengthOfRope\TreeHouse\Routing\Router;
 
-return function (Router \$router) {
-    \$router->get('/', 'App\\Controllers\\HomeController@index')->name('home');
-    \$router->get('/about', 'App\\Controllers\\HomeController@about')->name('about');
-};
+/**
+ * Web Routes
+ *
+ * Define your web routes here. The \$router variable is available
+ * and routes defined here will be automatically loaded by the application.
+ */
+// Home page
+\$router->get('/', 'App\Controllers\HomeController@index');
+
+// Demo pages showcasing TreeHouse features
+\$router->get('/templating', 'App\Controllers\DemoController@templating');
+\$router->get('/components', 'App\Controllers\DemoController@components');
+\$router->get('/layouts', 'App\Controllers\DemoController@layouts');
+\$router->get('/layouts/minimal-example', 'App\Controllers\DemoController@minimalLayoutExample');
+\$router->get('/test-fragment', 'App\Controllers\DemoController@testFragment');
+
+// About page
+\$router->get('/about', function() {
+    return new Response(view('about', [
+        'title' => 'About TreeHouse Framework',
+        'description' => nl2br(file_get_contents(__DIR__ . '/../../README.md')),
+    ])->render());
+});
+
+// Example form handling
+\$router->post('/contact', function() {
+    // In a real application, you would validate and process the form data
+    return new Response('Form save', 200, []);
+});
+
+\$router->post('/settings', function() {
+    // In a real application, you would save the settings
+    return new Response('Settings save', 200, []);
+});
 PHP;
     }
 
