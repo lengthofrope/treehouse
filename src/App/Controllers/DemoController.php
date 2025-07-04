@@ -307,6 +307,17 @@ class DemoController
                         'Mobile-responsive menu'
                     ]
                 ],
+                'minimal' => [
+                    'name' => 'Minimal Layout',
+                    'description' => 'Clean, simple layout for focused content presentation',
+                    'file' => 'layouts/minimal.th.html',
+                    'features' => [
+                        'Simple header with page title',
+                        'Clean content area with th:yield="content"',
+                        'Minimal footer',
+                        'Lightweight and fast loading'
+                    ]
+                ],
                 'error' => [
                     'name' => 'Error Layout',
                     'description' => 'Specialized layout for error pages',
@@ -372,6 +383,28 @@ $data = [
         ];
 
         return Response::html(view('layouts-demo', $data)->render());
+    }
+
+    /**
+     * Minimal layout example
+     */
+    public function minimalLayoutExample(): Response
+    {
+        $data = [
+            'title' => 'Minimal Layout Example',
+            'content' => [
+                'heading' => 'This page uses the minimal layout',
+                'description' => 'Notice how this page has a much simpler structure compared to the main app layout. It demonstrates how different layouts can be used for different purposes.',
+                'features' => [
+                    'Clean, distraction-free design',
+                    'Faster loading with minimal CSS/JS',
+                    'Perfect for content-focused pages',
+                    'Easy to customize and extend'
+                ]
+            ]
+        ];
+
+        return Response::html(view('minimal-example', $data)->render());
     }
 
     /**

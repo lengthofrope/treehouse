@@ -1,0 +1,75 @@
+<div th:extend="layouts/minimal">
+    <div th:section="content">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-900 mb-4" th:text="content.heading">Page Heading</h1>
+                <p class="text-lg text-gray-600" th:text="content.description">Page description</p>
+            </div>
+
+            <!-- Content Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Layout Features</h2>
+                <ul class="space-y-3">
+                    <li th:repeat="feature in {content.features}" class="flex items-start">
+                        <span class="text-green-500 mr-3 mt-1">✓</span>
+                        <span class="text-gray-700" th:text="feature">Feature</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Comparison -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+                <h2 class="text-xl font-semibold text-blue-900 mb-3">Layout Comparison</h2>
+                <p class="text-blue-800 mb-4">
+                    Compare this minimal layout with the full app layout used on other pages:
+                </p>
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <h3 class="font-medium text-blue-900 mb-2">Minimal Layout</h3>
+                        <ul class="text-blue-700 space-y-1">
+                            <li>• Simple header with title</li>
+                            <li>• Clean content area</li>
+                            <li>• Basic footer</li>
+                            <li>• Lightweight styling</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-blue-900 mb-2">App Layout</h3>
+                        <ul class="text-blue-700 space-y-1">
+                            <li>• Full navigation menu</li>
+                            <li>• Hero section option</li>
+                            <li>• Rich footer with branding</li>
+                            <li>• Mobile responsive menu</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Code Example -->
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Template Code</h2>
+                <p class="text-gray-600 mb-4">This page uses the following template structure:</p>
+                <pre class="bg-white p-4 rounded border text-sm overflow-x-auto"><code>&lt;div th:extend="layouts/minimal"&gt;
+    &lt;div th:section="content"&gt;
+        &lt;!-- Your page content here --&gt;
+        &lt;h1 th:text="content.heading"&gt;Page Heading&lt;/h1&gt;
+        &lt;p th:text="content.description"&gt;Description&lt;/p&gt;
+    &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+            </div>
+
+            <!-- Navigation -->
+            <div class="text-center">
+                <div class="inline-flex space-x-4">
+                    <a href="/layouts" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                        ← Back to Layouts Demo
+                    </a>
+                    <a href="/" class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
+                        Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

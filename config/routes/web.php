@@ -17,6 +17,7 @@ $router->get('/', 'App\Controllers\HomeController@index');
 $router->get('/templating', 'App\Controllers\DemoController@templating');
 $router->get('/components', 'App\Controllers\DemoController@components');
 $router->get('/layouts', 'App\Controllers\DemoController@layouts');
+$router->get('/layouts/minimal-example', 'App\Controllers\DemoController@minimalLayoutExample');
 $router->get('/test-fragment', 'App\Controllers\DemoController@testFragment');
 
 // About page
