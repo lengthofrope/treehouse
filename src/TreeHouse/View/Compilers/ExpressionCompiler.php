@@ -128,8 +128,8 @@ class ExpressionCompiler
                 return $word;
             }
             
-            // Convert to PHP variable
-            return '$' . $word;
+            // Convert to safe PHP variable access
+            return "(isset(\${$word}) ? \${$word} : null)";
         }, $expression);
     }
 
@@ -149,8 +149,8 @@ class ExpressionCompiler
         
         $compiled = $this->compileExpression($cleanExpression);
         
-        // Wrap in boolean context to ensure proper evaluation
-        return "({$compiled})";
+        // Wrap in boolean context with null safety
+        return "(!empty({$compiled}))";
     }
 
     /**
@@ -169,8 +169,8 @@ class ExpressionCompiler
         
         $compiled = $this->compileExpression($cleanExpression);
         
-        // Ensure output is escaped
-        return "htmlspecialchars((string)({$compiled}), ENT_QUOTES, 'UTF-8')";
+        // Ensure output is escaped with null safety
+        return "htmlspecialchars((string)({$compiled} ?? ''), ENT_QUOTES, 'UTF-8')";
     }
 
     /**
@@ -189,8 +189,8 @@ class ExpressionCompiler
         
         $compiled = $this->compileExpression($cleanExpression);
         
-        // No escaping for raw output
-        return "(string)({$compiled})";
+        // No escaping for raw output with null safety
+        return "(string)({$compiled} ?? '')";
     }
 
     /**
@@ -205,7 +205,7 @@ class ExpressionCompiler
         $compiled = preg_replace_callback('/\{([^}]+)\}/', function ($matches) {
             $expression = trim($matches[1]);
             $compiledExpression = $this->compileExpression($expression);
-            return "' . htmlspecialchars((string)({$compiledExpression}), ENT_QUOTES, 'UTF-8') . '";
+            return "' . htmlspecialchars((string)({$compiledExpression} ?? ''), ENT_QUOTES, 'UTF-8') . '";
         }, $content);
         
         // If we had replacements, wrap in concatenation
