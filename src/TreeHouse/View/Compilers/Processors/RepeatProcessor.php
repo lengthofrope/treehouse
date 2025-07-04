@@ -19,28 +19,19 @@ class RepeatProcessor extends AbstractProcessor
 {
     public function process(DOMElement $node, string $expression): void
     {
-        // Parse repeat expression: "item $items", "item items", "key,item $items", or "key,item items"
-        // Also handle dot notation like "act user.activities"
-        if (preg_match('/^(\w+)(?:,(\w+))?\s+(.+)$/', trim($expression), $matches)) {
-            $first = $matches[1];
-            $second = $matches[2] ?? null;
-            $arrayExpression = trim($matches[3]);
+        try {
+            // Use the ExpressionCompiler's compileIteration method which properly handles
+            // "item : items", "key,item : items", and "item in items" formats
+            $compiled = $this->expressionCompiler->compileIteration($expression);
             
-            // Compile the array expression (handles dot notation)
-            $compiledArray = $this->expressionCompiler->compileExpression($arrayExpression);
-            
-            if ($second) {
+            if ($compiled['key']) {
                 // key,item format
-                $key = $first;
-                $item = $second;
-                $startPhp = "<?php foreach ({$compiledArray} as \${$key} => \${$item}): ?>";
-                $endPhp = "<?php endforeach; ?>";
+                $startPhp = "<?php foreach ({$compiled['iterable']} as {$compiled['key']} => {$compiled['value']}): ?>";
             } else {
                 // item format
-                $item = $first;
-                $startPhp = "<?php foreach ({$compiledArray} as \${$item}): ?>";
-                $endPhp = "<?php endforeach; ?>";
+                $startPhp = "<?php foreach ({$compiled['iterable']} as {$compiled['value']}): ?>";
             }
+            $endPhp = "<?php endforeach; ?>";
             
             // Use PHP marker system for proper code generation
             $this->insertPhpBefore($node, $startPhp);
@@ -48,6 +39,11 @@ class RepeatProcessor extends AbstractProcessor
             
             // Remove the th:repeat attribute
             $node->removeAttribute('th:repeat');
+            
+        } catch (\InvalidArgumentException $e) {
+            throw new \RuntimeException(
+                "Invalid th:repeat expression '{$expression}': " . $e->getMessage()
+            );
         }
     }
 }

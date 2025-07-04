@@ -14,6 +14,15 @@ use LengthOfRope\TreeHouse\View\ViewFactory;
 use LengthOfRope\TreeHouse\Database\Connection;
 use LengthOfRope\TreeHouse\Database\ActiveRecord;
 use LengthOfRope\TreeHouse\Support\Env;
+use LengthOfRope\TreeHouse\Errors\ErrorHandler;
+use LengthOfRope\TreeHouse\Errors\Classification\ExceptionClassifier;
+use LengthOfRope\TreeHouse\Errors\Context\ContextManager;
+use LengthOfRope\TreeHouse\Errors\Context\RequestCollector;
+use LengthOfRope\TreeHouse\Errors\Context\UserCollector;
+use LengthOfRope\TreeHouse\Errors\Context\EnvironmentCollector;
+use LengthOfRope\TreeHouse\Errors\Logging\ErrorLogger;
+use LengthOfRope\TreeHouse\Errors\Logging\LogFormatter;
+use LengthOfRope\TreeHouse\Errors\Rendering\RenderManager;
 
 /**
  * TreeHouse Foundation Application
@@ -86,6 +95,9 @@ class Application
 
         // Register core services
         $this->registerCoreServices();
+        
+        // Register error handling services
+        $this->registerErrorServices();
 
         // Load routes automatically
         $this->autoLoadRoutes();
@@ -195,6 +207,109 @@ class Application
             return new \LengthOfRope\TreeHouse\Http\Session($config);
         });
 
+    }
+
+    /**
+     * Register error handling services
+     */
+    private function registerErrorServices(): void
+    {
+        // Register error logger
+        $this->container->singleton('error.logger', function () {
+            $config = $this->config['errors']['logging'] ?? [];
+            $defaultChannel = $config['default_channel'] ?? 'file';
+            $channels = $config['channels'] ?? [];
+            
+            return new ErrorLogger($defaultChannel, $channels);
+        });
+
+        // Register exception classifier
+        $this->container->singleton('error.classifier', function () {
+            $config = $this->config['errors']['classification'] ?? [];
+            return new ExceptionClassifier($config);
+        });
+
+        // Register context collectors
+        $this->container->singleton('error.context.request', function () {
+            // RequestCollector takes a Request object, not config array
+            // It will fall back to PHP globals if no Request is provided
+            return new RequestCollector(null);
+        });
+
+        $this->container->singleton('error.context.user', function () {
+            // UserCollector takes an AuthManager, not config array
+            // Try to get the auth manager, but allow null if not available
+            try {
+                $authManager = $this->make('auth');
+                return new UserCollector($authManager);
+            } catch (\Exception $e) {
+                // If auth manager is not available, create with null
+                return new UserCollector(null);
+            }
+        });
+
+        $this->container->singleton('error.context.environment', function () {
+            $config = $this->config['errors']['context']['collectors']['environment'] ?? [];
+            return new EnvironmentCollector($config);
+        });
+
+        // Register context manager
+        $this->container->singleton('error.context', function () {
+            $config = $this->config['errors']['context'] ?? [];
+            $contextManager = new ContextManager($config);
+            
+            // Register collectors
+            $contextManager->addCollector($this->make('error.context.request'));
+            $contextManager->addCollector($this->make('error.context.user'));
+            $contextManager->addCollector($this->make('error.context.environment'));
+            
+            return $contextManager;
+        });
+
+        // Register render manager
+        $this->container->singleton('error.renderer', function () {
+            $config = $this->config['errors']['rendering'] ?? [];
+            $debug = $this->isDebugMode(); // Use the same debug mode as ErrorHandler
+            $defaultRenderer = $config['default_renderer'] ?? 'html';
+            
+            $renderManager = new RenderManager($debug, $defaultRenderer);
+            
+            // Clear default renderers and register custom ones with dependencies
+            $renderManager->clearRenderers();
+            
+            // Register renderers with proper dependencies
+            $renderManager->registerRenderer(new \LengthOfRope\TreeHouse\Errors\Rendering\JsonRenderer());
+            $renderManager->registerRenderer(new \LengthOfRope\TreeHouse\Errors\Rendering\CliRenderer());
+            
+            // Register HtmlRenderer with ViewFactory injection
+            $viewFactory = $this->make('view');
+            $templatePath = $config['template_path'] ?? 'errors';
+            $fallbackToBuiltIn = $config['fallback_to_builtin'] ?? true;
+            $htmlRenderer = new \LengthOfRope\TreeHouse\Errors\Rendering\HtmlRenderer(
+                $viewFactory,
+                $templatePath,
+                $fallbackToBuiltIn
+            );
+            $renderManager->registerRenderer($htmlRenderer);
+            
+            return $renderManager;
+        });
+
+        // Register main error handler
+        $this->container->singleton('error.handler', function () {
+            $config = $this->config['errors'] ?? [];
+            $config['debug'] = $this->isDebugMode(); // Explicitly set debug mode
+            
+            $errorHandler = new ErrorHandler(
+                $this->make('error.classifier'),
+                $this->make('error.context'),
+                $this->make('error.logger'),
+                $config,
+                $this->make('error.renderer')
+            );
+            
+            return $errorHandler;
+        });
     }
 
     /**
@@ -317,7 +432,7 @@ class Application
         try {
             return $this->router->dispatch($request);
         } catch (\Throwable $e) {
-            return $this->handleException($e);
+            return $this->handleException($e, $request);
         }
     }
 
@@ -325,9 +440,33 @@ class Application
      * Handle an exception and return an appropriate response
      *
      * @param \Throwable $exception The exception to handle
+     * @param Request|null $request The HTTP request (if available)
      * @return Response The error response
      */
-    private function handleException(\Throwable $exception): Response
+    private function handleException(\Throwable $exception, ?Request $request = null): Response
+    {
+        try {
+            // Use the comprehensive error handler if available
+            /** @var ErrorHandler $errorHandler */
+            $errorHandler = $this->container->make('error.handler');
+            return $errorHandler->handle($exception, $request);
+        } catch (\Throwable $handlerException) {
+            // If the error handler fails, fall back to basic handling
+            // Log the handler failure if possible
+            error_log("Error handler failed: " . $handlerException->getMessage());
+        }
+
+        // Fallback to basic error handling
+        return $this->basicErrorHandling($exception);
+    }
+
+    /**
+     * Basic error handling fallback
+     *
+     * @param \Throwable $exception The exception to handle
+     * @return Response The error response
+     */
+    private function basicErrorHandling(\Throwable $exception): Response
     {
         // Determine status code based on exception type
         $statusCode = 500; // Default
@@ -335,8 +474,7 @@ class Application
         if ($exception instanceof RouteNotFoundException) {
             $statusCode = 404;
         } elseif (method_exists($exception, 'getStatusCode')) {
-            /** @var object $exception */
-            $statusCode = $exception->getStatusCode();
+            $statusCode = call_user_func([$exception, 'getStatusCode']);
         }
 
         $message = $this->isDebugMode()

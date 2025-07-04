@@ -180,7 +180,7 @@ class ViewEngineTest extends TestCase
     #[Test]
     public function it_throws_exception_for_missing_template(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(\LengthOfRope\TreeHouse\View\Exceptions\TemplateNotFoundException::class);
         $this->expectExceptionMessage("Template 'missing' not found");
         
         $this->engine->make('missing');

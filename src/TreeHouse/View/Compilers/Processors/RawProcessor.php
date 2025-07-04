@@ -20,7 +20,7 @@ class RawProcessor extends AbstractProcessor
     public function process(DOMElement $node, string $expression): void
     {
         // For th:raw, we output the variable content without escaping
-        $compiledExpression = $this->expressionCompiler->compileExpression($expression);
+        $compiledExpression = $this->expressionCompiler->compileRaw($expression);
         
         // Replace the entire element with raw PHP output using marker system
         // This allows the raw content to contain HTML tags without being wrapped

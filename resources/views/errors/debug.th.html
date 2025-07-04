@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="{title}">Debug Error</title>
+    <style>
+        body { 
+            font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace; 
+            margin: 0; 
+            padding: 20px; 
+            background: #1e1e1e; 
+            color: #d4d4d4; 
+            font-size: 14px; 
+            line-height: 1.6;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+        }
+        .header { 
+            background: #dc3545; 
+            color: white; 
+            padding: 20px; 
+            border-radius: 4px; 
+            margin-bottom: 20px; 
+        }
+        .header h1 { 
+            margin: 0; 
+            font-size: 1.8em; 
+        }
+        .header p { 
+            margin: 10px 0 0; 
+            opacity: 0.9; 
+        }
+        .section { 
+            background: #252526; 
+            border: 1px solid #3e3e42; 
+            border-radius: 4px; 
+            margin-bottom: 20px; 
+        }
+        .section-header { 
+            background: #2d2d30; 
+            padding: 15px; 
+            border-bottom: 1px solid #3e3e42; 
+            font-weight: bold; 
+        }
+        .section-content { 
+            padding: 20px; 
+        }
+        .debug-data { 
+            background: #1e1e1e; 
+            border: 1px solid #3e3e42; 
+            padding: 15px; 
+            border-radius: 4px; 
+            overflow-x: auto;             
+        }
+        .meta { 
+            color: #9cdcfe; 
+        }
+        .string { 
+            color: #ce9178; 
+        }
+        .number { 
+            color: #b5cea8; 
+        }
+        .boolean { 
+            color: #569cd6; 
+        }
+        .null { 
+            color: #569cd6; 
+        }
+        .trace-line {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #007acc;
+            background: rgba(0, 122, 204, 0.1);
+        }
+        .file-path {
+            color: #4ec9b0;
+        }
+        .line-number {
+            color: #b5cea8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span th:text="{status_code}">500</span> - <span th:text="{title}">Error</span></h1>
+            <p th:text="{message}">Debug information</p>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">Error Details</div>
+            <div class="section-content">
+                <strong>Category:</strong> <span th:text="{category}">unknown</span><br>
+                <strong>Severity:</strong> <span th:text="{severity}">unknown</span><br>
+                <strong>Request ID:</strong> <span th:text="{request_id}">req_123456</span><br>
+                <strong>Time:</strong> <span th:text="{timestamp}">2024-01-01 12:00:00</span>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">Exception Details</div>
+            <div class="section-content">
+                <div class="debug-data">
+                    <strong>Exception:</strong> <span th:text="{message}">Exception message</span><br>
+                    <strong>Class:</strong> <span th:text="{exception_class}">Exception class</span><br>
+                    <strong>File:</strong> <span th:text="{exception_file}">File path</span><br>
+                    <strong>Line:</strong> <span th:text="{exception_line}">Line number</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">Stack Trace</div>
+            <div class="section-content">
+                <div class="debug-data">
+                    <pre th:text="{exception_trace}">Stack trace will appear here</pre>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</body>
+</html>

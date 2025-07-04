@@ -7,6 +7,7 @@ namespace LengthOfRope\TreeHouse\Router;
 use LengthOfRope\TreeHouse\Http\Request;
 use LengthOfRope\TreeHouse\Http\Response;
 use LengthOfRope\TreeHouse\Http\Session;
+use LengthOfRope\TreeHouse\Router\Exceptions\RouteNotFoundException;
 use LengthOfRope\TreeHouse\Router\Middleware\MiddlewareStack;
 use LengthOfRope\TreeHouse\Security\Csrf;
 use LengthOfRope\TreeHouse\Support\Arr;
@@ -256,7 +257,7 @@ class Router
         $route = $this->routes->match($method, $uri);
 
         if (!$route) {
-            return $this->handleNotFound($request);
+            throw new RouteNotFoundException($method, $uri);
         }
 
         // Set current route and extract parameters
@@ -543,18 +544,6 @@ class Router
         return $response;
     }
 
-    /**
-     * Handle 404 Not Found
-     * 
-     * @param Request $request HTTP request
-     * @return Response
-     */
-    protected function handleNotFound(Request $request): Response
-    {
-        $response = new Response('Not Found', 404);
-        $response->setHeader('Content-Type', 'text/plain');
-        return $response;
-    }
 
     /**
      * Get the actual HTTP method for the request, handling method spoofing

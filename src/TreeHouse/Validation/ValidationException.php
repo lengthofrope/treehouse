@@ -4,35 +4,44 @@ declare(strict_types=1);
 
 namespace LengthOfRope\TreeHouse\Validation;
 
-use Exception;
+use LengthOfRope\TreeHouse\Errors\Exceptions\BaseException;
 
 /**
  * Validation Exception
- *
- * Exception thrown when validation fails. Contains validation errors
- * and provides methods to access error messages and data.
- *
- * Features:
- * - Field-specific error messages
- * - Multiple errors per field support
- * - Original data preservation
- * - JSON serialization for API responses
- *
+ * 
+ * Thrown when validation fails. Contains detailed information about
+ * validation errors for each field.
+ * 
  * @package LengthOfRope\TreeHouse\Validation
  * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
  */
-class ValidationException extends Exception
+class ValidationException extends BaseException
 {
     /**
-     * The validation errors
+     * Default error severity for validation errors
+     */
+    protected string $severity = 'low';
+
+    /**
+     * Default HTTP status code for validation errors
+     */
+    protected int $statusCode = 422;
+
+    /**
+     * Validation should not be reported by default
+     */
+    protected bool $reportable = false;
+
+    /**
+     * Validation errors by field
      *
      * @var array<string, array<string>>
      */
     protected array $errors = [];
 
     /**
-     * The original data being validated
+     * Original data that failed validation
      *
      * @var array<string, mixed>
      */
@@ -41,20 +50,42 @@ class ValidationException extends Exception
     /**
      * Create a new validation exception
      *
-     * @param array<string, array<string>> $errors Validation errors
-     * @param array<string, mixed> $data Original data
-     * @param string $message Exception message
+     * @param array<string, array<string>> $errors Validation errors by field
+     * @param array<string, mixed> $data Original data that failed validation
+     * @param string $message Custom error message
      */
-    public function __construct(array $errors, array $data = [], string $message = 'Validation failed')
-    {
+    public function __construct(
+        array $errors = [],
+        array $data = [],
+        string $message = 'Validation failed'
+    ) {
         $this->errors = $errors;
         $this->data = $data;
+
+        $context = [
+            'errors' => $errors,
+            'data' => $this->sanitizeData($data),
+            'field_count' => count($errors),
+            'error_count' => array_sum(array_map('count', $errors))
+        ];
+
+        parent::__construct($message, 0, null, $context);
         
-        parent::__construct($message);
+        $this->userMessage = 'Please check your input and try again.';
     }
 
     /**
-     * Get all validation errors
+     * Generate a unique error code for validation exceptions
+     */
+    protected function generateErrorCode(): void
+    {
+        if (empty($this->errorCode)) {
+            $this->errorCode = 'VAL_' . str_pad((string)random_int(1, 999), 3, '0', STR_PAD_LEFT);
+        }
+    }
+
+    /**
+     * Get validation errors
      *
      * @return array<string, array<string>>
      */
@@ -66,7 +97,7 @@ class ValidationException extends Exception
     /**
      * Get errors for a specific field
      *
-     * @param string $field Field name
+     * @param string $field
      * @return array<string>
      */
     public function getFieldErrors(string $field): array
@@ -75,26 +106,26 @@ class ValidationException extends Exception
     }
 
     /**
-     * Get the first error message for a field
+     * Get the first error for a specific field
      *
-     * @param string $field Field name
-     * @return string|null First error message or null
+     * @param string $field
+     * @return string|null
      */
     public function getFirstError(string $field): ?string
     {
         $errors = $this->getFieldErrors($field);
-        return $errors[0] ?? null;
+        return !empty($errors) ? $errors[0] : null;
     }
 
     /**
      * Check if a field has errors
      *
-     * @param string $field Field name
-     * @return bool True if field has errors
+     * @param string $field
+     * @return bool
      */
     public function hasError(string $field): bool
     {
-        return isset($this->errors[$field]) && !empty($this->errors[$field]);
+        return !empty($this->errors[$field]);
     }
 
     /**
@@ -105,18 +136,16 @@ class ValidationException extends Exception
     public function getAllMessages(): array
     {
         $messages = [];
-        
         foreach ($this->errors as $fieldErrors) {
             $messages = array_merge($messages, $fieldErrors);
         }
-        
         return $messages;
     }
 
     /**
-     * Get the first error message from all fields
+     * Get the first error message from any field
      *
-     * @return string|null First error message or null
+     * @return string|null
      */
     public function getFirstMessage(): ?string
     {
@@ -125,12 +154,11 @@ class ValidationException extends Exception
                 return $fieldErrors[0];
             }
         }
-        
         return null;
     }
 
     /**
-     * Get the original data
+     * Get the original data that failed validation
      *
      * @return array<string, mixed>
      */
@@ -140,36 +168,57 @@ class ValidationException extends Exception
     }
 
     /**
-     * Convert errors to JSON-serializable format
+     * Get a summary of validation errors
+     */
+    public function getSummary(): string
+    {
+        $fieldCount = count($this->errors);
+        
+        if ($fieldCount === 0) {
+            return 'No validation errors';
+        }
+        
+        if ($fieldCount === 1) {
+            return 'Validation failed for 1 field';
+        }
+        
+        return "Validation failed for {$fieldCount} fields";
+    }
+
+    /**
+     * Convert exception to array format
      *
      * @return array<string, mixed>
      */
     public function toArray(): array
     {
-        return [
-            'message' => $this->getMessage(),
-            'errors' => $this->errors,
-            'data' => $this->data
-        ];
+        $array = parent::toArray();
+        
+        $array['errors'] = $this->errors;
+        $array['data'] = $this->data;
+        
+        return $array;
     }
 
     /**
-     * Get a simple error message summary
+     * Sanitize data to remove sensitive information
      *
-     * @return string Error summary
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
-    public function getSummary(): string
+    private function sanitizeData(array $data): array
     {
-        $count = count($this->errors);
+        $sanitized = [];
         
-        if ($count === 0) {
-            return 'No validation errors';
+        foreach ($data as $key => $value) {
+            // Hide potentially sensitive fields
+            if (preg_match('/password|pass|pwd|secret|token|key|hash/i', $key)) {
+                $sanitized[$key] = '[HIDDEN]';
+            } else {
+                $sanitized[$key] = $value;
+            }
         }
         
-        if ($count === 1) {
-            return 'Validation failed for 1 field';
-        }
-        
-        return "Validation failed for {$count} fields";
+        return $sanitized;
     }
 }

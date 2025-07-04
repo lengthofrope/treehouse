@@ -121,7 +121,7 @@ class AuthManagerTest extends TestCase
 
     public function testGuardThrowsExceptionForUndefinedGuard(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(\LengthOfRope\TreeHouse\Errors\Exceptions\AuthenticationException::class);
         $this->expectExceptionMessage('Auth guard [nonexistent] is not defined.');
         
         $this->authManager->guard('nonexistent');
@@ -173,7 +173,7 @@ class AuthManagerTest extends TestCase
 
     public function testCreateUserProviderThrowsExceptionForUndefinedProvider(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(\LengthOfRope\TreeHouse\Errors\Exceptions\AuthenticationException::class);
         $this->expectExceptionMessage('Authentication user provider is not defined.');
         
         $this->authManager->createUserProvider('nonexistent');

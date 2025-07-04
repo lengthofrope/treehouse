@@ -270,7 +270,7 @@ class SessionGuardTest extends TestCase
 
     public function testGetUserIdThrowsExceptionForInvalidUser(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(\LengthOfRope\TreeHouse\Errors\Exceptions\AuthenticationException::class);
         $this->expectExceptionMessage('User must have an ID or implement getAuthIdentifier method');
         
         // Use reflection to test protected method

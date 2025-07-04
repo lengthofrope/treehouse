@@ -8,6 +8,7 @@ use LengthOfRope\TreeHouse\Support\{Collection, Arr, Str};
 use LengthOfRope\TreeHouse\Cache\CacheInterface;
 use LengthOfRope\TreeHouse\View\Compilers\TreeHouseCompiler;
 use LengthOfRope\TreeHouse\View\Concerns\{ManagesComponents, ManagesLayouts, ManagesStack};
+use LengthOfRope\TreeHouse\View\Exceptions\{ViewException, TemplateNotFoundException};
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -138,10 +139,7 @@ class ViewEngine
                 }
             }
             
-            $pathsList = implode("\n  - ", $searchedPaths);
-            throw new InvalidArgumentException(
-                "Template '{$template}' not found. Searched in:\n  - {$pathsList}"
-            );
+            throw new TemplateNotFoundException($template, $searchedPaths);
         }
 
         // Merge data with shared variables
@@ -199,7 +197,10 @@ class ViewEngine
         // Load and compile template
         $template = file_get_contents($templatePath);
         if ($template === false) {
-            throw new RuntimeException("Cannot read template file: {$templatePath}");
+            throw new ViewException(
+                "Cannot read template file: {$templatePath}",
+                "The template file could not be read. Please check file permissions."
+            );
         }
         
         $compiled = $this->compiler->compile($template);

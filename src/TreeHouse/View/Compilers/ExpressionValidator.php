@@ -64,9 +64,21 @@ class ExpressionValidator
         // Remove whitespace for easier parsing
         $cleaned = preg_replace('/\s+/', ' ', trim($expression));
         
-        // Check for blocked operators
+        // First, temporarily replace allowed boolean operators to avoid conflicts
+        $tempCleaned = $cleaned;
+        $replacements = [];
+        foreach (self::ALLOWED_BOOLEAN_OPERATORS as $i => $operator) {
+            $placeholder = "__BOOL_OP_{$i}__";
+            $tempCleaned = str_replace($operator, $placeholder, $tempCleaned);
+            $replacements[$placeholder] = $operator;
+        }
+        
+        // Remove string literals to avoid false positives with operators inside strings
+        $tempCleaned = preg_replace('/["\'][^"\']*["\']/', '__STRING__', $tempCleaned);
+        
+        // Check for blocked operators in the temp string
         foreach (self::BLOCKED_OPERATORS as $operator) {
-            if (strpos($cleaned, $operator) !== false) {
+            if (strpos($tempCleaned, $operator) !== false) {
                 // Special case: allow != in boolean context but not comparison
                 if ($operator === '!=' && $this->isInBooleanContext($cleaned, $operator)) {
                     continue;
@@ -105,6 +117,9 @@ class ExpressionValidator
         foreach (self::ALLOWED_BOOLEAN_OPERATORS as $operator) {
             $remaining = str_replace($operator, '', $remaining);
         }
+
+        // Remove the + operator (allowed for string concatenation)
+        $remaining = str_replace('+', '', $remaining);
 
         // Remove parentheses
         $remaining = str_replace(['(', ')'], '', $remaining);

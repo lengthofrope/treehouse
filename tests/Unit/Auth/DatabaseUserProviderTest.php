@@ -244,7 +244,7 @@ class DatabaseUserProviderTest extends TestCase
 
     public function testGetUserIdThrowsExceptionForInvalidUser(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(\LengthOfRope\TreeHouse\Errors\Exceptions\AuthenticationException::class);
         $this->expectExceptionMessage('User must have an ID or implement getAuthIdentifier method');
         
         // Use reflection to test protected method
@@ -285,7 +285,7 @@ class DatabaseUserProviderTest extends TestCase
 
     public function testGetUserPasswordThrowsExceptionForInvalidUser(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(\LengthOfRope\TreeHouse\Errors\Exceptions\AuthenticationException::class);
         $this->expectExceptionMessage('User must have a password or implement getAuthPassword method');
         
         // Use reflection to test protected method
