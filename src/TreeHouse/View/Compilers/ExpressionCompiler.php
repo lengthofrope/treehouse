@@ -141,7 +141,13 @@ class ExpressionCompiler
      */
     public function compileConditional(string $expression): string
     {
-        $compiled = $this->compileExpression($expression);
+        // Strip braces only if it's a simple variable expression (no operators or spaces)
+        $cleanExpression = trim($expression);
+        if (preg_match('/^\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}$/', $cleanExpression, $matches)) {
+            $cleanExpression = trim($matches[1]);
+        }
+        
+        $compiled = $this->compileExpression($cleanExpression);
         
         // Wrap in boolean context to ensure proper evaluation
         return "({$compiled})";
@@ -155,7 +161,13 @@ class ExpressionCompiler
      */
     public function compileText(string $expression): string
     {
-        $compiled = $this->compileExpression($expression);
+        // Strip braces only if it's a simple variable expression (no operators or spaces)
+        $cleanExpression = trim($expression);
+        if (preg_match('/^\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}$/', $cleanExpression, $matches)) {
+            $cleanExpression = trim($matches[1]);
+        }
+        
+        $compiled = $this->compileExpression($cleanExpression);
         
         // Ensure output is escaped
         return "htmlspecialchars((string)({$compiled}), ENT_QUOTES, 'UTF-8')";
@@ -169,7 +181,13 @@ class ExpressionCompiler
      */
     public function compileRaw(string $expression): string
     {
-        $compiled = $this->compileExpression($expression);
+        // Strip braces only if it's a simple variable expression (no operators or spaces)
+        $cleanExpression = trim($expression);
+        if (preg_match('/^\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}$/', $cleanExpression, $matches)) {
+            $cleanExpression = trim($matches[1]);
+        }
+        
+        $compiled = $this->compileExpression($cleanExpression);
         
         // No escaping for raw output
         return "(string)({$compiled})";
