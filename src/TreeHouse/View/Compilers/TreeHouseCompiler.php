@@ -347,7 +347,8 @@ class TreeHouseCompiler
         $html = preg_replace('/<\?xml encoding="UTF-8"\?>/', '', $html);
         
         // Convert HTML entities back to UTF-8 characters for better emoji support
-        $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // But preserve entities inside <code> and <pre> blocks
+        $html = $this->preserveEntitiesInCodeBlocks($html);
         
         // Process PHP content markers
         $processedHtml = $this->processPhpMarkers($html);
@@ -385,6 +386,41 @@ class TreeHouseCompiler
         $html = preg_replace_callback('/<!--TH_PHP_ATTR:([^-]+)-->/', function ($matches) {
             return base64_decode($matches[1]);
         }, $html);
+        
+        return $html;
+    }
+
+    /**
+     * Preserve HTML entities inside code and pre blocks while decoding elsewhere
+     */
+    protected function preserveEntitiesInCodeBlocks(string $html): string
+    {
+        // Find all <code> and <pre> blocks and temporarily replace them with placeholders
+        $codeBlocks = [];
+        $placeholder = 'TH_CODE_BLOCK_';
+        $counter = 0;
+        
+        // Match <code> blocks (including nested tags)
+        $html = preg_replace_callback('/<code\b[^>]*>.*?<\/code>/s', function($matches) use (&$codeBlocks, $placeholder, &$counter) {
+            $key = $placeholder . $counter++;
+            $codeBlocks[$key] = $matches[0];
+            return $key;
+        }, $html);
+        
+        // Match <pre> blocks (including nested tags)
+        $html = preg_replace_callback('/<pre\b[^>]*>.*?<\/pre>/s', function($matches) use (&$codeBlocks, $placeholder, &$counter) {
+            $key = $placeholder . $counter++;
+            $codeBlocks[$key] = $matches[0];
+            return $key;
+        }, $html);
+        
+        // Decode HTML entities in the remaining content (for emoji support)
+        $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        
+        // Restore the code blocks with their original entities preserved
+        foreach ($codeBlocks as $key => $block) {
+            $html = str_replace($key, $block, $html);
+        }
         
         return $html;
     }
