@@ -19,6 +19,7 @@ $router->get('/components', 'App\Controllers\DemoController@components');
 $router->get('/layouts', 'App\Controllers\DemoController@layouts');
 $router->get('/layouts/minimal-example', 'App\Controllers\DemoController@minimalLayoutExample');
 $router->get('/test-fragment', 'App\Controllers\DemoController@testFragment');
+$router->get('/cli', 'App\Controllers\DemoController@cli');
 
 // About page
 $router->get('/about', function() {

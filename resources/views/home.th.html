@@ -1,7 +1,7 @@
 <div th:extend="layouts.app">
     <div th:section="content">
         <!-- Demo Navigation -->
-        <div class="grid md:grid-cols-3 gap-8 mb-12">
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             <a href="/templating" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
                 <div class="w-12 h-12 bg-treehouse-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-treehouse-200 transition-colors">
                     <svg class="w-6 h-6 text-treehouse-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -30,6 +30,16 @@
                 </div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Layout System</h3>
                 <p class="text-gray-600 text-center">Learn about template inheritance and section management.</p>
+            </a>
+            
+            <a href="/cli" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">CLI Commands</h3>
+                <p class="text-gray-600 text-center">Complete guide to TreeHouse command-line tools and utilities.</p>
             </a>
         </div>
 

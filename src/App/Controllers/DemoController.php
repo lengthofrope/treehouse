@@ -415,4 +415,287 @@ $data = [
         // Use the test-fragment.html template file instead of inline template
         return Response::html(view('test-fragment')->render());
     }
+
+    /**
+     * CLI commands documentation
+     */
+    public function cli(): Response
+    {
+        $data = [
+            'title' => 'TreeHouse CLI Commands',
+            'commands' => [
+                'cache' => [
+                    'name' => 'Cache Commands',
+                    'description' => 'Manage application cache and view compilation',
+                    'commands' => [
+                        'cache:clear' => [
+                            'name' => 'cache:clear',
+                            'description' => 'Clear application cache',
+                            'usage' => 'treehouse cache:clear [options]',
+                            'options' => [
+                                ['key' => '--views', 'value' => 'Clear compiled view templates'],
+                                ['key' => '--app', 'value' => 'Clear application cache'],
+                                ['key' => '--all', 'value' => 'Clear all cache types']
+                            ],
+                            'examples' => [
+                                ['key' => 'treehouse cache:clear', 'value' => 'Clear all cache'],
+                                ['key' => 'treehouse cache:clear --views', 'value' => 'Clear only view cache'],
+                                ['key' => 'treehouse cache:clear --app', 'value' => 'Clear only application cache']
+                            ]
+                        ],
+                        'cache:stats' => [
+                            'name' => 'cache:stats',
+                            'description' => 'Display cache statistics and information',
+                            'usage' => 'treehouse cache:stats',
+                            'options' => [],
+                            'examples' => [
+                                ['key' => 'treehouse cache:stats', 'value' => 'Show cache statistics']
+                            ]
+                        ],
+                        'cache:warm' => [
+                            'name' => 'cache:warm',
+                            'description' => 'Pre-compile templates and warm cache',
+                            'usage' => 'treehouse cache:warm [options]',
+                            'options' => [
+                                ['key' => '--views', 'value' => 'Warm view cache by pre-compiling templates'],
+                                ['key' => '--config', 'value' => 'Cache configuration data'],
+                                ['key' => '--routes', 'value' => 'Cache route definitions']
+                            ],
+                            'examples' => [
+                                ['key' => 'treehouse cache:warm', 'value' => 'Warm all cache types'],
+                                ['key' => 'treehouse cache:warm --views', 'value' => 'Pre-compile templates only']
+                            ]
+                        ]
+                    ]
+                ],
+                'cron' => [
+                    'name' => 'Cron Commands',
+                    'description' => 'Manage scheduled jobs and cron tasks',
+                    'commands' => [
+                        'cron:run' => [
+                            'name' => 'cron:run',
+                            'description' => 'Execute scheduled cron jobs',
+                            'usage' => 'treehouse cron:run [options]',
+                            'options' => [
+                                ['key' => '--force', 'value' => 'Force execution even if jobs are locked'],
+                                ['key' => '--job=NAME', 'value' => 'Run specific job by name'],
+                                ['key' => '--dry-run', 'value' => 'Show what would be executed without running']
+                            ],
+                            'examples' => [
+                                ['key' => 'treehouse cron:run', 'value' => 'Run all due cron jobs'],
+                                ['key' => 'treehouse cron:run --job=cache:cleanup', 'value' => 'Run specific job'],
+                                ['key' => 'treehouse cron:run --dry-run', 'value' => 'Preview jobs without execution']
+                            ]
+                        ],
+                        'cron:list' => [
+                            'name' => 'cron:list',
+                            'description' => 'List all registered cron jobs',
+                            'usage' => 'treehouse cron:list [options]',
+                            'options' => [
+                                ['key' => '--due', 'value' => 'Show only jobs that are due to run'],
+                                ['key' => '--enabled', 'value' => 'Show only enabled jobs'],
+                                ['key' => '--disabled', 'value' => 'Show only disabled jobs']
+                            ],
+                            'examples' => [
+                                ['key' => 'treehouse cron:list', 'value' => 'List all cron jobs'],
+                                ['key' => 'treehouse cron:list --due', 'value' => 'Show jobs due to run now'],
+                                ['key' => 'treehouse cron:list --enabled', 'value' => 'Show only enabled jobs']
+                            ]
+                        ]
+                    ]
+                ],
+                'database' => [
+                    'name' => 'Database Commands',
+                    'description' => 'Manage database migrations and schema',
+                    'commands' => [
+                        'migrate:run' => [
+                            'name' => 'migrate:run',
+                            'description' => 'Run database migrations',
+                            'usage' => 'treehouse migrate:run [options]',
+                            'options' => [
+                                ['key' => '--step=N', 'value' => 'Run N migrations'],
+                                ['key' => '--rollback', 'value' => 'Rollback last migration'],
+                                ['key' => '--reset', 'value' => 'Reset all migrations']
+                            ],
+                            'examples' => [
+                                ['key' => 'treehouse migrate:run', 'value' => 'Run all pending migrations'],
+                                ['key' => 'treehouse migrate:run --step=1', 'value' => 'Run one migration'],
+                                ['key' => 'treehouse migrate:run --rollback', 'value' => 'Rollback last migration']
+                            ]
+                        ]
+                    ]
+                ],
+                'development' => [
+                    'name' => 'Development Commands',
+                    'description' => 'Development server and testing tools',
+                    'commands' => [
+                        'serve' => [
+                            'name' => 'serve',
+                            'description' => 'Start local development server',
+                            'usage' => 'treehouse serve [options]',
+                            'options' => [
+                                ['key' => '--host=HOST', 'value' => 'Server host (default: 127.0.0.1)'],
+                                ['key' => '-p, --port=PORT', 'value' => 'Server port (default: 8000)'],
+                                ['key' => '-d, --docroot=PATH', 'value' => 'Document root (default: public)']
+                            ],
+                            'examples' => [
+                                ['key' => 'treehouse serve', 'value' => 'Start server on 127.0.0.1:8000'],
+                                ['key' => 'treehouse serve --port=3000', 'value' => 'Start server on port 3000'],
+                                ['key' => 'treehouse serve --host=0.0.0.0', 'value' => 'Allow external connections']
+                            ]
+                        ],
+                        'test:run' => [
+                            'name' => 'test:run',
+                            'description' => 'Run application tests',
+                            'usage' => 'treehouse test:run [options]',
+                            'options' => [
+                                ['key' => '--filter=PATTERN', 'value' => 'Filter tests by pattern'],
+                                ['key' => '--coverage', 'value' => 'Generate code coverage report'],
+                                ['key' => '--verbose', 'value' => 'Verbose output']
+                            ],
+                            'examples' => [
+                                ['key' => 'treehouse test:run', 'value' => 'Run all tests'],
+                                ['key' => 'treehouse test:run --filter=UserTest', 'value' => 'Run specific test'],
+                                ['key' => 'treehouse test:run --coverage', 'value' => 'Run tests with coverage']
+                            ]
+                        ]
+                    ]
+                ],
+                'user' => [
+                    'name' => 'User Management Commands',
+                    'description' => 'Manage application users and roles',
+                    'commands' => [
+                        'user:create' => [
+                            'name' => 'user:create',
+                            'description' => 'Create a new user account',
+                            'usage' => 'treehouse user:create [options]',
+                            'options' => [
+                                ['key' => '--name=NAME', 'value' => 'User full name'],
+                                ['key' => '--email=EMAIL', 'value' => 'User email address'],
+                                ['key' => '--password=PASS', 'value' => 'User password'],
+                                ['key' => '--role=ROLE', 'value' => 'Assign role to user']
+                            ],
+                            'examples' => [
+                                ['key' => 'treehouse user:create', 'value' => 'Interactive user creation'],
+                                ['key' => 'treehouse user:create --name="John Doe" --email=john@example.com', 'value' => 'Create user with details']
+                            ]
+                        ],
+                        'user:list' => [
+                            'name' => 'user:list',
+                            'description' => 'List all users',
+                            'usage' => 'treehouse user:list [options]',
+                            'options' => [
+                                ['key' => '--role=ROLE', 'value' => 'Filter by role'],
+                                ['key' => '--active', 'value' => 'Show only active users'],
+                                ['key' => '--format=FORMAT', 'value' => 'Output format (table, json)']
+                            ],
+                            'examples' => [
+                                ['key' => 'treehouse user:list', 'value' => 'List all users'],
+                                ['key' => 'treehouse user:list --role=admin', 'value' => 'List admin users only'],
+                                ['key' => 'treehouse user:list --format=json', 'value' => 'Output as JSON']
+                            ]
+                        ],
+                        'user:update' => [
+                            'name' => 'user:update',
+                            'description' => 'Update user information',
+                            'usage' => 'treehouse user:update [user_id] [options]',
+                            'options' => [
+                                ['key' => '--name=NAME', 'value' => 'Update user name'],
+                                ['key' => '--email=EMAIL', 'value' => 'Update email address'],
+                                ['key' => '--password=PASS', 'value' => 'Update password'],
+                                ['key' => '--role=ROLE', 'value' => 'Update user role']
+                            ],
+                            'examples' => [
+                                ['key' => 'treehouse user:update 1 --name="Jane Doe"', 'value' => 'Update user name'],
+                                ['key' => 'treehouse user:update 1 --role=admin', 'value' => 'Make user admin']
+                            ]
+                        ],
+                        'user:delete' => [
+                            'name' => 'user:delete',
+                            'description' => 'Delete a user account',
+                            'usage' => 'treehouse user:delete [user_id] [options]',
+                            'options' => [
+                                ['key' => '--force', 'value' => 'Skip confirmation prompt'],
+                                ['key' => '--soft', 'value' => 'Soft delete (deactivate instead of remove)']
+                            ],
+                            'examples' => [
+                                ['key' => 'treehouse user:delete 1', 'value' => 'Delete user with confirmation'],
+                                ['key' => 'treehouse user:delete 1 --force', 'value' => 'Delete without confirmation']
+                            ]
+                        ],
+                        'user:role' => [
+                            'name' => 'user:role',
+                            'description' => 'Manage user roles and permissions',
+                            'usage' => 'treehouse user:role [action] [options]',
+                            'options' => [
+                                ['key' => 'assign USER_ID ROLE', 'value' => 'Assign role to user'],
+                                ['key' => 'remove USER_ID ROLE', 'value' => 'Remove role from user'],
+                                ['key' => 'list', 'value' => 'List all available roles']
+                            ],
+                            'examples' => [
+                                ['key' => 'treehouse user:role assign 1 admin', 'value' => 'Make user admin'],
+                                ['key' => 'treehouse user:role remove 1 admin', 'value' => 'Remove admin role'],
+                                ['key' => 'treehouse user:role list', 'value' => 'List all roles']
+                            ]
+                        ]
+                    ]
+                ],
+                'project' => [
+                    'name' => 'Project Commands',
+                    'description' => 'Create new TreeHouse projects',
+                    'commands' => [
+                        'new' => [
+                            'name' => 'new',
+                            'description' => 'Create a new TreeHouse application',
+                            'usage' => 'treehouse new [project-name] [options]',
+                            'options' => [
+                                ['key' => '--path=PATH', 'value' => 'Custom installation path'],
+                                ['key' => '--template=TEMPLATE', 'value' => 'Use specific project template'],
+                                ['key' => '--no-deps', 'value' => 'Skip dependency installation']
+                            ],
+                            'examples' => [
+                                ['key' => 'treehouse new my-app', 'value' => 'Create new project named "my-app"'],
+                                ['key' => 'treehouse new my-app --path=/var/www', 'value' => 'Create in custom path'],
+                                ['key' => 'treehouse new my-app --no-deps', 'value' => 'Skip composer install']
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            'globalOptions' => [
+                ['key' => '-h, --help', 'value' => 'Display help information'],
+                ['key' => '-V, --version', 'value' => 'Display version information'],
+                ['key' => '--debug', 'value' => 'Enable debug mode for detailed error output']
+            ],
+            'usage' => [
+                'basic' => 'treehouse <command> [options] [arguments]',
+                'help' => 'treehouse <command> --help',
+                'version' => 'treehouse --version'
+            ],
+            'features' => [
+                'context_aware' => [
+                    'title' => 'Context-Aware CLI',
+                    'description' => 'The TreeHouse CLI automatically detects whether you\'re inside a TreeHouse project or not, showing different commands accordingly.',
+                    'outside_project' => 'Outside a project: Shows only the "new" command for creating projects',
+                    'inside_project' => 'Inside a project: Shows all project management commands'
+                ],
+                'directory_traversal' => [
+                    'title' => 'Works from Any Directory',
+                    'description' => 'Commands can be run from any subdirectory within a TreeHouse project. The CLI automatically changes to the project root before executing commands.',
+                    'example' => 'You can run "treehouse serve" from src/App/Controllers/ and it will work correctly'
+                ],
+                'command_grouping' => [
+                    'title' => 'Command Grouping',
+                    'description' => 'Commands are organized into logical groups. You can type a group name to see all related commands.',
+                    'examples' => [
+                        'treehouse user' => 'Shows all user management commands',
+                        'treehouse cache' => 'Shows all cache-related commands',
+                        'treehouse cron' => 'Shows all cron job commands'
+                    ]
+                ]
+            ]
+        ];
+
+        return Response::html(view('cli', $data)->render());
+    }
 }

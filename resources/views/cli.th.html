@@ -1,0 +1,191 @@
+<div th:extend="layouts.app">
+    <div th:section="content">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">TreeHouse CLI Commands</h1>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                Comprehensive guide to all TreeHouse command-line interface tools for project management, development, and deployment.
+            </p>
+        </div>
+
+        <!-- CLI Features -->
+        <div class="grid md:grid-cols-3 gap-8 mb-12">
+            <div class="treehouse-card p-6">
+                <div class="w-12 h-12 bg-treehouse-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-treehouse-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Context-Aware CLI</h3>
+                <p class="text-gray-600 text-center text-sm">Automatically detects project context and shows relevant commands</p>
+            </div>
+            
+            <div class="treehouse-card p-6">
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v0a2 2 0 01-2 2H10a2 2 0 01-2-2v0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Works from Any Directory</h3>
+                <p class="text-gray-600 text-center text-sm">Run commands from any subdirectory within your project</p>
+            </div>
+            
+            <div class="treehouse-card p-6">
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Command Grouping</h3>
+                <p class="text-gray-600 text-center text-sm">Organized into logical command groups for easy discovery</p>
+            </div>
+        </div>
+
+        <!-- Usage Section -->
+        <div class="treehouse-card p-8 mb-12">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Basic Usage</h2>
+            <div class="space-y-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">General Syntax</h3>
+                    <div class="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm">
+                        <span class="text-green-400">$</span> treehouse &lt;command&gt; [options] [arguments]
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Get Help</h3>
+                    <div class="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm">
+                        <span class="text-green-400">$</span> treehouse &lt;command&gt; --help
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Check Version</h3>
+                    <div class="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm">
+                        <span class="text-green-400">$</span> treehouse --version
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Global Options -->
+        <div class="treehouse-card p-8 mb-12">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Global Options</h2>
+            <div class="space-y-3">
+                <div th:repeat="option in globalOptions">
+                    <div class="flex items-start space-x-4">
+                        <code class="bg-gray-100 px-3 py-1 rounded text-sm font-mono text-gray-800 min-w-0 flex-shrink-0" th:text="option.key">-h, --help</code>
+                        <span class="text-gray-600" th:text="option.value">Display help information</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Command Groups -->
+        <div class="space-y-12">
+            <div th:repeat="group in commands">
+                <div class="treehouse-card p-8">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-8 h-8 bg-treehouse-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-4 h-4 text-treehouse-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900" th:text="group.name">Command Group</h2>
+                            <p class="text-gray-600" th:text="group.description">Group description</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-8">
+                        <div th:repeat="command in group.commands">
+                            <div class="border-l-4 border-treehouse-200 pl-6">
+                                <h3 class="text-xl font-semibold text-gray-900 mb-2">
+                                    <code class="bg-gray-100 px-3 py-1 rounded text-lg font-mono" th:text="command.name">command:name</code>
+                                </h3>
+                                <p class="text-gray-600 mb-4" th:text="command.description">Command description</p>
+                                
+                                <div class="mb-4">
+                                    <h4 class="text-sm font-semibold text-gray-700 mb-2">Usage:</h4>
+                                    <div class="bg-gray-900 text-gray-100 p-3 rounded-lg font-mono text-sm">
+                                        <span class="text-green-400">$</span> <span th:text="command.usage">treehouse command [options]</span>
+                                    </div>
+                                </div>
+
+                                <div th:if="command.options" class="mb-4">
+                                    <h4 class="text-sm font-semibold text-gray-700 mb-2">Options:</h4>
+                                    <div class="space-y-2">
+                                        <div th:repeat="option in command.options">
+                                            <div class="flex items-start space-x-3">
+                                                <code class="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-800 min-w-0 flex-shrink-0" th:text="option.key">--option</code>
+                                                <span class="text-sm text-gray-600" th:text="option.value">Option description</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div th:if="command.examples" class="mb-4">
+                                    <h4 class="text-sm font-semibold text-gray-700 mb-2">Examples:</h4>
+                                    <div class="space-y-2">
+                                        <div th:repeat="example in command.examples">
+                                            <div class="bg-gray-50 p-3 rounded-lg">
+                                                <div class="bg-gray-900 text-gray-100 p-2 rounded font-mono text-sm mb-2">
+                                                    <span class="text-green-400">$</span> <span th:text="example.key">treehouse command</span>
+                                                </div>
+                                                <p class="text-sm text-gray-600" th:text="example.value">Example description</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Reference -->
+        <div class="treehouse-card p-8 mt-12">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Quick Reference</h2>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Most Common Commands</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center space-x-3">
+                            <code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono">treehouse serve</code>
+                            <span class="text-sm text-gray-600">Start development server</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono">treehouse cache:clear</code>
+                            <span class="text-sm text-gray-600">Clear application cache</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono">treehouse migrate:run</code>
+                            <span class="text-sm text-gray-600">Run database migrations</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono">treehouse user:create</code>
+                            <span class="text-sm text-gray-600">Create new user</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Command Groups</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center space-x-3">
+                            <code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono">treehouse cache</code>
+                            <span class="text-sm text-gray-600">Show cache commands</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono">treehouse user</code>
+                            <span class="text-sm text-gray-600">Show user commands</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono">treehouse cron</code>
+                            <span class="text-sm text-gray-600">Show cron commands</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
