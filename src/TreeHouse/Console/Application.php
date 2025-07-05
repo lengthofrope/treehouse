@@ -154,6 +154,11 @@ class Application
             $command = $this->findCommand($commandName);
             
             if (!$command) {
+                // Check if this is a group prefix (e.g., "user", "cron", "cache")
+                if ($this->showGroupCommands($commandName)) {
+                    return 0;
+                }
+                
                 $this->output->writeln("<error>Command '{$commandName}' not found.</error>");
                 $this->suggestSimilarCommands($commandName);
                 return 1;
@@ -355,6 +360,36 @@ class Application
                 $this->output->writeln("  <info>{$suggestion}</info>");
             }
         }
+    }
+
+    /**
+     * Show commands for a specific group
+     */
+    private function showGroupCommands(string $groupName): bool
+    {
+        $groups = $this->groupCommands();
+        
+        // Check if the group exists
+        if (!isset($groups[$groupName])) {
+            return false;
+        }
+        
+        $this->output->writeln("<info>" . self::NAME . "</info> <comment>version " . self::VERSION . "</comment>");
+        $this->output->writeln("");
+        $this->output->writeln("<comment>Available {$groupName} commands:</comment>");
+        $this->output->writeln("");
+        
+        foreach ($groups[$groupName] as $command) {
+            $this->output->writeln(sprintf("  <info>%-20s</info> %s", $command->getName(), $command->getDescription()));
+        }
+        
+        $this->output->writeln("");
+        $this->output->writeln("<comment>Usage:</comment>");
+        $this->output->writeln("  th <command> [options] [arguments]");
+        $this->output->writeln("");
+        $this->output->writeln("Run 'th <command> --help' for more information on a specific command.");
+        
+        return true;
     }
 
     /**
