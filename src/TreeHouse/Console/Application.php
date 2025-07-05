@@ -106,15 +106,8 @@ class Application
      */
     public function registerCommands(): void
     {
-        if ($this->scriptName === 'treehouse') {
-            // Only register the new project command for 'treehouse' script
-            $this->register(new NewProjectCommand());
-        } elseif ($this->scriptName === 'th') {
-            // Check if we're in a TreeHouse project directory
-            if (!$this->isInTreeHouseProject()) {
-                // Don't register any commands if not in a TreeHouse project
-                return;
-            }
+        if ($this->isInTreeHouseProject()) {
+            // Inside a TreeHouse project - register project management commands
             
             // Cache commands
             $this->register(new CacheClearCommand());
@@ -138,6 +131,9 @@ class Application
             $this->register(new UpdateUserCommand());
             $this->register(new DeleteUserCommand());
             $this->register(new UserRoleCommand());
+        } else {
+            // Outside a TreeHouse project - only register the new project command
+            $this->register(new NewProjectCommand());
         }
     }
 
@@ -151,16 +147,9 @@ class Application
     {
         try {
             // Detect script name from argv[0]
-            $this->scriptName = $this->detectScriptName($argv[0] ?? 'th');
+            $this->scriptName = $this->detectScriptName($argv[0] ?? 'treehouse');
             
-            // Check if 'th' is being used outside a TreeHouse project
-            if ($this->scriptName === 'th' && !$this->isInTreeHouseProject()) {
-                $this->output->writeln("<error>You are not in a TreeHouse directory.</error>");
-                $this->output->writeln("Create a new project using: <info>treehouse new <project-name></info>");
-                return 1;
-            }
-            
-            // Register commands after script detection
+            // Register commands based on project context
             $this->registerCommands();
             
             // Parse input arguments
@@ -246,12 +235,12 @@ class Application
             return;
         }
         
-        // Show appropriate name based on script
-        $appName = $this->scriptName === 'treehouse' ? self::PROJECT_CREATOR_NAME : self::PROJECT_MANAGER_NAME;
+        // Show appropriate name based on project context
+        $appName = $this->isInTreeHouseProject() ? self::PROJECT_MANAGER_NAME : self::PROJECT_CREATOR_NAME;
         $this->output->writeln("<info>" . $appName . "</info> <comment>version " . self::VERSION . "</comment>");
         $this->output->writeln("");
         $this->output->writeln("<comment>Usage:</comment>");
-        $this->output->writeln("  {$this->scriptName} <command> [options] [arguments]");
+        $this->output->writeln("  treehouse <command> [options] [arguments]");
         $this->output->writeln("");
         $this->output->writeln("<comment>Available commands:</comment>");
         
@@ -281,7 +270,7 @@ class Application
         $this->output->writeln("");
         
         $this->output->writeln("<comment>Usage:</comment>");
-        $this->output->writeln("  {$this->scriptName} " . $command->getName() . " " . $command->getSynopsis());
+        $this->output->writeln("  treehouse " . $command->getName() . " " . $command->getSynopsis());
         $this->output->writeln("");
         
         // Show options if any exist
@@ -335,8 +324,8 @@ class Application
      */
     private function showVersion(): void
     {
-        // Show appropriate name based on script
-        $appName = $this->scriptName === 'treehouse' ? self::PROJECT_CREATOR_NAME : self::PROJECT_MANAGER_NAME;
+        // Show appropriate name based on project context
+        $appName = $this->isInTreeHouseProject() ? self::PROJECT_MANAGER_NAME : self::PROJECT_CREATOR_NAME;
         $this->output->writeln($appName . " " . self::VERSION);
     }
 
@@ -424,9 +413,9 @@ class Application
         
         $this->output->writeln("");
         $this->output->writeln("<comment>Usage:</comment>");
-        $this->output->writeln("  {$this->scriptName} <command> [options] [arguments]");
+        $this->output->writeln("  treehouse <command> [options] [arguments]");
         $this->output->writeln("");
-        $this->output->writeln("Run '{$this->scriptName} <command> --help' for more information on a specific command.");
+        $this->output->writeln("Run 'treehouse <command> --help' for more information on a specific command.");
         
         return true;
     }

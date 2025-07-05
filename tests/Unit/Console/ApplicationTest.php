@@ -35,9 +35,47 @@ class ApplicationTest extends TestCase
         $this->assertNotNull($this->app->getConfig());
     }
 
-    public function testApplicationRegistersTreehouseCommands(): void
+    public function testApplicationRegistersCommandsOutsideProject(): void
     {
-        // Simulate 'treehouse' script
+        // Create a temporary directory outside TreeHouse project
+        $tempDir = sys_get_temp_dir() . '/test_treehouse_' . uniqid();
+        mkdir($tempDir);
+        
+        // Change working directory temporarily
+        $originalDir = getcwd();
+        chdir($tempDir);
+        
+        try {
+            // Create new application instance in temp directory
+            $app = new Application();
+            $app->run(['treehouse', '--help']);
+            $commands = $app->getCommands();
+            
+            // Check that we have registered commands
+            $this->assertNotEmpty($commands);
+            
+            // Check specific command types exist
+            $commandNames = array_keys($commands);
+            
+            // Project commands (only outside TreeHouse project)
+            $this->assertContains('new', $commandNames);
+            
+            // Should NOT contain project management commands
+            $this->assertNotContains('cache:clear', $commandNames);
+            $this->assertNotContains('serve', $commandNames);
+        } finally {
+            // Restore original directory and cleanup
+            chdir($originalDir);
+            if (is_dir($tempDir)) {
+                // Recursively remove directory and all contents
+                $this->removeDirectory($tempDir);
+            }
+        }
+    }
+
+    public function testApplicationRegistersCommandsInsideProject(): void
+    {
+        // Simulate treehouse command in TreeHouse directory
         $this->app->run(['treehouse', '--help']);
         $commands = $this->app->getCommands();
         
@@ -47,27 +85,7 @@ class ApplicationTest extends TestCase
         // Check specific command types exist
         $commandNames = array_keys($commands);
         
-        // Project commands (only for treehouse script)
-        $this->assertContains('new', $commandNames);
-        
-        // Should NOT contain th-specific commands
-        $this->assertNotContains('cache:clear', $commandNames);
-        $this->assertNotContains('serve', $commandNames);
-    }
-
-    public function testApplicationRegistersThCommands(): void
-    {
-        // Simulate 'th' script in TreeHouse directory
-        $this->app->run(['th', '--help']);
-        $commands = $this->app->getCommands();
-        
-        // Check that we have registered commands
-        $this->assertNotEmpty($commands);
-        
-        // Check specific command types exist
-        $commandNames = array_keys($commands);
-        
-        // Should NOT contain new command
+        // Should NOT contain new command (inside project)
         $this->assertNotContains('new', $commandNames);
         
         // Cache commands
@@ -138,6 +156,27 @@ class ApplicationTest extends TestCase
             $this->assertIsString($name);
             $this->assertInstanceOf(Command::class, $command);
         }
+    }
+
+    /**
+     * Recursively remove a directory and all its contents
+     */
+    private function removeDirectory(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        $files = array_diff(scandir($dir), ['.', '..']);
+        foreach ($files as $file) {
+            $path = $dir . DIRECTORY_SEPARATOR . $file;
+            if (is_dir($path)) {
+                $this->removeDirectory($path);
+            } else {
+                unlink($path);
+            }
+        }
+        rmdir($dir);
     }
 }
 
