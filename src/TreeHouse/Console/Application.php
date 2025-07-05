@@ -188,9 +188,27 @@ class Application
                 return 1;
             }
             
-            // Execute the command with enhanced input that includes defaults
-            $enhancedInput = $this->createEnhancedInput($input, $command);
-            return $command->execute($enhancedInput, $this->output);
+            // Change to project root if we're in a TreeHouse project
+            $originalWorkingDir = getcwd();
+            $projectRoot = $this->findProjectRoot();
+            
+            if ($projectRoot !== null && $projectRoot !== $originalWorkingDir) {
+                if (!chdir($projectRoot)) {
+                    $this->output->writeln("<error>Failed to change to project root directory: {$projectRoot}</error>");
+                    return 1;
+                }
+            }
+            
+            try {
+                // Execute the command with enhanced input that includes defaults
+                $enhancedInput = $this->createEnhancedInput($input, $command);
+                return $command->execute($enhancedInput, $this->output);
+            } finally {
+                // Always restore the original working directory
+                if ($projectRoot !== null && $projectRoot !== $originalWorkingDir && $originalWorkingDir !== false) {
+                    chdir($originalWorkingDir);
+                }
+            }
             
         } catch (Throwable $e) {
             $this->output->writeln("<error>Error: {$e->getMessage()}</error>");
@@ -439,6 +457,16 @@ class Application
      */
     private function isInTreeHouseProject(): bool
     {
+        return $this->findProjectRoot() !== null;
+    }
+
+    /**
+     * Find the TreeHouse project root directory
+     *
+     * @return string|null The project root path, or null if not in a TreeHouse project
+     */
+    private function findProjectRoot(): ?string
+    {
         $currentDir = $this->workingDirectory;
         
         // Traverse up the directory tree to find a TreeHouse project root
@@ -455,7 +483,7 @@ class Application
                                        isset($composer['require-dev']['lengthofrope/treehouse']);
                         
                         if ($hasTreeHouse) {
-                            return true;
+                            return $currentDir;
                         }
                     }
                 }
@@ -464,12 +492,12 @@ class Application
             // Check for TreeHouse config directory
             if (is_dir($currentDir . '/config') &&
                 file_exists($currentDir . '/config/app.php')) {
-                return true;
+                return $currentDir;
             }
             
             // Check for TreeHouse source directory structure
             if (is_dir($currentDir . '/src/TreeHouse')) {
-                return true;
+                return $currentDir;
             }
             
             // Move up one directory level
@@ -483,7 +511,7 @@ class Application
             $currentDir = $parentDir;
         }
         
-        return false;
+        return null;
     }
 
     /**

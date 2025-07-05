@@ -10,6 +10,7 @@
 - **Community**: Prepare for open-source release with contribution guidelines
 
 ## Recent Major Changes
+- **CLI Working Directory Fix**: Implemented automatic working directory change to project root for all commands when executed from subdirectories, ensuring path-dependent commands like `treehouse serve` work correctly from any location within a TreeHouse project
 - **CLI Application Enhancement**: Implemented intelligent context-aware CLI with single `treehouse` command that adapts based on project detection
 - **Directory Traversal Support**: Enhanced project detection to work from any subdirectory within a TreeHouse project using recursive directory traversal
 - **Command Grouping**: Added grouped command listing functionality where typing partial command names shows all related commands (user:*, cron:*, cache:*)
