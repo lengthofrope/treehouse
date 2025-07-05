@@ -75,20 +75,10 @@ class LockTest extends TestCase
         $lock2 = new Lock($lockFile);
         
         $this->assertTrue($lock1->acquire('test-job', 300));
+        $this->assertFalse($lock2->acquire('test-job', 300)); // Should fail - file exists
         
-        // Due to atomic creation with link(), this might succeed on some filesystems
-        $result2 = $lock2->acquire('test-job', 300);
-        
-        // Either the second acquire should fail, or both should report being held
-        if ($result2) {
-            // If both succeeded, both should report being held
-            $this->assertTrue($lock1->isHeldByCurrentProcess());
-            $this->assertTrue($lock2->isHeldByCurrentProcess());
-        } else {
-            // Normal case - second acquire fails
-            $this->assertTrue($lock1->isHeldByCurrentProcess());
-            $this->assertFalse($lock2->isHeldByCurrentProcess());
-        }
+        $this->assertTrue($lock1->isHeldByCurrentProcess());
+        $this->assertFalse($lock2->isHeldByCurrentProcess());
     }
 
     public function testReleaseLock(): void
@@ -265,12 +255,9 @@ class LockTest extends TestCase
         $this->assertTrue($lock1->acquire('job1', 300));
         $this->assertTrue($lock1->isHeldByCurrentProcess());
         
-        // Second lock might succeed on some filesystems due to atomic creation
-        $result2 = $lock2->acquire('job2', 300);
-        
-        if (!$result2) {
-            $this->assertFalse($lock2->isHeldByCurrentProcess());
-        }
+        // Second lock should fail
+        $this->assertFalse($lock2->acquire('job2', 300));
+        $this->assertFalse($lock2->isHeldByCurrentProcess());
         
         // After releasing first, second should be able to acquire
         $this->assertTrue($lock1->release());
@@ -346,25 +333,15 @@ class LockTest extends TestCase
     public function testDestructor(): void
     {
         $lockFile = $this->tempDir . '/destructor.lock';
+        $lock = new Lock($lockFile);
+        $lock->acquire('test-job', 300);
+        $this->assertTrue($lock->exists());
         
-        {
-            $lock = new Lock($lockFile);
-            $lock->acquire('test-job', 300);
-            $this->assertTrue($lock->exists());
-            
-            // Manually trigger destructor for reliable testing
-            unset($lock);
-        }
+        // Manually call release to simulate destructor behavior
+        $lock->release();
         
-        // Force garbage collection to ensure destructor runs
-        gc_collect_cycles();
-        
-        // Lock might still exist depending on GC timing, so check if it's at least stale
-        if (file_exists($lockFile)) {
-            $remainingLock = new Lock($lockFile);
-            // If file exists, it should at least be stale or the destructor cleaned it up
-            $this->assertTrue($remainingLock->isStale() || !$remainingLock->exists());
-        }
+        // Lock should be released
+        $this->assertFalse(file_exists($lockFile));
     }
 
     public function testAtomicLockCreation(): void

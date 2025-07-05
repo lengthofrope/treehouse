@@ -176,8 +176,8 @@ class JobResult
     {
         $this->endTime = $endTime;
         
-        // Auto-calculate duration if start time is set
-        if ($this->startTime !== null) {
+        // Auto-calculate duration if start time is set and duration is not manually set
+        if ($this->startTime !== null && $this->duration === null) {
             $this->duration = $endTime - $this->startTime;
         }
         
@@ -233,8 +233,8 @@ class JobResult
     {
         $this->endMemory = $endMemory;
         
-        // Auto-calculate memory used if start memory is set
-        if ($this->startMemory !== null) {
+        // Auto-calculate memory used if start memory is set and memory usage is not manually set
+        if ($this->startMemory !== null && $this->memoryUsed === null) {
             $this->memoryUsed = $endMemory - $this->startMemory;
         }
         

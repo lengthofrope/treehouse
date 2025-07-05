@@ -268,13 +268,27 @@ class Lock
         }
 
         // Atomic operation: link temp file to lock file
-        if (link($tempFile, $this->lockFile)) {
-            unlink($tempFile);
+        if (@link($tempFile, $this->lockFile)) {
+            @unlink($tempFile);
             return true;
         }
 
         // Clean up temp file on failure
         @unlink($tempFile);
+        
+        // Check if file already exists (race condition)
+        if (file_exists($this->lockFile)) {
+            return false;
+        }
+        
+        // Fallback: try direct file creation with exclusive flag
+        $handle = @fopen($this->lockFile, 'x');
+        if ($handle) {
+            fwrite($handle, $content);
+            fclose($handle);
+            return true;
+        }
+        
         return false;
     }
 

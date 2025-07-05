@@ -261,16 +261,15 @@ class JobResultTest extends TestCase
     {
         $result = new JobResult('test-job');
         
-        // Set duration manually
+        // Set duration manually (should not be overridden by setEndTime)
         $result->setDuration(5.0);
         $this->assertEquals(5.0, $result->getDuration());
         
-        // Setting end time will override manual duration in current implementation
+        // Setting end time should still work but not override manual duration
         $result->setStartTime(microtime(true))
                ->setEndTime(microtime(true) + 1.0);
         
-        // The implementation auto-calculates duration when setEndTime is called
-        $this->assertEqualsWithDelta(1.0, $result->getDuration(), 0.1);
+        $this->assertEquals(5.0, $result->getDuration()); // Manual setting preserved
     }
 
     public function testManualMemoryUsedSetting(): void
@@ -281,11 +280,10 @@ class JobResultTest extends TestCase
         $result->setMemoryUsed(512 * 1024);
         $this->assertEquals(512 * 1024, $result->getMemoryUsed());
         
-        // Setting end memory will override manual setting in current implementation
+        // Setting end memory should still work but not override manual setting
         $result->setStartMemory(1024)
                ->setEndMemory(2048);
         
-        // The implementation auto-calculates memory usage when setEndMemory is called
-        $this->assertEquals(1024, $result->getMemoryUsed()); // 2048 - 1024 = 1024
+        $this->assertEquals(512 * 1024, $result->getMemoryUsed()); // Manual setting preserved
     }
 }
