@@ -451,8 +451,8 @@ class Application
                     $composer = json_decode($composerContent, true);
                     if (is_array($composer)) {
                         // Check if TreeHouse is in require or require-dev
-                        $hasTreeHouse = isset($composer['require']['lengthofrope/treehouse-framework']) ||
-                                       isset($composer['require-dev']['lengthofrope/treehouse-framework']);
+                        $hasTreeHouse = isset($composer['require']['lengthofrope/treehouse']) ||
+                                       isset($composer['require-dev']['lengthofrope/treehouse']);
                         
                         if ($hasTreeHouse) {
                             return true;
