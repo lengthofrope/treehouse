@@ -10,6 +10,14 @@
 - **Community**: Prepare for open-source release with contribution guidelines
 
 ## Recent Major Changes
+- **CLI Application Enhancement**: Implemented intelligent context-aware CLI with single `treehouse` command that adapts based on project detection
+- **Directory Traversal Support**: Enhanced project detection to work from any subdirectory within a TreeHouse project using recursive directory traversal
+- **Command Grouping**: Added grouped command listing functionality where typing partial command names shows all related commands (user:*, cron:*, cache:*)
+- **Project Context Detection**: Fixed package name detection from `lengthofrope/treehouse-framework` to correct `lengthofrope/treehouse`
+- **Comprehensive Cron System**: Complete cron scheduling system with job registry, execution engine, locking mechanism, and CLI commands
+- **Cron Job Management**: Built-in jobs for cache cleanup and lock cleanup with configurable schedules and priorities
+- **Cron Expression Parser**: Full cron expression parsing with validation and human-readable descriptions
+- **Cron Locking System**: File-based locking to prevent concurrent job execution with automatic cleanup
 - **Comprehensive Test Suite Creation**: Created complete test coverage for all new template functionality with 3 specialized test suites
 - **Template Engine Testing**: Extended TreeHouseCompilerTest.php with 18 new tests covering fragments, switch/case, form helpers, and complex scenarios
 - **HTML Entity Preservation Testing**: Created HtmlEntityPreservationTest.php with 11 tests for emoji support and entity handling
@@ -26,7 +34,7 @@
 - **Error Handling Integration**: Complete framework-wide error handling integration with proper exception types across all layers
 - **Error Views System**: Template-based error pages with shared layouts and debug/production modes
 - **Framework Exception Hierarchy**: Router, View, Database, and Auth layers now use TreeHouse exception types
-- **Test Suite Alignment**: All 1516 tests passing with zero warnings and updated expectations for new exception types
+- **Test Suite Alignment**: All 1646 tests passing with zero warnings and updated expectations for new exception types
 - **Error Handling Layer**: Complete PSR-3 compliant error handling system with hierarchical exceptions, structured logging, and multi-format rendering
 - **ActiveRecord ORM**: Fully implemented with relationships, query builder, and model events
 - **Authentication System**: Complete RBAC with roles, permissions, and policy-based authorization
@@ -40,7 +48,8 @@
 - **Router Layer**: ✅ Complete - URL routing, middleware, request/response handling
 - **Auth Layer**: ✅ Complete - RBAC, guards, permissions, policies
 - **View Layer**: ✅ Complete - Template engine with robust compilation, all advanced features, expression handling, and caching
-- **Console Layer**: ✅ Complete - CLI framework with commands and helpers
+- **Console Layer**: ✅ Complete - CLI framework with intelligent context detection, command grouping, and directory traversal
+- **Cron Layer**: ✅ Complete - Comprehensive scheduling system with job registry, execution engine, locking, and CLI commands
 - **Security Layer**: ✅ Complete - CSRF, encryption, hashing, sanitization
 - **Validation Layer**: ✅ Complete - 25+ rules with custom rule support
 - **Cache Layer**: ✅ Complete - File-based caching with pattern matching
@@ -50,7 +59,7 @@
 - **PHP Version**: 8.4+ (utilizing modern PHP features)
 - **Zero Dependencies**: Only requires PHP extensions (PDO, JSON, mbstring, OpenSSL, fileinfo, filter)
 - **PSR-4 Autoloading**: Organized namespace structure under `LengthOfRope\TreeHouse`
-- **Testing**: PHPUnit 11.0+ with comprehensive test coverage (1516 tests, 0 warnings)
+- **Testing**: PHPUnit 11.0+ with comprehensive test coverage (1646 tests, 0 warnings)
 - **Code Quality**: Strict typing, modern PHP patterns, comprehensive documentation
 
 ## Next Steps
@@ -84,10 +93,13 @@
 - **Template Tests**: `tests/Unit/View/Compilers/` - Comprehensive test suite (64 tests, 172 assertions)
 - **Error Layer**: `src/TreeHouse/Errors/` - Complete error handling system with PSR-3 logging
 - **Error Tests**: `tests/Unit/Errors/` - Comprehensive test suite (108 tests, 255 assertions)
+- **Cron System**: `src/TreeHouse/Cron/` - Complete scheduling system with job registry, execution engine, locking
+- **Cron Commands**: `src/TreeHouse/Console/Commands/CronCommands/` - CLI commands for cron management
+- **Cron Configuration**: `config/cron.php` - Comprehensive cron system configuration
 - **Sample Application**: `src/App/` - Example controllers and models
 - **Configuration**: `config/` - Application configuration files
-- **Tests**: `tests/Unit/` - Comprehensive test coverage (1516 tests total)
-- **CLI Entry Point**: `bin/treehouse` - Command-line interface
+- **Tests**: `tests/Unit/` - Comprehensive test coverage (1646 tests total)
+- **CLI Entry Point**: `bin/treehouse` - Command-line interface with intelligent context detection
 - **Web Entry Point**: `public/index.php` - HTTP request handler
 
 ## Error Layer Implementation Status
@@ -105,6 +117,18 @@
 - **Expression Validation**: ✅ Complete - Supports all variable patterns including double underscores, dot notation, boolean logic, and framework helpers
 - **Template Caching**: ✅ Complete - Proper cache invalidation and compilation with new validation logic
 - **Template Testing**: ✅ Complete - Comprehensive test suites covering all new functionality (64 tests, 172 assertions)
+
+## Cron Layer Implementation Status
+- **Job Registry**: ✅ Complete - Job registration, validation, and discovery with metadata management
+- **Job Executor**: ✅ Complete - Individual job execution with timeout handling, locking, and result tracking
+- **Scheduler**: ✅ Complete - Main orchestrator with job discovery, scheduling, execution, and comprehensive locking
+- **Expression Parser**: ✅ Complete - Full cron expression parsing with validation and human-readable descriptions
+- **Locking System**: ✅ Complete - File-based locking to prevent concurrent executions with automatic cleanup
+- **Built-in Jobs**: ✅ Complete - Cache cleanup and lock cleanup jobs with configurable schedules
+- **CLI Commands**: ✅ Complete - `cron:run` and `cron:list` commands with comprehensive options
+- **Configuration**: ✅ Complete - Comprehensive configuration system with scheduler, execution, and monitoring settings
+- **Exception Handling**: ✅ Complete - Specialized cron exception hierarchy with proper error context
+- **Results Tracking**: ✅ Complete - Detailed job execution results with timing, memory usage, and status tracking
 
 ## Template Engine Test Coverage Status
 - **TreeHouseCompilerTest.php**: ✅ Complete - 38 tests covering all directives, complex scenarios, and edge cases

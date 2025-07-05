@@ -15,11 +15,12 @@ graph TB
     B --> F[Database Layer]
     B --> G[Cache Layer]
     B --> H[Console Layer]
-    B --> I[Security Layer]
-    B --> J[Validation Layer]
-    B --> K[Support Layer]
-    B --> L[Http Layer]
-    B --> M[Error Layer]
+    B --> I[Cron Layer]
+    B --> J[Security Layer]
+    B --> K[Validation Layer]
+    B --> L[Support Layer]
+    B --> M[Http Layer]
+    B --> N[Error Layer]
 ```
 
 ## Source Code Paths
@@ -46,8 +47,16 @@ graph TB
   - [`ViewEngine.php`](src/TreeHouse/View/ViewEngine.php) - Template compilation
   - [`Compilers/`](src/TreeHouse/View/Compilers/) - Template processors
 - **Console/**: CLI framework
-  - [`Application.php`](src/TreeHouse/Console/Application.php) - CLI application runner
-  - [`Commands/`](src/TreeHouse/Console/Commands/) - Built-in commands
+  - [`Application.php`](src/TreeHouse/Console/Application.php) - CLI application runner with intelligent context detection
+  - [`Commands/`](src/TreeHouse/Console/Commands/) - Built-in commands with grouping support
+- **Cron/**: Scheduled job system
+  - [`CronScheduler.php`](src/TreeHouse/Cron/CronScheduler.php) - Main scheduler orchestrator
+  - [`JobRegistry.php`](src/TreeHouse/Cron/JobRegistry.php) - Job registration and discovery
+  - [`JobExecutor.php`](src/TreeHouse/Cron/JobExecutor.php) - Individual job execution engine
+  - [`CronExpressionParser.php`](src/TreeHouse/Cron/CronExpressionParser.php) - Cron expression parsing and validation
+  - [`Locking/`](src/TreeHouse/Cron/Locking/) - File-based locking system
+  - [`Jobs/`](src/TreeHouse/Cron/Jobs/) - Built-in cron jobs (cache cleanup, lock cleanup)
+  - [`Exceptions/`](src/TreeHouse/Cron/Exceptions/) - Cron-specific exception hierarchy
 - **Security/**: Security features
   - [`Hash.php`](src/TreeHouse/Security/Hash.php) - Password hashing
   - [`Csrf.php`](src/TreeHouse/Security/Csrf.php) - CSRF protection
@@ -76,6 +85,7 @@ graph TB
 - [`database.php`](config/database.php) - Database connections
 - [`auth.php`](config/auth.php) - Authentication configuration
 - [`view.php`](config/view.php) - Template engine settings
+- [`cron.php`](config/cron.php) - Cron system configuration
 - [`routes/`](config/routes/) - Route definitions
 
 ### Entry Points
@@ -161,6 +171,14 @@ graph TB
 2. **Guard Selection** → Auth/SessionGuard.php
 3. **User Provider** → Auth/DatabaseUserProvider.php
 4. **Authorization** → Auth/Gate.php
+
+### Cron Execution Flow
+1. **Cron Trigger** → Console/Commands/CronCommands/CronRunCommand.php
+2. **Scheduler Start** → Cron/CronScheduler.php
+3. **Job Discovery** → Cron/JobRegistry.php
+4. **Expression Parsing** → Cron/CronExpressionParser.php
+5. **Job Execution** → Cron/JobExecutor.php
+6. **Lock Management** → Cron/Locking/LockManager.php
 
 ### Error Handling Flow
 1. **Exception Thrown** → Errors/ErrorHandler.php
