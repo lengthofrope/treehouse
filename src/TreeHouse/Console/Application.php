@@ -12,6 +12,8 @@ use LengthOfRope\TreeHouse\Console\Commands\NewProjectCommand;
 use LengthOfRope\TreeHouse\Console\Commands\CacheCommands\CacheClearCommand;
 use LengthOfRope\TreeHouse\Console\Commands\CacheCommands\CacheStatsCommand;
 use LengthOfRope\TreeHouse\Console\Commands\CacheCommands\CacheWarmCommand;
+use LengthOfRope\TreeHouse\Console\Commands\CronCommands\CronRunCommand;
+use LengthOfRope\TreeHouse\Console\Commands\CronCommands\CronListCommand;
 use LengthOfRope\TreeHouse\Console\Commands\DatabaseCommands\MigrateRunCommand;
 use LengthOfRope\TreeHouse\Console\Commands\DevelopmentCommands\ServeCommand;
 use LengthOfRope\TreeHouse\Console\Commands\DevelopmentCommands\TestRunCommand;
@@ -97,6 +99,10 @@ class Application
         $this->register(new CacheClearCommand());
         $this->register(new CacheStatsCommand());
         $this->register(new CacheWarmCommand());
+        
+        // Cron commands
+        $this->register(new CronRunCommand());
+        $this->register(new CronListCommand());
         
         // Database commands
         $this->register(new MigrateRunCommand());
