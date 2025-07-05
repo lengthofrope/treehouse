@@ -8,19 +8,77 @@ Please note that this framework is in WIP state. It is nowhere near production r
 
 ## Architecture Overview
 
-TreeHouse Framework is built with a clean layered architecture consisting of 11 core layers:
+TreeHouse Framework is built with a clean layered architecture consisting of 11 core layers. Each layer provides specific functionality and maintains clear separation of concerns:
 
-1. **[Foundation Layer](src/TreeHouse/Foundation/README.md)** - Application bootstrap, dependency injection container, and service registration
-2. **[Database Layer](src/TreeHouse/Database/README.md)** - ActiveRecord ORM, QueryBuilder, connections, migrations, and relationships
-3. **[Router Layer](src/TreeHouse/Router/README.md)** - HTTP routing, middleware, route groups, parameter binding, and named routes
-4. **[Auth Layer](src/TreeHouse/Auth/README.md)** - Authentication, authorization, RBAC system, guards, providers, and policies
-5. **[Console Layer](src/TreeHouse/Console/README.md)** - CLI application, command system, user management, and cache operations
-6. **[Cache Layer](src/TreeHouse/Cache/README.md)** - File-based caching, prefixed caching, pattern matching, and performance optimization
-7. **[Http Layer](src/TreeHouse/Http/README.md)** - Request/response handling, session management, cookies, file uploads, and security
-8. **[Security Layer](src/TreeHouse/Security/README.md)** - CSRF protection, AES-256-CBC encryption, password hashing, and input sanitization
-9. **[Support Layer](src/TreeHouse/Support/README.md)** - Array utilities, Collection class, String utilities, Carbon dates, Environment, and UUIDs
-10. **[Validation Layer](src/TreeHouse/Validation/README.md)** - Comprehensive input validation with 25+ built-in rules and custom rule support
-11. **[View Layer](src/TreeHouse/View/README.md)** - Template engine with HTML-valid syntax, components, layouts, and compilation
+### Core Layers
+
+1. **[Foundation Layer](src/TreeHouse/Foundation/README.md)**
+   - Application bootstrap and lifecycle management
+   - Dependency injection container with auto-wiring
+   - Service registration and configuration loading
+   - Environment management and application setup
+
+2. **[Database Layer](src/TreeHouse/Database/README.md)**
+   - ActiveRecord ORM with Eloquent-style syntax
+   - Fluent QueryBuilder for complex SQL operations
+   - Database connections and transaction management
+   - Schema migrations and relationship handling
+
+3. **[Router Layer](src/TreeHouse/Router/README.md)**
+   - HTTP routing with parameter binding and constraints
+   - Middleware system for request/response processing
+   - Route groups, named routes, and URL generation
+   - RESTful routing patterns and route caching
+
+4. **[Auth Layer](src/TreeHouse/Auth/README.md)**
+   - Multi-guard authentication system
+   - Role-Based Access Control (RBAC) with permissions
+   - User providers and authentication guards
+   - Authorization policies and gate system
+
+5. **[Console Layer](src/TreeHouse/Console/README.md)**
+   - Comprehensive CLI application framework
+   - Built-in commands for user and cache management
+   - Database migration and development tools
+   - Interactive command system with argument parsing
+
+6. **[Cache Layer](src/TreeHouse/Cache/README.md)**
+   - High-performance file-based caching
+   - Pattern matching and wildcard cache operations
+   - Cache prefixing and namespace organization
+   - TTL support and automatic cleanup
+
+7. **[Http Layer](src/TreeHouse/Http/README.md)**
+   - HTTP request and response handling
+   - Session management with security features
+   - Cookie handling and file upload processing
+   - Security headers and HTTPS enforcement
+
+8. **[Security Layer](src/TreeHouse/Security/README.md)**
+   - CSRF protection with token validation
+   - AES-256-CBC encryption for sensitive data
+   - Secure password hashing with modern algorithms
+   - Input sanitization and XSS prevention
+
+9. **[Support Layer](src/TreeHouse/Support/README.md)**
+   - Collection class with 50+ utility methods
+   - String manipulation and validation utilities
+   - Carbon integration for date/time handling
+   - Array utilities with dot notation support
+
+10. **[Validation Layer](src/TreeHouse/Validation/README.md)**
+    - Comprehensive validation system with 25+ rules
+    - Custom validation rule support
+    - Conditional validation and nested data handling
+    - Internationalized error messages
+
+11. **[View Layer](src/TreeHouse/View/README.md)**
+    - Custom template engine with HTML-valid syntax
+    - Layout inheritance and component system
+    - Template compilation with caching
+    - Authentication and authorization integration
+
+> **📖 Detailed Documentation**: Each layer includes comprehensive documentation with examples, API references, and implementation details. Click the layer links above to explore specific functionality.
 
 ## Features
 
@@ -89,35 +147,37 @@ TreeHouse Framework is built with a clean layered architecture consisting of 11 
 
 ## Installation
 
-### Create a New Project
+### Install TreeHouse Globally (Recommended)
 
-```bash
-composer create-project lengthofrope/treehouse my-app
-cd my-app
-composer install
-./bin/th serve
-```
-
-### Or Install via Composer
-
-```bash
-composer require lengthofrope/treehouse
-```
-
-### Using the CLI Tool
-
-Create a new project:
+Install TreeHouse globally to use the project creation tool:
 
 ```bash
 # Install TreeHouse globally
 composer global require lengthofrope/treehouse
 
-# Create new project
-./bin/treehouse new my-app
+# Make sure global composer bin is in your PATH
+export PATH="$PATH:$HOME/.composer/vendor/bin"
+
+# Create new project using the global treehouse command
+treehouse new my-app
 cd my-app
-composer install
-./bin/treehouse serve
+th serve
 ```
+
+### Install as Dependency
+
+```bash
+composer require lengthofrope/treehouse
+```
+
+### CLI Tools Overview
+
+TreeHouse provides two CLI commands with different purposes:
+
+- **`treehouse`** - **Project Creator**: Shows only the `new` command for scaffolding TreeHouse projects
+- **`th`** - **Project Manager**: Shows all development commands (user management, cache operations, migrations, etc.)
+
+**Note**: When installed globally, both `treehouse` and `th` commands are available system-wide and automatically detect the project context based on your current working directory. You can use either `th` (global) or `./bin/th` (local) for project management - they work identically.
 
 ## Quick Start
 
@@ -315,66 +375,84 @@ my-app/
 
 ## CLI Commands
 
-TreeHouse includes a comprehensive CLI tool with the following commands:
+TreeHouse includes two CLI tools with different purposes:
 
-### Development
+### Project Creation
 ```bash
-# Development server
+# Create new project (global installation recommended)
+treehouse new my-app
+
+# Show help for project creation
+treehouse --help
+```
+
+### Project Management
+```bash
+# Development server (use global 'th' or local './bin/th')
+th serve --port=8000 --host=localhost
+# or
 ./bin/th serve --port=8000 --host=localhost
 
-# Create new project
-./bin/treehouse new my-app
+# Show all available commands
+th --help
+
+# Show commands by group (e.g., user commands)
+th user
+
+# Both global and local commands work identically
+th cache:clear    # Global command
+./bin/th cache:clear    # Local command (same result)
 ```
 
 ### Cache Management
 ```bash
 # Clear all cache
-./bin/th cache:clear
+th cache:clear
 
 # Clear specific cache patterns
-./bin/th cache:clear --pattern="user:*"
+th cache:clear --pattern="user:*"
 
 # Show cache statistics
-./bin/th cache:stats
+th cache:stats
 
 # Show detailed cache information
-./bin/th cache:info
+th cache:info
 ```
 
 ### User Management
 ```bash
 # Create new user
-./bin/th user:create --name="John Doe" --email="john@example.com" --password="secret"
+th user:create --name="John Doe" --email="john@example.com" --password="secret"
 
 # Create user with role
-./bin/th user:create --name="Admin User" --email="admin@example.com" --role="admin"
+th user:create --name="Admin User" --email="admin@example.com" --role="admin"
 
 # Update user
-./bin/th user:update --email="john@example.com" --name="John Smith"
+th user:update --email="john@example.com" --name="John Smith"
 
 # Delete user
-./bin/th user:delete --email="john@example.com"
+th user:delete --email="john@example.com"
 
 # List all users
-./bin/th user:list
+th user:list
 ```
 
 ### Database
 ```bash
 # Run migrations
-./bin/th migrate:run
+th migrate:run
 
 # Create migration
-./bin/th migrate:create create_posts_table
+th migrate:create create_posts_table
 ```
 
 ### Testing
 ```bash
 # Run tests
-./bin/th test:run
+th test:run
 
 # Run specific test suite
-./bin/th test:run --suite=unit
+th test:run --suite=unit
 ```
 
 ## Template Engine
@@ -737,9 +815,9 @@ class UserTest extends DatabaseTestCase
 Run tests:
 
 ```bash
-./bin/th test:run
+th test:run
 composer test
-./bin/th test:run --filter=UserTest
+th test:run --filter=UserTest
 ```
 
 ## Performance & Optimization
