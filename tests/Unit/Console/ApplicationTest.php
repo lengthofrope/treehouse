@@ -48,7 +48,12 @@ class ApplicationTest extends TestCase
         try {
             // Create new application instance in temp directory
             $app = new Application();
+            
+            // Capture output to prevent console spam during tests
+            ob_start();
             $app->run(['treehouse', '--help']);
+            ob_end_clean();
+            
             $commands = $app->getCommands();
             
             // Check that we have registered commands
@@ -75,8 +80,11 @@ class ApplicationTest extends TestCase
 
     public function testApplicationRegistersCommandsInsideProject(): void
     {
-        // Simulate treehouse command in TreeHouse directory
+        // Capture output to prevent console spam during tests
+        ob_start();
         $this->app->run(['treehouse', '--help']);
+        ob_end_clean();
+        
         $commands = $this->app->getCommands();
         
         // Check that we have registered commands
@@ -146,7 +154,10 @@ class ApplicationTest extends TestCase
     public function testGetCommands(): void
     {
         // Register commands first by simulating a run
+        // Capture output to prevent console spam during tests
+        ob_start();
         $this->app->run(['treehouse', '--help']);
+        ob_end_clean();
         
         $commands = $this->app->getCommands();
         $this->assertIsArray($commands);
