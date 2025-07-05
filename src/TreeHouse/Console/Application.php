@@ -435,37 +435,52 @@ class Application
     }
 
     /**
-     * Check if we're in a TreeHouse project directory
+     * Check if we're in a TreeHouse project directory or any subdirectory within one
      */
     private function isInTreeHouseProject(): bool
     {
-        // Check for composer.json with treehouse dependency
-        $composerPath = $this->workingDirectory . '/composer.json';
-        if (file_exists($composerPath)) {
-            $composerContent = file_get_contents($composerPath);
-            if ($composerContent !== false) {
-                $composer = json_decode($composerContent, true);
-                if (is_array($composer)) {
-                    // Check if TreeHouse is in require or require-dev
-                    $hasTreeHouse = isset($composer['require']['lengthofrope/treehouse-framework']) ||
-                                   isset($composer['require-dev']['lengthofrope/treehouse-framework']);
-                    
-                    if ($hasTreeHouse) {
-                        return true;
+        $currentDir = $this->workingDirectory;
+        
+        // Traverse up the directory tree to find a TreeHouse project root
+        while ($currentDir !== '/' && $currentDir !== '' && strlen($currentDir) > 1) {
+            // Check for composer.json with treehouse dependency
+            $composerPath = $currentDir . '/composer.json';
+            if (file_exists($composerPath)) {
+                $composerContent = file_get_contents($composerPath);
+                if ($composerContent !== false) {
+                    $composer = json_decode($composerContent, true);
+                    if (is_array($composer)) {
+                        // Check if TreeHouse is in require or require-dev
+                        $hasTreeHouse = isset($composer['require']['lengthofrope/treehouse-framework']) ||
+                                       isset($composer['require-dev']['lengthofrope/treehouse-framework']);
+                        
+                        if ($hasTreeHouse) {
+                            return true;
+                        }
                     }
                 }
             }
-        }
-        
-        // Check for TreeHouse config directory
-        if (is_dir($this->workingDirectory . '/config') &&
-            file_exists($this->workingDirectory . '/config/app.php')) {
-            return true;
-        }
-        
-        // Check for TreeHouse source directory structure
-        if (is_dir($this->workingDirectory . '/src/TreeHouse')) {
-            return true;
+            
+            // Check for TreeHouse config directory
+            if (is_dir($currentDir . '/config') &&
+                file_exists($currentDir . '/config/app.php')) {
+                return true;
+            }
+            
+            // Check for TreeHouse source directory structure
+            if (is_dir($currentDir . '/src/TreeHouse')) {
+                return true;
+            }
+            
+            // Move up one directory level
+            $parentDir = dirname($currentDir);
+            
+            // Prevent infinite loop if dirname returns the same directory
+            if ($parentDir === $currentDir) {
+                break;
+            }
+            
+            $currentDir = $parentDir;
         }
         
         return false;
