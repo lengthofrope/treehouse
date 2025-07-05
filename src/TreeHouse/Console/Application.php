@@ -46,6 +46,16 @@ class Application
      * Application name
      */
     public const NAME = 'TreeHouse CLI';
+    
+    /**
+     * Project creation tool name
+     */
+    public const PROJECT_CREATOR_NAME = 'TreeHouse Project Creator';
+    
+    /**
+     * Project management tool name
+     */
+    public const PROJECT_MANAGER_NAME = 'TreeHouse Project Manager';
 
     /**
      * Registered commands
@@ -75,6 +85,11 @@ class Application
     private string $workingDirectory;
 
     /**
+     * Script name (treehouse or th)
+     */
+    private string $scriptName;
+
+    /**
      * Create a new CLI application
      */
     public function __construct()
@@ -83,40 +98,42 @@ class Application
         $this->output = new ConsoleOutput();
         $this->config = new ConfigLoader();
         $this->workingDirectory = getcwd() ?: __DIR__;
-        
-        $this->registerCommands();
+        $this->scriptName = 'th'; // Default to 'th'
     }
 
     /**
      * Register all available commands
      */
-    private function registerCommands(): void
+    public function registerCommands(): void
     {
-        // Project scaffolding
+        // Always register the new project command for 'treehouse' script
         $this->register(new NewProjectCommand());
         
-        // Cache commands
-        $this->register(new CacheClearCommand());
-        $this->register(new CacheStatsCommand());
-        $this->register(new CacheWarmCommand());
-        
-        // Cron commands
-        $this->register(new CronRunCommand());
-        $this->register(new CronListCommand());
-        
-        // Database commands
-        $this->register(new MigrateRunCommand());
-        
-        // Development commands
-        $this->register(new ServeCommand());
-        $this->register(new TestRunCommand());
-        
-        // User management commands
-        $this->register(new CreateUserCommand());
-        $this->register(new ListUsersCommand());
-        $this->register(new UpdateUserCommand());
-        $this->register(new DeleteUserCommand());
-        $this->register(new UserRoleCommand());
+        // Only register other commands if script name is 'th' (not 'treehouse')
+        if (isset($this->scriptName) && $this->scriptName === 'th') {
+            // Cache commands
+            $this->register(new CacheClearCommand());
+            $this->register(new CacheStatsCommand());
+            $this->register(new CacheWarmCommand());
+            
+            // Cron commands
+            $this->register(new CronRunCommand());
+            $this->register(new CronListCommand());
+            
+            // Database commands
+            $this->register(new MigrateRunCommand());
+            
+            // Development commands
+            $this->register(new ServeCommand());
+            $this->register(new TestRunCommand());
+            
+            // User management commands
+            $this->register(new CreateUserCommand());
+            $this->register(new ListUsersCommand());
+            $this->register(new UpdateUserCommand());
+            $this->register(new DeleteUserCommand());
+            $this->register(new UserRoleCommand());
+        }
     }
 
     /**
@@ -128,6 +145,12 @@ class Application
     public function run(array $argv): int
     {
         try {
+            // Detect script name from argv[0]
+            $this->scriptName = $this->detectScriptName($argv[0] ?? 'th');
+            
+            // Register commands after script detection
+            $this->registerCommands();
+            
             // Parse input arguments
             $input = $this->input->parse($argv);
             
@@ -211,10 +234,12 @@ class Application
             return;
         }
         
-        $this->output->writeln("<info>" . self::NAME . "</info> <comment>version " . self::VERSION . "</comment>");
+        // Show appropriate name based on script
+        $appName = $this->scriptName === 'treehouse' ? self::PROJECT_CREATOR_NAME : self::PROJECT_MANAGER_NAME;
+        $this->output->writeln("<info>" . $appName . "</info> <comment>version " . self::VERSION . "</comment>");
         $this->output->writeln("");
         $this->output->writeln("<comment>Usage:</comment>");
-        $this->output->writeln("  th <command> [options] [arguments]");
+        $this->output->writeln("  {$this->scriptName} <command> [options] [arguments]");
         $this->output->writeln("");
         $this->output->writeln("<comment>Available commands:</comment>");
         
@@ -244,7 +269,7 @@ class Application
         $this->output->writeln("");
         
         $this->output->writeln("<comment>Usage:</comment>");
-        $this->output->writeln("  th " . $command->getName() . " " . $command->getSynopsis());
+        $this->output->writeln("  {$this->scriptName} " . $command->getName() . " " . $command->getSynopsis());
         $this->output->writeln("");
         
         // Show options if any exist
@@ -298,7 +323,9 @@ class Application
      */
     private function showVersion(): void
     {
-        $this->output->writeln(self::NAME . " " . self::VERSION);
+        // Show appropriate name based on script
+        $appName = $this->scriptName === 'treehouse' ? self::PROJECT_CREATOR_NAME : self::PROJECT_MANAGER_NAME;
+        $this->output->writeln($appName . " " . self::VERSION);
     }
 
     /**
@@ -385,11 +412,25 @@ class Application
         
         $this->output->writeln("");
         $this->output->writeln("<comment>Usage:</comment>");
-        $this->output->writeln("  th <command> [options] [arguments]");
+        $this->output->writeln("  {$this->scriptName} <command> [options] [arguments]");
         $this->output->writeln("");
-        $this->output->writeln("Run 'th <command> --help' for more information on a specific command.");
+        $this->output->writeln("Run '{$this->scriptName} <command> --help' for more information on a specific command.");
         
         return true;
+    }
+
+    /**
+     * Detect script name from argv[0]
+     */
+    private function detectScriptName(string $scriptPath): string
+    {
+        $basename = basename($scriptPath);
+        
+        // Remove file extension if present
+        $name = pathinfo($basename, PATHINFO_FILENAME);
+        
+        // Return 'treehouse' if the script name contains 'treehouse', otherwise 'th'
+        return str_contains($name, 'treehouse') ? 'treehouse' : 'th';
     }
 
     /**

@@ -21,6 +21,8 @@ class ApplicationTest extends TestCase
     {
         parent::setUp();
         $this->app = new Application();
+        // Register commands for testing (normally done in run())
+        $this->app->registerCommands();
     }
 
     public function testApplicationHasCorrectNameAndVersion(): void
