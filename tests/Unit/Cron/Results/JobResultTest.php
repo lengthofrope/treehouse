@@ -135,7 +135,7 @@ class JobResultTest extends TestCase
         
         // Minutes and seconds
         $result->setDuration(125.75);
-        $this->assertEquals('2m 5s', $result->getFormattedDuration()); // Implementation rounds to whole seconds
+        $this->assertEquals('2m 6s', $result->getFormattedDuration()); // 125.75 seconds = 2m 5.75s, rounds to 6s
     }
 
     public function testFormattedMemoryUsed(): void

@@ -31,14 +31,22 @@ class LockTest extends TestCase
     private function cleanupTempDir(): void
     {
         if (is_dir($this->tempDir)) {
-            $files = glob($this->tempDir . '/*');
-            foreach ($files as $file) {
-                if (is_file($file)) {
-                    unlink($file);
-                }
-            }
-            rmdir($this->tempDir);
+            $this->removeDirectory($this->tempDir);
         }
+    }
+
+    private function removeDirectory(string $dir): void
+    {
+        $files = array_diff(scandir($dir), ['.', '..']);
+        foreach ($files as $file) {
+            $path = $dir . '/' . $file;
+            if (is_dir($path)) {
+                $this->removeDirectory($path);
+            } else {
+                unlink($path);
+            }
+        }
+        rmdir($dir);
     }
 
     public function testCreateLock(): void

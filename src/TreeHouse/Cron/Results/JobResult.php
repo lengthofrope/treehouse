@@ -390,15 +390,16 @@ class JobResult
         }
         
         if ($this->duration < 1) {
-            return round($this->duration * 1000) . 'ms';
+            return (int) round($this->duration * 1000) . 'ms';
         }
         
         if ($this->duration < 60) {
             return round($this->duration, 2) . 's';
         }
         
-        $minutes = floor($this->duration / 60);
-        $seconds = round($this->duration % 60, 2);
+        $minutes = (int) floor($this->duration / 60);
+        $remainingSeconds = $this->duration - ($minutes * 60);
+        $seconds = (int) round($remainingSeconds);
         return "{$minutes}m {$seconds}s";
     }
 
@@ -414,7 +415,7 @@ class JobResult
         $mb = $this->getMemoryUsedMB();
         
         if ($mb < 1) {
-            return round($this->memoryUsed / 1024) . 'KB';
+            return (int) round($this->memoryUsed / 1024) . 'KB';
         }
         
         return $mb . 'MB';

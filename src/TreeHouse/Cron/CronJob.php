@@ -396,4 +396,22 @@ abstract class CronJob implements CronJobInterface
     {
         return (int) ini_get('max_execution_time');
     }
+
+    /**
+     * Convert job to string representation
+     *
+     * @return string String representation of the job
+     */
+    public function __toString(): string
+    {
+        return sprintf(
+            '%s [%s] - %s (Priority: %d, Timeout: %ds, Concurrent: %s)',
+            $this->getName(),
+            $this->getSchedule(),
+            $this->getDescription() ?: 'No description',
+            $this->getPriority(),
+            $this->getTimeout(),
+            $this->allowsConcurrentExecution() ? 'Yes' : 'No'
+        );
+    }
 }

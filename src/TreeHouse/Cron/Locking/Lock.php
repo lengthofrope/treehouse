@@ -58,7 +58,7 @@ class Lock
                 return false;
             }
             // Clean up stale lock
-            $this->release();
+            $this->forceRelease();
         }
 
         // Create lock metadata
@@ -135,7 +135,7 @@ class Lock
         }
 
         $metadata = $this->getMetadata();
-        return $metadata && $metadata->pid === getmypid();
+        return $metadata && $metadata->pid === getmypid() && $this->isHeld;
     }
 
     /**
@@ -269,9 +269,16 @@ class Lock
 
         // Write content and close
         $written = fwrite($handle, $content);
-        fclose($handle);
+        $closed = fclose($handle);
 
-        return $written !== false;
+        // Verify the file was created successfully
+        if ($written === false || !$closed || !file_exists($this->lockFile)) {
+            // Clean up on failure
+            @unlink($this->lockFile);
+            return false;
+        }
+
+        return true;
     }
 
     /**
