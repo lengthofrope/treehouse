@@ -72,7 +72,7 @@ return [
     |
     */
     'locks' => [
-        'directory' => storage_path('cron/locks'),  // Lock files directory
+        'directory' => dirname(__DIR__) . '/storage/cron/locks',  // Lock files directory
         'global_timeout' => 300,        // Global scheduler lock timeout
         'default_job_timeout' => 120,   // Default job lock timeout
         'cleanup_interval' => 300,      // Stale lock cleanup interval
@@ -154,23 +154,3 @@ return [
         'memory_cleanup' => true,       // Force garbage collection after jobs
     ],
 ];
-
-/*
-|--------------------------------------------------------------------------
-| Helper Functions
-|--------------------------------------------------------------------------
-|
-| Helper functions for configuration values.
-|
-*/
-
-if (!function_exists('storage_path')) {
-    /**
-     * Get storage path
-     */
-    function storage_path(string $path = ''): string
-    {
-        $basePath = getcwd() . '/storage';
-        return $path ? $basePath . '/' . ltrim($path, '/') : $basePath;
-    }
-}
