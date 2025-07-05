@@ -270,7 +270,7 @@ class JobRegistryTest extends TestCase
         $invalidJob = new InvalidTestCronJob();
         $registry->register($invalidJob);
         
-        $this->assertTrue($registry->hasJob('invalid-job'));
+        $this->assertTrue($registry->hasJob(''));  // Empty name since that's what InvalidTestCronJob sets
     }
 }
 
