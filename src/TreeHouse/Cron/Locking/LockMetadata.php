@@ -88,7 +88,7 @@ class LockMetadata
             getmypid(),
             time(),
             $timeout,
-            gethostname() ?: 'unknown',
+            php_uname('n') ?: 'unknown',
             $jobName,
             $metadata
         );

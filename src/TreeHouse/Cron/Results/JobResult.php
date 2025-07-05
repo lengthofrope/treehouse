@@ -332,7 +332,7 @@ class JobResult
     /**
      * Add metadata entry
      */
-    public function addMetadata(string $key, mixed $value): self
+    public function addMetadata(string $key, $value): self
     {
         $this->metadata[$key] = $value;
         return $this;
@@ -341,7 +341,7 @@ class JobResult
     /**
      * Get metadata value
      */
-    public function getMetadataValue(string $key, mixed $default = null): mixed
+    public function getMetadataValue(string $key, $default = null)
     {
         return $this->metadata[$key] ?? $default;
     }

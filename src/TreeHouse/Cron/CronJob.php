@@ -281,7 +281,7 @@ abstract class CronJob implements CronJobInterface
      * @param mixed $value Metadata value
      * @return self
      */
-    protected function addMetadata(string $key, mixed $value): self
+    protected function addMetadata(string $key, $value): self
     {
         $this->metadata[$key] = $value;
         return $this;

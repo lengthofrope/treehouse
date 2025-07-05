@@ -51,13 +51,13 @@ class Lock
      */
     public function acquire(string $jobName, int $timeout = 300, array $metadata = []): bool
     {
-        // Check if lock already exists and is valid
-        if ($this->exists() && !$this->isStale()) {
-            return false;
-        }
-
-        // Clean up stale lock if it exists
-        if ($this->exists() && $this->isStale()) {
+        // Check if lock already exists
+        if ($this->exists()) {
+            // If lock exists and is not stale, acquisition fails
+            if (!$this->isStale()) {
+                return false;
+            }
+            // Clean up stale lock
             $this->release();
         }
 
@@ -259,37 +259,19 @@ class Lock
             return false;
         }
 
-        // Create temporary file with lock content
-        $tempFile = $this->lockFile . '.tmp.' . getmypid();
         $content = $this->metadata->toJson();
 
-        if (file_put_contents($tempFile, $content, LOCK_EX) === false) {
-            return false;
-        }
-
-        // Atomic operation: link temp file to lock file
-        if (@link($tempFile, $this->lockFile)) {
-            @unlink($tempFile);
-            return true;
-        }
-
-        // Clean up temp file on failure
-        @unlink($tempFile);
-        
-        // Check if file already exists (race condition)
-        if (file_exists($this->lockFile)) {
-            return false;
-        }
-        
-        // Fallback: try direct file creation with exclusive flag
+        // Try to create file exclusively (atomic operation)
         $handle = @fopen($this->lockFile, 'x');
-        if ($handle) {
-            fwrite($handle, $content);
-            fclose($handle);
-            return true;
+        if ($handle === false) {
+            return false; // File already exists
         }
-        
-        return false;
+
+        // Write content and close
+        $written = fwrite($handle, $content);
+        fclose($handle);
+
+        return $written !== false;
     }
 
     /**
