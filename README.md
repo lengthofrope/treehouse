@@ -161,7 +161,7 @@ export PATH="$PATH:$HOME/.composer/vendor/bin"
 # Create new project using the global treehouse command
 treehouse new my-app
 cd my-app
-th serve
+treehouse serve
 ```
 
 ### Install as Dependency
@@ -170,14 +170,15 @@ th serve
 composer require lengthofrope/treehouse
 ```
 
-### CLI Tools Overview
+### CLI Tool Overview
 
-TreeHouse provides two CLI commands with different purposes:
+TreeHouse provides a single intelligent CLI command that adapts to your context:
 
-- **`treehouse`** - **Project Creator**: Shows only the `new` command for scaffolding TreeHouse projects
-- **`th`** - **Project Manager**: Shows all development commands (user management, cache operations, migrations, etc.)
+- **`treehouse`** - **Context-Aware CLI Tool**:
+  - **Outside TreeHouse projects**: Shows "TreeHouse Project Creator" with only the `new` command for scaffolding projects
+  - **Inside TreeHouse projects**: Shows "TreeHouse Project Manager" with all development commands (user management, cache operations, migrations, etc.)
 
-**Note**: When installed globally, both `treehouse` and `th` commands are available system-wide and automatically detect the project context based on your current working directory. You can use either `th` (global) or `./bin/th` (local) for project management - they work identically.
+**Note**: The `treehouse` command automatically detects whether you're inside a TreeHouse project directory and shows the appropriate commands. When installed globally, the command is available system-wide. You can also use the local `./bin/treehouse` within projects.
 
 ## Quick Start
 
@@ -370,89 +371,89 @@ my-app/
 ├── storage/                  # Cache, logs, compiled views
 ├── tests/                    # Test files
 ├── database/migrations/      # Database migrations
-└── bin/th                   # CLI command
+└── bin/treehouse            # CLI command
 ```
 
 ## CLI Commands
 
-TreeHouse includes two CLI tools with different purposes:
+TreeHouse includes a single context-aware CLI tool:
 
-### Project Creation
+### Project Creation (Outside TreeHouse Projects)
 ```bash
 # Create new project (global installation recommended)
 treehouse new my-app
 
-# Show help for project creation
+# Show help for project creation (when outside a TreeHouse project)
 treehouse --help
 ```
 
-### Project Management
+### Project Management (Inside TreeHouse Projects)
 ```bash
-# Development server (use global 'th' or local './bin/th')
-th serve --port=8000 --host=localhost
+# Development server (use global 'treehouse' or local './bin/treehouse')
+treehouse serve --port=8000 --host=localhost
 # or
-./bin/th serve --port=8000 --host=localhost
+./bin/treehouse serve --port=8000 --host=localhost
 
-# Show all available commands
-th --help
+# Show all available commands (when inside a TreeHouse project)
+treehouse --help
 
 # Show commands by group (e.g., user commands)
-th user
+treehouse user
 
 # Both global and local commands work identically
-th cache:clear    # Global command
-./bin/th cache:clear    # Local command (same result)
+treehouse cache:clear    # Global command
+./bin/treehouse cache:clear    # Local command (same result)
 ```
 
 ### Cache Management
 ```bash
 # Clear all cache
-th cache:clear
+treehouse cache:clear
 
 # Clear specific cache patterns
-th cache:clear --pattern="user:*"
+treehouse cache:clear --pattern="user:*"
 
 # Show cache statistics
-th cache:stats
+treehouse cache:stats
 
 # Show detailed cache information
-th cache:info
+treehouse cache:info
 ```
 
 ### User Management
 ```bash
 # Create new user
-th user:create --name="John Doe" --email="john@example.com" --password="secret"
+treehouse user:create --name="John Doe" --email="john@example.com" --password="secret"
 
 # Create user with role
-th user:create --name="Admin User" --email="admin@example.com" --role="admin"
+treehouse user:create --name="Admin User" --email="admin@example.com" --role="admin"
 
 # Update user
-th user:update --email="john@example.com" --name="John Smith"
+treehouse user:update --email="john@example.com" --name="John Smith"
 
 # Delete user
-th user:delete --email="john@example.com"
+treehouse user:delete --email="john@example.com"
 
 # List all users
-th user:list
+treehouse user:list
 ```
 
 ### Database
 ```bash
 # Run migrations
-th migrate:run
+treehouse migrate:run
 
 # Create migration
-th migrate:create create_posts_table
+treehouse migrate:create create_posts_table
 ```
 
 ### Testing
 ```bash
 # Run tests
-th test:run
+treehouse test:run
 
 # Run specific test suite
-th test:run --suite=unit
+treehouse test:run --suite=unit
 ```
 
 ## Template Engine
@@ -815,9 +816,9 @@ class UserTest extends DatabaseTestCase
 Run tests:
 
 ```bash
-th test:run
+treehouse test:run
 composer test
-th test:run --filter=UserTest
+treehouse test:run --filter=UserTest
 ```
 
 ## Performance & Optimization
