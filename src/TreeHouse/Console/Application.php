@@ -106,11 +106,16 @@ class Application
      */
     public function registerCommands(): void
     {
-        // Always register the new project command for 'treehouse' script
-        $this->register(new NewProjectCommand());
-        
-        // Only register other commands if script name is 'th' (not 'treehouse')
-        if (isset($this->scriptName) && $this->scriptName === 'th') {
+        if ($this->scriptName === 'treehouse') {
+            // Only register the new project command for 'treehouse' script
+            $this->register(new NewProjectCommand());
+        } elseif ($this->scriptName === 'th') {
+            // Check if we're in a TreeHouse project directory
+            if (!$this->isInTreeHouseProject()) {
+                // Don't register any commands if not in a TreeHouse project
+                return;
+            }
+            
             // Cache commands
             $this->register(new CacheClearCommand());
             $this->register(new CacheStatsCommand());
@@ -147,6 +152,13 @@ class Application
         try {
             // Detect script name from argv[0]
             $this->scriptName = $this->detectScriptName($argv[0] ?? 'th');
+            
+            // Check if 'th' is being used outside a TreeHouse project
+            if ($this->scriptName === 'th' && !$this->isInTreeHouseProject()) {
+                $this->output->writeln("<error>You are not in a TreeHouse directory.</error>");
+                $this->output->writeln("Create a new project using: <info>treehouse new <project-name></info>");
+                return 1;
+            }
             
             // Register commands after script detection
             $this->registerCommands();
@@ -431,6 +443,43 @@ class Application
         
         // Return 'treehouse' if the script name contains 'treehouse', otherwise 'th'
         return str_contains($name, 'treehouse') ? 'treehouse' : 'th';
+    }
+
+    /**
+     * Check if we're in a TreeHouse project directory
+     */
+    private function isInTreeHouseProject(): bool
+    {
+        // Check for composer.json with treehouse dependency
+        $composerPath = $this->workingDirectory . '/composer.json';
+        if (file_exists($composerPath)) {
+            $composerContent = file_get_contents($composerPath);
+            if ($composerContent !== false) {
+                $composer = json_decode($composerContent, true);
+                if (is_array($composer)) {
+                    // Check if TreeHouse is in require or require-dev
+                    $hasTreeHouse = isset($composer['require']['lengthofrope/treehouse-framework']) ||
+                                   isset($composer['require-dev']['lengthofrope/treehouse-framework']);
+                    
+                    if ($hasTreeHouse) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        // Check for TreeHouse config directory
+        if (is_dir($this->workingDirectory . '/config') &&
+            file_exists($this->workingDirectory . '/config/app.php')) {
+            return true;
+        }
+        
+        // Check for TreeHouse source directory structure
+        if (is_dir($this->workingDirectory . '/src/TreeHouse')) {
+            return true;
+        }
+        
+        return false;
     }
 
     /**

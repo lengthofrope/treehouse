@@ -21,8 +21,6 @@ class ApplicationTest extends TestCase
     {
         parent::setUp();
         $this->app = new Application();
-        // Register commands for testing (normally done in run())
-        $this->app->registerCommands();
     }
 
     public function testApplicationHasCorrectNameAndVersion(): void
@@ -37,8 +35,10 @@ class ApplicationTest extends TestCase
         $this->assertNotNull($this->app->getConfig());
     }
 
-    public function testApplicationRegistersDefaultCommands(): void
+    public function testApplicationRegistersTreehouseCommands(): void
     {
+        // Simulate 'treehouse' script
+        $this->app->run(['treehouse', '--help']);
         $commands = $this->app->getCommands();
         
         // Check that we have registered commands
@@ -47,8 +47,28 @@ class ApplicationTest extends TestCase
         // Check specific command types exist
         $commandNames = array_keys($commands);
         
-        // Project commands
+        // Project commands (only for treehouse script)
         $this->assertContains('new', $commandNames);
+        
+        // Should NOT contain th-specific commands
+        $this->assertNotContains('cache:clear', $commandNames);
+        $this->assertNotContains('serve', $commandNames);
+    }
+
+    public function testApplicationRegistersThCommands(): void
+    {
+        // Simulate 'th' script in TreeHouse directory
+        $this->app->run(['th', '--help']);
+        $commands = $this->app->getCommands();
+        
+        // Check that we have registered commands
+        $this->assertNotEmpty($commands);
+        
+        // Check specific command types exist
+        $commandNames = array_keys($commands);
+        
+        // Should NOT contain new command
+        $this->assertNotContains('new', $commandNames);
         
         // Cache commands
         $this->assertContains('cache:clear', $commandNames);
@@ -107,6 +127,9 @@ class ApplicationTest extends TestCase
 
     public function testGetCommands(): void
     {
+        // Register commands first by simulating a run
+        $this->app->run(['treehouse', '--help']);
+        
         $commands = $this->app->getCommands();
         $this->assertIsArray($commands);
         $this->assertNotEmpty($commands);
