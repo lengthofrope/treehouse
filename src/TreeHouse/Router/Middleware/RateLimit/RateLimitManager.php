@@ -311,8 +311,8 @@ class RateLimitManager
         // Clear cached instances
         $this->keyResolverInstances = array_filter(
             $this->keyResolverInstances,
-            fn($key) => !str_starts_with($key, $name . '_'),
-            ARRAY_FILTER_USE_KEY
+            fn($value, $key) => !str_starts_with($key, $name . '_'),
+            ARRAY_FILTER_USE_BOTH
         );
     }
 
