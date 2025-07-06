@@ -183,10 +183,10 @@ class SyncEventDispatcher implements EventDispatcher
      * Remove a specific listener for an event
      * 
      * @param string $eventClass The event class name
-     * @param callable|string $listener The listener to remove
+     * @param callable|string|object $listener The listener to remove
      * @return bool True if listener was found and removed
      */
-    public function removeListener(string $eventClass, callable|string $listener): bool
+    public function removeListener(string $eventClass, callable|string|object $listener): bool
     {
         if (!isset($this->listeners[$eventClass])) {
             return false;
@@ -226,14 +226,19 @@ class SyncEventDispatcher implements EventDispatcher
     /**
      * Resolve a listener to a callable
      * 
-     * @param callable|string $listener The listener to resolve
+     * @param callable|string|object $listener The listener to resolve
      * @return callable|object The resolved listener
      * @throws EventException If the listener cannot be resolved
      */
-    private function resolveListener(callable|string $listener): callable|object
+    private function resolveListener(callable|string|object $listener): callable|object
     {
         // If it's already callable, return as-is
         if (is_callable($listener)) {
+            return $listener;
+        }
+
+        // If it's already an object, return as-is
+        if (is_object($listener)) {
             return $listener;
         }
 
@@ -294,11 +299,11 @@ class SyncEventDispatcher implements EventDispatcher
     /**
      * Check if two listeners are the same
      * 
-     * @param callable|string $listener1 First listener
-     * @param callable|string $listener2 Second listener
+     * @param callable|string|object $listener1 First listener
+     * @param callable|string|object $listener2 Second listener
      * @return bool
      */
-    private function listenersAreSame(callable|string $listener1, callable|string $listener2): bool
+    private function listenersAreSame(callable|string|object $listener1, callable|string|object $listener2): bool
     {
         // Both are strings (class names)
         if (is_string($listener1) && is_string($listener2)) {
@@ -307,6 +312,11 @@ class SyncEventDispatcher implements EventDispatcher
 
         // Both are the same callable
         if (is_callable($listener1) && is_callable($listener2)) {
+            return $listener1 === $listener2;
+        }
+
+        // Both are the same object instance
+        if (is_object($listener1) && is_object($listener2)) {
             return $listener1 === $listener2;
         }
 
