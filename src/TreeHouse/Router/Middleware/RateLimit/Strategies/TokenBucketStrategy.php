@@ -70,9 +70,13 @@ class TokenBucketStrategy implements RateLimitStrategyInterface
         // Check if request can be served
         if ($currentTokens < 1) {
             // No tokens available, calculate retry after
-            $refillRate = $limit / $windowSeconds; // tokens per second
-            $timeToNextToken = (1 - $currentTokens) / $refillRate;
-            $retryAfter = max(1, (int) ceil($timeToNextToken));
+            if ($limit <= 0 || $windowSeconds <= 0) {
+                $retryAfter = 1;
+            } else {
+                $refillRate = $limit / $windowSeconds; // tokens per second
+                $timeToNextToken = (1 - $currentTokens) / $refillRate;
+                $retryAfter = max(1, (int) ceil($timeToNextToken));
+            }
             
             // Update bucket state without consuming token
             $this->storeBucketState($cache, $cacheKey, [
