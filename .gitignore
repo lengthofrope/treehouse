@@ -18,6 +18,13 @@ Thumbs.db
 
 # PHP
 /vendor/
+
+# Demo Files
+demo_rate_limiting.php
+demo_rate_limiting_clean.php
+
+# Temporary autoloader (replaced by composer)
+autoload.php
 composer.phar
 .env
 
