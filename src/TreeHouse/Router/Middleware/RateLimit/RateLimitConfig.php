@@ -57,10 +57,10 @@ class RateLimitConfig
      * Parse middleware parameters into configuration
      *
      * Supports formats:
-     * - throttle:60,1 (limit, window)
-     * - throttle:60,1,sliding (limit, window, strategy)
-     * - throttle:60,1,sliding,user (limit, window, strategy, key_resolver)
-     * - throttle:100,1|1000,60 (multiple limits)
+     * - throttle:60,30 (limit, window in seconds)
+     * - throttle:60,30,sliding (limit, window, strategy)
+     * - throttle:60,30,sliding,user (limit, window, strategy, key_resolver)
+     * - throttle:100,30|1000,60 (multiple limits)
      *
      * @param string $parameters Middleware parameters
      * @return static
@@ -191,7 +191,7 @@ class RateLimitConfig
     }
 
     /**
-     * Get the time window in minutes
+     * Get the time window in seconds
      */
     public function getWindow(): int
     {

@@ -120,7 +120,7 @@ class RateLimitManager
             return RateLimitResult::allowed(
                 limit: $config->getLimit(),
                 remaining: $config->getLimit(),
-                resetTime: time() + ($config->getWindow() * 60)
+                resetTime: time() + $config->getWindow()
             );
         }
 
@@ -131,7 +131,7 @@ class RateLimitManager
             cache: $cache,
             key: $key,
             limit: $config->getLimit(),
-            windowMinutes: $config->getWindow()
+            windowSeconds: $config->getWindow()
         );
     }
 

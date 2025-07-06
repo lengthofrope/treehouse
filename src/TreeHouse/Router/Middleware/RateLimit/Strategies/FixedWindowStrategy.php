@@ -44,17 +44,16 @@ class FixedWindowStrategy implements RateLimitStrategyInterface
      * @param CacheInterface $cache Cache instance for storing counters
      * @param string $key Unique key for this rate limit
      * @param int $limit Maximum requests allowed
-     * @param int $windowMinutes Time window in minutes
+     * @param int $windowSeconds Time window in seconds
      * @return RateLimitResult Result of the rate limit check
      */
     public function checkLimit(
         CacheInterface $cache,
         string $key,
         int $limit,
-        int $windowMinutes
+        int $windowSeconds
     ): RateLimitResult {
         $now = time();
-        $windowSeconds = $windowMinutes * 60;
         
         // Calculate the current window start time
         $windowStart = intval($now / $windowSeconds) * $windowSeconds;
@@ -157,13 +156,12 @@ class FixedWindowStrategy implements RateLimitStrategyInterface
     /**
      * Get information about the current window
      *
-     * @param int $windowMinutes Time window in minutes
+     * @param int $windowSeconds Time window in seconds
      * @return array<string, int>
      */
-    public function getWindowInfo(int $windowMinutes): array
+    public function getWindowInfo(int $windowSeconds): array
     {
         $now = time();
-        $windowSeconds = $windowMinutes * 60;
         $windowStart = intval($now / $windowSeconds) * $windowSeconds;
         $windowEnd = $windowStart + $windowSeconds;
         
@@ -180,12 +178,12 @@ class FixedWindowStrategy implements RateLimitStrategyInterface
      *
      * @param CacheInterface $cache Cache instance
      * @param string $key Rate limit key
-     * @param int $windowMinutes Time window in minutes
+     * @param int $windowSeconds Time window in seconds
      * @return bool True if data was cleared
      */
-    public function clearLimit(CacheInterface $cache, string $key, int $windowMinutes): bool
+    public function clearLimit(CacheInterface $cache, string $key, int $windowSeconds): bool
     {
-        $windowInfo = $this->getWindowInfo($windowMinutes);
+        $windowInfo = $this->getWindowInfo($windowSeconds);
         $cacheKey = $this->createCacheKey($key, $windowInfo['start']);
         
         return $cache->forget($cacheKey);
@@ -196,12 +194,12 @@ class FixedWindowStrategy implements RateLimitStrategyInterface
      *
      * @param CacheInterface $cache Cache instance
      * @param string $key Rate limit key
-     * @param int $windowMinutes Time window in minutes
+     * @param int $windowSeconds Time window in seconds
      * @return array<string, mixed>
      */
-    public function getUsage(CacheInterface $cache, string $key, int $windowMinutes): array
+    public function getUsage(CacheInterface $cache, string $key, int $windowSeconds): array
     {
-        $windowInfo = $this->getWindowInfo($windowMinutes);
+        $windowInfo = $this->getWindowInfo($windowSeconds);
         $cacheKey = $this->createCacheKey($key, $windowInfo['start']);
         $currentCount = (int) $cache->get($cacheKey, 0);
         
