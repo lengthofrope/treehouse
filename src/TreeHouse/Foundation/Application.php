@@ -96,6 +96,9 @@ class Application
         // Register core services
         $this->registerCoreServices();
         
+        // Register event services
+        $this->registerEventServices();
+        
         // Register error handling services
         $this->registerErrorServices();
 
@@ -210,6 +213,27 @@ class Application
             return new \LengthOfRope\TreeHouse\Http\Session($config);
         });
 
+    }
+
+    /**
+     * Register event handling services
+     */
+    private function registerEventServices(): void
+    {
+        // Register event dispatcher
+        $this->container->singleton('events', function () {
+            $config = $this->config['events'] ?? [];
+            $dispatcher = $config['default_dispatcher'] ?? 'sync';
+            
+            return match ($dispatcher) {
+                'sync' => new \LengthOfRope\TreeHouse\Events\SyncEventDispatcher($this->container),
+                default => new \LengthOfRope\TreeHouse\Events\SyncEventDispatcher($this->container)
+            };
+        });
+        
+        // Set event dispatcher on ActiveRecord for model events
+        $eventDispatcher = $this->container->make('events');
+        \LengthOfRope\TreeHouse\Database\ActiveRecord::setEventDispatcher($eventDispatcher);
     }
 
     /**

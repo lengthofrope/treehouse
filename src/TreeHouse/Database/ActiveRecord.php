@@ -8,6 +8,8 @@ use LengthOfRope\TreeHouse\Support\Arr;
 use LengthOfRope\TreeHouse\Support\Carbon;
 use LengthOfRope\TreeHouse\Support\Collection;
 use LengthOfRope\TreeHouse\Support\Str;
+use LengthOfRope\TreeHouse\Events\Concerns\HasEvents;
+use LengthOfRope\TreeHouse\Events\EventDispatcher;
 use RuntimeException;
 
 // Import helper functions
@@ -25,6 +27,7 @@ require_once __DIR__ . '/../Support/helpers.php';
  */
 abstract class ActiveRecord
 {
+    use HasEvents;
     /**
      * Database connection
      */
@@ -326,16 +329,38 @@ abstract class ActiveRecord
 
     /**
      * Save the model
-     * 
+     *
      * @return bool
      */
     public function save(): bool
     {
-        if ($this->exists) {
-            return $this->performUpdate();
+        if ($this->fireModelEvent('saving') === false) {
+            return false;
         }
 
-        return $this->performInsert();
+        if ($this->exists) {
+            if ($this->fireModelEvent('updating') === false) {
+                return false;
+            }
+            $saved = $this->performUpdate();
+            if ($saved) {
+                $this->fireModelEvent('updated', false);
+            }
+        } else {
+            if ($this->fireModelEvent('creating') === false) {
+                return false;
+            }
+            $saved = $this->performInsert();
+            if ($saved) {
+                $this->fireModelEvent('created', false);
+            }
+        }
+
+        if ($saved) {
+            $this->fireModelEvent('saved', false);
+        }
+
+        return $saved;
     }
 
     /**
@@ -355,12 +380,16 @@ abstract class ActiveRecord
 
     /**
      * Delete the model
-     * 
+     *
      * @return bool
      */
     public function delete(): bool
     {
         if (!$this->exists) {
+            return false;
+        }
+
+        if ($this->fireModelEvent('deleting') === false) {
             return false;
         }
 
@@ -370,6 +399,7 @@ abstract class ActiveRecord
 
         if ($deleted > 0) {
             $this->exists = false;
+            $this->fireModelEvent('deleted', false);
             return true;
         }
 
