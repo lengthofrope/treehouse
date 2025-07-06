@@ -8,7 +8,7 @@ Please note that this framework is in WIP state. It is nowhere near production r
 
 ## Architecture Overview
 
-TreeHouse Framework is built with a clean layered architecture consisting of 11 core layers, plus comprehensive middleware systems. Each layer provides specific functionality and maintains clear separation of concerns:
+TreeHouse Framework is built with a clean layered architecture consisting of 14 core layers, plus advanced middleware systems, making it a comprehensive 15+ component framework. Each layer provides specific functionality and maintains clear separation of concerns:
 
 ### Core Layers
 
@@ -42,45 +42,63 @@ TreeHouse Framework is built with a clean layered architecture consisting of 11 
    - Database migration and development tools
    - Interactive command system with argument parsing
 
-6. **[Cache Layer](src/TreeHouse/Cache/README.md)**
+6. **[Cron Layer](src/TreeHouse/Cron/README.md)**
+   - Task scheduling and cron job management
+   - Automated background task execution
+   - Job queuing and processing system
+   - Scheduled command execution
+
+7. **[Errors Layer](src/TreeHouse/Errors/README.md)**
+   - Comprehensive error handling and exception management
+   - Custom exception classes and error pages
+   - Error logging and debugging utilities
+   - Production-ready error handling
+
+8. **[Models Layer](src/TreeHouse/Models/README.md)**
+   - Base model classes and utilities
+   - Model relationships and data handling
+   - Database interaction patterns
+   - Advanced model features and helpers
+
+9. **[Cache Layer](src/TreeHouse/Cache/README.md)**
    - High-performance file-based caching
    - Pattern matching and wildcard cache operations
    - Cache prefixing and namespace organization
    - TTL support and automatic cleanup
 
-7. **[Http Layer](src/TreeHouse/Http/README.md)**
-   - HTTP request and response handling
-   - Session management with security features
-   - Cookie handling and file upload processing
-   - Security headers and HTTPS enforcement
+10. **[Http Layer](src/TreeHouse/Http/README.md)**
+    - HTTP request and response handling
+    - Session management with security features
+    - Cookie handling and file upload processing
+    - Security headers and HTTPS enforcement
 
-8. **[Security Layer](src/TreeHouse/Security/README.md)**
-   - CSRF protection with token validation
-   - AES-256-CBC encryption for sensitive data
-   - Secure password hashing with modern algorithms
-   - Input sanitization and XSS prevention
+11. **[Security Layer](src/TreeHouse/Security/README.md)**
+    - CSRF protection with token validation
+    - AES-256-CBC encryption for sensitive data
+    - Secure password hashing with modern algorithms
+    - Input sanitization and XSS prevention
 
-9. **[Support Layer](src/TreeHouse/Support/README.md)**
-   - Collection class with 50+ utility methods
-   - String manipulation and validation utilities
-   - Carbon integration for date/time handling
-   - Array utilities with dot notation support
+12. **[Support Layer](src/TreeHouse/Support/README.md)**
+    - Collection class with 50+ utility methods
+    - String manipulation and validation utilities
+    - Carbon integration for date/time handling
+    - Array utilities with dot notation support
 
-10. **[Validation Layer](src/TreeHouse/Validation/README.md)**
+13. **[Validation Layer](src/TreeHouse/Validation/README.md)**
     - Comprehensive validation system with 25+ rules
     - Custom validation rule support
     - Conditional validation and nested data handling
     - Internationalized error messages
 
-11. **[View Layer](src/TreeHouse/View/README.md)**
-     - Custom template engine with HTML-valid syntax
-     - Layout inheritance and component system
-     - Template compilation with caching
-     - Authentication and authorization integration
+14. **[View Layer](src/TreeHouse/View/README.md)**
+    - Custom template engine with HTML-valid syntax
+    - Layout inheritance and component system
+    - Template compilation with caching
+    - Authentication and authorization integration
 
 ### Advanced Middleware Systems
 
-12. **[Rate Limiting System](src/TreeHouse/Router/Middleware/RateLimit/README.md)**
+15. **[Rate Limiting System](src/TreeHouse/Router/Middleware/RateLimit/README.md)**
      - **Multiple Rate Limiting Strategies:**
        - Fixed Window Strategy - Simple time-based windows
        - Sliding Window Strategy - Precise rate limiting without boundary bursts
@@ -397,12 +415,17 @@ my-app/
 │   │   ├── Services/          # Business logic
 │   │   ├── Middleware/        # HTTP middleware
 │   │   └── Policies/          # Authorization policies
-│   └── TreeHouse/             # Framework core (11 layers)
+│   └── TreeHouse/             # Framework core (15+ components)
 │       ├── Foundation/        # Application bootstrap & DI
 │       ├── Database/          # ORM, QueryBuilder, Migrations
 │       ├── Router/            # HTTP routing & middleware
+│       │   └── Middleware/    # Advanced middleware systems
+│       │       └── RateLimit/ # Enterprise rate limiting
 │       ├── Auth/              # Authentication & RBAC
 │       ├── Console/           # CLI commands & application
+│       ├── Cron/              # Task scheduling & background jobs
+│       ├── Errors/            # Error handling & exceptions
+│       ├── Models/            # Base model classes & patterns
 │       ├── Cache/             # Caching system
 │       ├── Http/              # Request/response handling
 │       ├── Security/          # CSRF, encryption, hashing
@@ -984,11 +1007,16 @@ GitHub: [@lengthofrope](https://github.com/lengthofrope)
 
 For detailed information about each framework layer, see the individual README files:
 
+### Core Framework Layers (14)
+
 - [Foundation Layer](src/TreeHouse/Foundation/README.md) - Application bootstrap and dependency injection
 - [Database Layer](src/TreeHouse/Database/README.md) - ORM, QueryBuilder, and database management
 - [Router Layer](src/TreeHouse/Router/README.md) - HTTP routing and middleware system
 - [Auth Layer](src/TreeHouse/Auth/README.md) - Authentication and authorization (RBAC)
 - [Console Layer](src/TreeHouse/Console/README.md) - CLI commands and console application
+- [Cron Layer](src/TreeHouse/Cron/README.md) - Task scheduling and background job processing
+- [Errors Layer](src/TreeHouse/Errors/README.md) - Error handling and exception management
+- [Models Layer](src/TreeHouse/Models/README.md) - Base model classes and database patterns
 - [Cache Layer](src/TreeHouse/Cache/README.md) - Caching system and performance optimization
 - [Http Layer](src/TreeHouse/Http/README.md) - HTTP request/response handling
 - [Security Layer](src/TreeHouse/Security/README.md) - Security utilities and protection
@@ -996,6 +1024,6 @@ For detailed information about each framework layer, see the individual README f
 - [Validation Layer](src/TreeHouse/Validation/README.md) - Input validation system
 - [View Layer](src/TreeHouse/View/README.md) - Template engine and view management
 
-### Advanced Middleware Documentation
+### Advanced Middleware Documentation (1+)
 
 - [Rate Limiting System](src/TreeHouse/Router/Middleware/RateLimit/README.md) - Enterprise-grade rate limiting with multiple strategies and key resolvers
