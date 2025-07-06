@@ -40,7 +40,7 @@ abstract class DatabaseTestCase extends TestCase
         // Set the connection for ActiveRecord
         ActiveRecord::setConnection($this->connection);
         
-        // Create a mock application container for the db() helper
+        // Create a mock application container for helper functions
         $mockApp = new class($this->connection) {
             private $connection;
             
@@ -51,6 +51,34 @@ abstract class DatabaseTestCase extends TestCase
             public function make(string $service) {
                 if ($service === 'db') {
                     return $this->connection;
+                }
+                if ($service === 'auth') {
+                    // Return a mock auth manager that has basic methods
+                    return new class {
+                        public function guard($guard = null) {
+                            return $this;
+                        }
+                        public function user() {
+                            return null;
+                        }
+                        public function check() {
+                            return false;
+                        }
+                        public function guest() {
+                            return true;
+                        }
+                        public function id() {
+                            return null;
+                        }
+                    };
+                }
+                if ($service === 'events') {
+                    // Return a mock event dispatcher
+                    return new class {
+                        public function dispatch($event) { return $event; }
+                        public function listen($event, $listener, $priority = 0) {}
+                        public function until($event) { return null; }
+                    };
                 }
                 throw new \Exception("Service {$service} not found");
             }
