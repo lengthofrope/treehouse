@@ -143,7 +143,7 @@ $router->middlewareAliases([
     'auth' => AuthMiddleware::class,
     'role' => RoleMiddleware::class,
     'permission' => PermissionMiddleware::class,
-    'throttle' => ThrottleMiddleware::class,
+    'throttle' => RateLimitMiddleware::class,
 ]);
 
 // Using aliased middleware
@@ -152,6 +152,79 @@ $router->get('/admin', 'AdminController@index')
 
 $router->get('/posts/create', 'PostController@create')
     ->middleware(['auth', 'permission:posts.create']);
+```
+
+### Rate Limiting
+
+The router includes built-in rate limiting middleware to protect against API abuse and DDoS attacks:
+
+```php
+// Basic rate limiting: 60 requests per minute
+$router->get('/api/users', 'Api\UserController@index')
+    ->middleware('throttle:60,1');
+
+// Custom limits: 100 requests per 5 minutes
+$router->post('/api/posts', 'Api\PostController@store')
+    ->middleware('throttle:100,5');
+
+// Different rate limits for different endpoints
+$router->group(['middleware' => 'throttle:1000,60'], function($router) {
+    // 1000 requests per hour for API routes
+    $router->get('/api/data', 'ApiController@data');
+    $router->get('/api/stats', 'ApiController@stats');
+});
+
+// IP-based limiting (default)
+$router->get('/public/info', 'PublicController@info')
+    ->middleware('throttle:10,1,ip');
+
+// User-based limiting (requires authentication)
+$router->group(['middleware' => ['auth', 'throttle:500,60,user']], function($router) {
+    $router->post('/user/posts', 'UserController@createPost');
+    $router->put('/user/profile', 'UserController@updateProfile');
+});
+```
+
+**Rate Limit Parameters:**
+- Format: `throttle:requests,minutes[,identifier]`
+- `requests`: Maximum number of requests allowed
+- `minutes`: Time window in minutes
+- `identifier`: Rate limit key type (`ip`, `user`, default: `ip`)
+
+**Rate Limit Headers:**
+When rate limiting is active, responses include these headers:
+```
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1625097600
+```
+
+**Rate Limit Exceeded Response:**
+When limits are exceeded, the middleware throws `RateLimitExceededException` with HTTP 429 status:
+```json
+{
+    "error": "Too Many Requests",
+    "message": "Rate limit exceeded for ip. Limit: 60 requests per 1 minute(s). Try again in 30 seconds.",
+    "retry_after": 30
+}
+```
+
+**Configuration Examples:**
+```php
+// API protection
+$router->group(['prefix' => 'api', 'middleware' => 'throttle:100,1'], function($router) {
+    $router->get('/public', 'ApiController@public');        // 100/min for all
+    $router->post('/upload', 'ApiController@upload')
+        ->middleware('throttle:5,1');                        // Override: 5/min for uploads
+});
+
+// Tiered rate limiting
+$router->get('/search', 'SearchController@index')
+    ->middleware('throttle:20,1');                           // 20 searches per minute
+
+$router->group(['middleware' => ['auth', 'throttle:200,1,user']], function($router) {
+    $router->get('/premium-search', 'SearchController@premium'); // 200/min for logged-in users
+});
 ```
 
 ### Request Dispatching
