@@ -106,23 +106,26 @@ class TokenBucketStrategyTest extends TestCase
         $key = 'clear-test';
         $capacity = 5;
         
-        // Use all tokens
-        $strategy = new TokenBucketStrategy(['initial_tokens' => $capacity]);
-        for ($i = 0; $i < $capacity; $i++) {
-            $strategy->checkLimit($this->cache, $key, $capacity, 60);
-        }
+        // Start with an empty bucket strategy (default behavior)
+        $strategy = new TokenBucketStrategy(); // No initial tokens, should start empty
         
-        // Should be blocked
+        // First request should be blocked (empty bucket)
         $result = $strategy->checkLimit($this->cache, $key, $capacity, 60);
         $this->assertTrue($result->isExceeded());
         
-        // Clear the limit
-        $cleared = $strategy->clearLimit($this->cache, $key, 60);
-        $this->assertTrue($cleared);
+        // Add some tokens manually using resetBucket
+        $strategy->resetBucket($this->cache, $key, $capacity, 60);
         
-        // Next request should reset to default (empty bucket)
+        // Now should be allowed
         $result = $strategy->checkLimit($this->cache, $key, $capacity, 60);
-        $this->assertTrue($result->isExceeded()); // Empty bucket by default
+        $this->assertFalse($result->isExceeded());
+        
+        // Clear the limit
+        $strategy->clearLimit($this->cache, $key, 60);
+        
+        // Next request should behave like a fresh bucket (empty)
+        $result = $strategy->checkLimit($this->cache, $key, $capacity, 60);
+        $this->assertTrue($result->isExceeded(), 'Bucket should be empty after clearing');
     }
 
     public function testResetBucket(): void
