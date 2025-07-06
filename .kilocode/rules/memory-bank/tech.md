@@ -34,7 +34,7 @@
 - **Active Record**: Database models with integrated query capabilities
 - **Service Container**: Centralized dependency management
 - **Factory Pattern**: ViewFactory, QueryBuilder creation
-- **Strategy Pattern**: Multiple auth guards, cache drivers
+- **Strategy Pattern**: Multiple auth guards, cache drivers, rate limiting strategies
 
 ## Database Support
 
@@ -79,6 +79,14 @@
 - **SameSite Protection**: CSRF attack mitigation
 - **Session Security**: Regeneration on authentication state changes
 
+### **Rate Limiting Protection**
+- **Enterprise Middleware**: Multi-strategy rate limiting with advanced features
+- **Multiple Strategies**: Fixed Window, Sliding Window, Token Bucket algorithms
+- **Key Resolvers**: IP, User, Header, Composite client identification
+- **Standard Headers**: X-RateLimit-* response headers
+- **Configurable Limits**: Per-endpoint and per-user-type rate limiting
+- **Beautiful Error Pages**: HTTP 429 responses with debugging information
+
 ## Template Engine
 
 ### **Template Features Status**
@@ -88,12 +96,10 @@
 - **Object Access**: Deep dot notation (`user.profile.settings.theme`)
 - **Brace Expressions**: `{user.name}` in text content
 - **Universal Attributes**: `th:data-id="user.id"`, `th:src="user.avatar"`
-
-#### ❌ **Missing Features**
-- **Switch Logic**: `th:switch` / `th:case` / `th:default` - Not implemented
-- **Content Inclusion**: `th:fragment` / `th:include` / `th:replace` - Not implemented
-- **Local Variables**: `th:with` - Not implemented
-- **Form Helpers**: `th:field` / `th:errors` / `th:csrf` - Not implemented
+- **Switch Logic**: `th:switch`, `th:case`, `th:default` - Complete implementation
+- **Content Inclusion**: `th:fragment`, `th:include`, `th:replace` - Complete implementation
+- **Local Variables**: `th:with` - Complete implementation
+- **Form Helpers**: `th:field`, `th:errors`, `th:csrf`, `th:method` - Complete implementation
 
 ### **Template Features**
 - **Compilation Caching**: Compiled templates cached to disk

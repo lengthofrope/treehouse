@@ -38,6 +38,12 @@ graph TB
   - [`Router.php`](src/TreeHouse/Router/Router.php) - Main routing engine
   - [`RouteCollection.php`](src/TreeHouse/Router/RouteCollection.php) - Route registry
   - [`Middleware/`](src/TreeHouse/Router/Middleware/) - HTTP middleware
+  - [`Middleware/RateLimit/`](src/TreeHouse/Router/Middleware/RateLimit/) - Enterprise rate limiting system
+    - [`RateLimitMiddleware.php`](src/TreeHouse/Router/Middleware/RateLimit/RateLimitMiddleware.php) - Main middleware class
+    - [`RateLimitManager.php`](src/TreeHouse/Router/Middleware/RateLimit/RateLimitManager.php) - Strategy and resolver orchestrator
+    - [`RateLimitConfig.php`](src/TreeHouse/Router/Middleware/RateLimit/RateLimitConfig.php) - Configuration parsing and validation
+    - [`Strategies/`](src/TreeHouse/Router/Middleware/RateLimit/Strategies/) - Rate limiting algorithms (Fixed Window, Sliding Window, Token Bucket)
+    - [`KeyResolvers/`](src/TreeHouse/Router/Middleware/RateLimit/KeyResolvers/) - Client identification methods (IP, User, Header, Composite)
 - **Auth/**: Authentication and authorization
   - [`AuthManager.php`](src/TreeHouse/Auth/AuthManager.php) - Auth service orchestrator
   - [`SessionGuard.php`](src/TreeHouse/Auth/SessionGuard.php) - Session-based authentication
@@ -187,6 +193,14 @@ graph TB
 4. **Logging** → Errors/Logging/Logger.php
 5. **Error Rendering** → Errors/Rendering/[Json|Html|Cli]Renderer.php
 
+### Rate Limiting Flow
+1. **HTTP Request** → Router/Middleware/RateLimit/RateLimitMiddleware.php
+2. **Strategy Selection** → RateLimitManager.php resolves configured strategy
+3. **Client Identification** → KeyResolvers/[Ip|User|Header|Composite]KeyResolver.php
+4. **Limit Checking** → Strategies/[FixedWindow|SlidingWindow|TokenBucket]Strategy.php
+5. **Response Headers** → RateLimitHeaders.php adds X-RateLimit-* headers
+6. **Rate Limit Exceeded** → HTTP 429 with beautiful error page
+
 ## Critical Implementation Paths
 
 ### 1. **Application Bootstrapping**
@@ -254,6 +268,13 @@ ErrorHandler::handle(Exception)
 - AES-256-CBC encryption for sensitive data
 - Secure random token generation
 - Mass assignment protection in models
+
+### 4. **Rate Limiting Protection**
+- Enterprise-grade request throttling middleware
+- Multiple strategies: Fixed Window, Sliding Window, Token Bucket
+- Flexible client identification: IP, User, Header, Composite
+- Configurable limits per endpoint and user type
+- Standard rate limit headers and error responses
 
 ## Performance Considerations
 

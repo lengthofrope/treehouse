@@ -30,7 +30,7 @@ TreeHouse is a **zero-dependency PHP web framework** built entirely from scratch
 - **Auth Layer**: Role-based access control (RBAC), authentication guards, permissions
 - **View Layer**: Custom templating engine with HTML-valid syntax
 - **Console Layer**: Comprehensive CLI tool for development tasks
-- **Security Layer**: CSRF protection, encryption, password hashing, input sanitization
+- **Security Layer**: CSRF protection, encryption, password hashing, input sanitization, enterprise rate limiting
 - **Validation Layer**: 25+ built-in rules with custom rule support
 - **Cache Layer**: File-based caching with pattern matching
 
