@@ -10,6 +10,9 @@ use LengthOfRope\TreeHouse\Router\Middleware\RateLimit\Strategies\SlidingWindowS
 use LengthOfRope\TreeHouse\Router\Middleware\RateLimit\Strategies\TokenBucketStrategy;
 use LengthOfRope\TreeHouse\Router\Middleware\RateLimit\KeyResolvers\KeyResolverInterface;
 use LengthOfRope\TreeHouse\Router\Middleware\RateLimit\KeyResolvers\IpKeyResolver;
+use LengthOfRope\TreeHouse\Router\Middleware\RateLimit\KeyResolvers\UserKeyResolver;
+use LengthOfRope\TreeHouse\Router\Middleware\RateLimit\KeyResolvers\CompositeKeyResolver;
+use LengthOfRope\TreeHouse\Router\Middleware\RateLimit\KeyResolvers\HeaderKeyResolver;
 use LengthOfRope\TreeHouse\Cache\CacheInterface;
 use LengthOfRope\TreeHouse\Http\Request;
 
@@ -43,6 +46,9 @@ class RateLimitManager
      */
     private array $keyResolvers = [
         'ip' => IpKeyResolver::class,
+        'user' => UserKeyResolver::class,
+        'composite' => CompositeKeyResolver::class,
+        'header' => HeaderKeyResolver::class,
     ];
 
     /**
@@ -249,13 +255,14 @@ class RateLimitManager
             case 'ip':
                 return new IpKeyResolver($config);
                 
+            case 'user':
+                return new UserKeyResolver($config);
+                
             case 'composite':
-                // TODO: Implement CompositeKeyResolver
-                throw new \InvalidArgumentException('Composite key resolver not yet implemented');
+                return new CompositeKeyResolver($config);
                 
             case 'header':
-                // TODO: Implement HeaderKeyResolver
-                throw new \InvalidArgumentException('Header key resolver not yet implemented');
+                return new HeaderKeyResolver($config);
                 
             case 'custom':
                 $className = $config['class'] ?? null;

@@ -34,7 +34,7 @@ class RateLimitConfig
     /**
      * Valid key resolvers
      */
-    private const VALID_KEY_RESOLVERS = ['ip', 'user', 'composite', 'custom'];
+    private const VALID_KEY_RESOLVERS = ['ip', 'user', 'composite', 'header', 'custom'];
 
     /**
      * Parsed configuration

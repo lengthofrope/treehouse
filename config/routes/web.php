@@ -56,3 +56,38 @@ $router->get('/api/heavy', function() {
         'data' => ['heavy' => true]
     ]), 200, ['Content-Type' => 'application/json']);
 })->middleware('throttle:2,60'); // 2 requests per 60 seconds
+
+// Test different rate limiting strategies
+$router->get('/api/sliding', function() {
+    return new Response(json_encode([
+        'message' => 'Sliding window test',
+        'timestamp' => time(),
+        'strategy' => 'sliding'
+    ]), 200, ['Content-Type' => 'application/json']);
+})->middleware('throttle:3,30,sliding'); // 3 requests per 30 seconds, sliding window
+
+$router->get('/api/token-bucket', function() {
+    return new Response(json_encode([
+        'message' => 'Token bucket test',
+        'timestamp' => time(),
+        'strategy' => 'token_bucket'
+    ]), 200, ['Content-Type' => 'application/json']);
+})->middleware('throttle:5,60,token_bucket'); // 5 tokens, refill every 60 seconds
+
+$router->get('/api/user-based', function() {
+    return new Response(json_encode([
+        'message' => 'User-based rate limiting test',
+        'timestamp' => time(),
+        'strategy' => 'fixed',
+        'key_resolver' => 'user'
+    ]), 200, ['Content-Type' => 'application/json']);
+})->middleware('throttle:10,60,fixed,user'); // 10 requests per 60 seconds per user
+
+$router->get('/api/header-based', function() {
+    return new Response(json_encode([
+        'message' => 'Header-based rate limiting test',
+        'timestamp' => time(),
+        'strategy' => 'fixed',
+        'key_resolver' => 'header'
+    ]), 200, ['Content-Type' => 'application/json']);
+})->middleware('throttle:20,60,fixed,header'); // 20 requests per 60 seconds per API key

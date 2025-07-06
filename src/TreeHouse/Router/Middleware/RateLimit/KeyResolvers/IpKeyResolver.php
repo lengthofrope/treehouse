@@ -74,12 +74,13 @@ class IpKeyResolver implements KeyResolverInterface
      * Check if this resolver can handle the request
      *
      * @param Request $request HTTP request
-     * @return bool True if IP address can be determined
+     * @return bool True if this resolver can generate a key for the request
      */
     public function canResolve(Request $request): bool
     {
         return $this->getClientIp($request) !== null;
     }
+
 
     /**
      * Get resolver-specific configuration options
