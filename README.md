@@ -8,7 +8,7 @@ Please note that this framework is in WIP state. It is nowhere near production r
 
 ## Architecture Overview
 
-TreeHouse Framework is built with a clean layered architecture consisting of 14 core layers, plus advanced middleware systems, making it a comprehensive 15+ component framework. Each layer provides specific functionality and maintains clear separation of concerns:
+TreeHouse Framework is built with a clean layered architecture consisting of 15 core layers, plus advanced middleware systems, making it a comprehensive 16+ component framework. Each layer provides specific functionality and maintains clear separation of concerns:
 
 ### Core Layers
 
@@ -96,9 +96,15 @@ TreeHouse Framework is built with a clean layered architecture consisting of 14 
     - Template compilation with caching
     - Authentication and authorization integration
 
+15. **[Events Layer](src/TreeHouse/Events/README.md)**
+    - Comprehensive event system for loose coupling
+    - Model lifecycle events with cancellation support
+    - Synchronous event dispatching with priority
+    - Event listeners with dependency injection
+
 ### Advanced Middleware Systems
 
-15. **[Rate Limiting System](src/TreeHouse/Router/Middleware/RateLimit/README.md)**
+16. **[Rate Limiting System](src/TreeHouse/Router/Middleware/RateLimit/README.md)**
      - **Multiple Rate Limiting Strategies:**
        - Fixed Window Strategy - Simple time-based windows
        - Sliding Window Strategy - Precise rate limiting without boundary bursts
@@ -122,7 +128,7 @@ TreeHouse Framework is built with a clean layered architecture consisting of 14 
 ### Core Framework
 - **Zero Dependencies**: Pure PHP implementation with no external libraries
 - **Modern PHP 8.4+**: Built for the latest PHP features and type declarations
-- **Layered Architecture**: Clean separation of concerns across 11 specialized layers
+- **Layered Architecture**: Clean separation of concerns across 15 specialized layers
 - **Dependency Injection**: Advanced container with automatic resolution and service registration
 - **Configuration Management**: Environment-based configuration with type conversion
 
@@ -179,6 +185,14 @@ TreeHouse Framework is built with a clean layered architecture consisting of 14 
 - **Beautiful Error Pages**: Comprehensive 429 error pages with debugging information
 - **Zero Dependencies**: Pure PHP implementation with no external requirements
 - **Production Ready**: Comprehensive test coverage (94 tests, 100% passing)
+
+### Event System & Loose Coupling
+- **Event-Driven Architecture**: Comprehensive event system enabling loose coupling between components
+- **Model Lifecycle Events**: Automatic events for create, update, delete operations with cancellation support
+- **Custom Event Dispatching**: Fire and listen for custom application events
+- **Priority-Based Listeners**: Control listener execution order with priority system
+- **Container Integration**: Automatic dependency injection for event listeners
+- **Performance Optimized**: Listener caching and lazy loading for optimal performance
 
 ### Caching & Performance
 - **File-Based Caching**: High-performance file caching with automatic cleanup
@@ -325,7 +339,7 @@ $router->get('/api/premium', [ApiController::class, 'premium'])
        ->middleware('throttle:1000,60,fixed,header'); // 1000 requests per API key per hour
 ```
 
-### 3. Create Models with Relationships
+### 3. Create Models with Events and Relationships
 
 ```php
 <?php
@@ -335,10 +349,11 @@ namespace App\Models;
 use LengthOfRope\TreeHouse\Database\ActiveRecord;
 use LengthOfRope\TreeHouse\Auth\Contracts\Authorizable;
 use LengthOfRope\TreeHouse\Auth\AuthorizableUser;
+use LengthOfRope\TreeHouse\Events\Concerns\HasEvents;
 
 class User extends ActiveRecord implements Authorizable
 {
-    use AuthorizableUser;
+    use AuthorizableUser, HasEvents;
     
     protected array $fillable = ['name', 'email', 'password'];
     protected array $hidden = ['password', 'remember_token'];
@@ -356,6 +371,8 @@ class User extends ActiveRecord implements Authorizable
 
 class Post extends ActiveRecord
 {
+    use HasEvents;
+    
     protected array $fillable = ['title', 'content', 'published', 'user_id'];
     protected array $casts = ['published' => 'boolean'];
     
@@ -374,6 +391,19 @@ class Post extends ActiveRecord
         return $query->where('published', true);
     }
 }
+
+// Register event listeners
+User::created(function($event) {
+    // Send welcome email when user is created
+    event(new UserWelcomeEmail($event->model));
+});
+
+Post::creating(function($event) {
+    // Auto-set author if not provided
+    if (!$event->model->user_id) {
+        $event->model->user_id = auth()->id();
+    }
+});
 ```
 
 ### 4. Advanced Database Usage
@@ -415,7 +445,7 @@ my-app/
 │   │   ├── Services/          # Business logic
 │   │   ├── Middleware/        # HTTP middleware
 │   │   └── Policies/          # Authorization policies
-│   └── TreeHouse/             # Framework core (15+ components)
+│   └── TreeHouse/             # Framework core (16+ components)
 │       ├── Foundation/        # Application bootstrap & DI
 │       ├── Database/          # ORM, QueryBuilder, Migrations
 │       ├── Router/            # HTTP routing & middleware
@@ -425,6 +455,7 @@ my-app/
 │       ├── Console/           # CLI commands & application
 │       ├── Cron/              # Task scheduling & background jobs
 │       ├── Errors/            # Error handling & exceptions
+│       ├── Events/            # Event system & listeners
 │       ├── Models/            # Base model classes & patterns
 │       ├── Cache/             # Caching system
 │       ├── Http/              # Request/response handling
@@ -436,6 +467,7 @@ my-app/
 │   ├── app.php               # Application settings
 │   ├── database.php          # Database connections
 │   ├── cache.php             # Cache configuration
+│   ├── events.php            # Event system configuration
 │   └── routes/               # Route definitions
 ├── public/                   # Web root
 ├── resources/views/          # Templates
@@ -1007,7 +1039,7 @@ GitHub: [@lengthofrope](https://github.com/lengthofrope)
 
 For detailed information about each framework layer, see the individual README files:
 
-### Core Framework Layers (14)
+### Core Framework Layers (15)
 
 - [Foundation Layer](src/TreeHouse/Foundation/README.md) - Application bootstrap and dependency injection
 - [Database Layer](src/TreeHouse/Database/README.md) - ORM, QueryBuilder, and database management
@@ -1016,6 +1048,7 @@ For detailed information about each framework layer, see the individual README f
 - [Console Layer](src/TreeHouse/Console/README.md) - CLI commands and console application
 - [Cron Layer](src/TreeHouse/Cron/README.md) - Task scheduling and background job processing
 - [Errors Layer](src/TreeHouse/Errors/README.md) - Error handling and exception management
+- [Events Layer](src/TreeHouse/Events/README.md) - Event system and loose coupling architecture
 - [Models Layer](src/TreeHouse/Models/README.md) - Base model classes and database patterns
 - [Cache Layer](src/TreeHouse/Cache/README.md) - Caching system and performance optimization
 - [Http Layer](src/TreeHouse/Http/README.md) - HTTP request/response handling
