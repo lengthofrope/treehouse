@@ -111,8 +111,11 @@ class RateLimitMiddleware implements MiddlewareInterface
             // Add rate limiting headers to response
             return $this->headers->addHeaders($response, $result);
 
+        } catch (AuthorizationException $e) {
+            // Rate limit exceeded - this should propagate and not be caught
+            throw $e;
         } catch (\Exception $e) {
-            // If rate limiting fails, log error and continue
+            // If rate limiting fails (other errors), log error and continue
             if (function_exists('error_log')) {
                 error_log("Rate limiting error: " . $e->getMessage());
             }
@@ -188,8 +191,19 @@ class RateLimitMiddleware implements MiddlewareInterface
             return ['parameters' => $args[0]];
         }
 
-        // Otherwise, treat as configuration array
-        return is_array($args[0]) ? $args[0] : [];
+        // If first argument is an array, treat as configuration
+        if (is_array($args[0])) {
+            return $args[0];
+        }
+
+        // If arguments are individual parameters (e.g., limit, window), convert to parameter string
+        if (count($args) >= 2 && is_numeric($args[0]) && is_numeric($args[1])) {
+            $parametersString = implode(',', $args);
+            return ['parameters' => $parametersString];
+        }
+
+        // Fallback to empty config
+        return [];
     }
 
     /**

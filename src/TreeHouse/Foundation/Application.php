@@ -110,6 +110,9 @@ class Application
      */
     private function registerCoreServices(): void
     {
+        // Register middleware aliases on the router
+        $this->registerMiddlewareAliases();
+        
         // Register the router
         $this->container->singleton('router', fn() => $this->router);
 
@@ -631,5 +634,21 @@ class Application
     public function singleton(string $abstract, mixed $concrete): void
     {
         $this->container->singleton($abstract, $concrete);
+    }
+
+    /**
+     * Register middleware aliases on the router
+     */
+    private function registerMiddlewareAliases(): void
+    {
+        // Register built-in middleware aliases
+        $aliases = [
+            'role' => 'LengthOfRope\TreeHouse\Router\Middleware\RoleMiddleware',
+            'permission' => 'LengthOfRope\TreeHouse\Router\Middleware\PermissionMiddleware',
+            'throttle' => 'LengthOfRope\TreeHouse\Router\Middleware\RateLimit\RateLimitMiddleware',
+        ];
+        
+        // Register them on the router
+        $this->router->middlewareAliases($aliases);
     }
 }
