@@ -11,7 +11,7 @@ use LengthOfRope\TreeHouse\Routing\Router;
  * and routes defined here will be automatically loaded by the application.
  */
 // Home page
-$router->get('/', 'App\Controllers\HomeController@index')->middleware('throttle:5,30');
+$router->get('/', 'App\Controllers\HomeController@index');
 
 // Demo pages showcasing TreeHouse features
 $router->get('/templating', 'App\Controllers\DemoController@templating');

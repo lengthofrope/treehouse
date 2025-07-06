@@ -6,6 +6,8 @@ namespace LengthOfRope\TreeHouse\Router\Middleware\RateLimit;
 
 use LengthOfRope\TreeHouse\Router\Middleware\RateLimit\Strategies\RateLimitStrategyInterface;
 use LengthOfRope\TreeHouse\Router\Middleware\RateLimit\Strategies\FixedWindowStrategy;
+use LengthOfRope\TreeHouse\Router\Middleware\RateLimit\Strategies\SlidingWindowStrategy;
+use LengthOfRope\TreeHouse\Router\Middleware\RateLimit\Strategies\TokenBucketStrategy;
 use LengthOfRope\TreeHouse\Router\Middleware\RateLimit\KeyResolvers\KeyResolverInterface;
 use LengthOfRope\TreeHouse\Router\Middleware\RateLimit\KeyResolvers\IpKeyResolver;
 use LengthOfRope\TreeHouse\Cache\CacheInterface;
@@ -30,6 +32,8 @@ class RateLimitManager
      */
     private array $strategies = [
         'fixed' => FixedWindowStrategy::class,
+        'sliding' => SlidingWindowStrategy::class,
+        'token_bucket' => TokenBucketStrategy::class,
     ];
 
     /**
