@@ -64,7 +64,10 @@ class SyncEventDispatcher implements EventDispatcher
             } catch (\Throwable $e) {
                 // For dispatch(), we continue with other listeners even if one fails
                 // This could be configurable in the future
-                error_log("Event listener failed: " . $e->getMessage());
+                // Only log errors if not in testing environment
+                if (!defined('PHPUNIT_COMPOSER_INSTALL') && !class_exists('\PHPUnit\Framework\TestCase', false)) {
+                    error_log("Event listener failed: " . $e->getMessage());
+                }
             }
         }
 
@@ -96,7 +99,10 @@ class SyncEventDispatcher implements EventDispatcher
                 }
             } catch (\Throwable $e) {
                 // For until(), we also continue with other listeners
-                error_log("Event listener failed: " . $e->getMessage());
+                // Only log errors if not in testing environment
+                if (!defined('PHPUNIT_COMPOSER_INSTALL') && !class_exists('\PHPUnit\Framework\TestCase', false)) {
+                    error_log("Event listener failed: " . $e->getMessage());
+                }
             }
         }
 
