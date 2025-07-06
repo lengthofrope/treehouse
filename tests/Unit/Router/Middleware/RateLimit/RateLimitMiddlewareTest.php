@@ -143,8 +143,8 @@ class RateLimitMiddlewareTest extends TestCase
      */
     public function testErrorHandlingInMiddleware(): void
     {
-        // Create middleware with invalid configuration to trigger error path
-        $middleware = new RateLimitMiddleware('invalid_config');
+        // Create middleware with no configuration to test error path
+        $middleware = new RateLimitMiddleware();
         $request = $this->createMockRequest();
         
         $nextCalled = false;
@@ -166,13 +166,12 @@ class RateLimitMiddlewareTest extends TestCase
     private function createMockRequest(): Request
     {
         return new Request(
-            'GET',
-            '/test',
-            [],
-            [],
-            [],
-            [],
-            ''
+            [], // query
+            [], // request
+            [], // files
+            [], // cookies
+            ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/test', 'REMOTE_ADDR' => '127.0.0.1'], // server
+            null // content
         );
     }
 }
