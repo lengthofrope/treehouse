@@ -215,6 +215,7 @@ class MiddlewareStack
         $builtInMiddleware = [
             'role' => 'LengthOfRope\TreeHouse\Router\Middleware\RoleMiddleware',
             'permission' => 'LengthOfRope\TreeHouse\Router\Middleware\PermissionMiddleware',
+            'throttle' => 'LengthOfRope\TreeHouse\Router\Middleware\RateLimit\RateLimitMiddleware',
         ];
 
         return $builtInMiddleware[$middleware] ?? $middleware;

@@ -16,7 +16,8 @@ TreeHouse is a modern, lightweight PHP web framework built entirely from scratch
 - **Template Engine**: HTML-valid templating with auth integration and error views
 - **CLI Framework**: Comprehensive console application with user management and development tools
 - **Error Handling**: PSR-3 compliant logging, hierarchical exceptions, multi-format rendering
-- **Security**: CSRF protection, AES-256-CBC encryption, password hashing, input sanitization
+- **Security**: CSRF protection, AES-256-CBC encryption, password hashing, input sanitization, enterprise rate limiting
+- **Rate Limiting**: Enterprise-grade middleware with multiple strategies (Fixed Window, Sliding Window, Token Bucket) and key resolvers
 - **Validation**: 25+ built-in validation rules with custom rule support
 - **Caching**: File-based caching with pattern matching and performance optimization
 
