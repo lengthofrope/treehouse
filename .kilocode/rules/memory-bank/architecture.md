@@ -16,11 +16,12 @@ graph TB
     B --> G[Cache Layer]
     B --> H[Console Layer]
     B --> I[Cron Layer]
-    B --> J[Security Layer]
-    B --> K[Validation Layer]
-    B --> L[Support Layer]
-    B --> M[Http Layer]
-    B --> N[Error Layer]
+    B --> J[Events Layer]
+    B --> K[Security Layer]
+    B --> L[Validation Layer]
+    B --> M[Support Layer]
+    B --> N[Http Layer]
+    B --> O[Error Layer]
 ```
 
 ## Source Code Paths
@@ -63,6 +64,16 @@ graph TB
   - [`Locking/`](src/TreeHouse/Cron/Locking/) - File-based locking system
   - [`Jobs/`](src/TreeHouse/Cron/Jobs/) - Built-in cron jobs (cache cleanup, lock cleanup)
   - [`Exceptions/`](src/TreeHouse/Cron/Exceptions/) - Cron-specific exception hierarchy
+- **Events/**: Event system and dispatching
+  - [`EventDispatcher.php`](src/TreeHouse/Events/EventDispatcher.php) - Event dispatcher interface
+  - [`SyncEventDispatcher.php`](src/TreeHouse/Events/SyncEventDispatcher.php) - Synchronous event dispatching implementation
+  - [`Event.php`](src/TreeHouse/Events/Event.php) - Base event class with metadata and context management
+  - [`ModelEvent.php`](src/TreeHouse/Events/ModelEvent.php) - Specialized event class for ActiveRecord model events
+  - [`EventListener.php`](src/TreeHouse/Events/EventListener.php) - Event listener interface
+  - [`AbstractEventListener.php`](src/TreeHouse/Events/AbstractEventListener.php) - Base listener implementation
+  - [`Concerns/HasEvents.php`](src/TreeHouse/Events/Concerns/HasEvents.php) - ActiveRecord trait for automatic event firing
+  - [`Events/`](src/TreeHouse/Events/Events/) - Model lifecycle events (creating, created, updating, updated, deleting, deleted, saving, saved)
+  - [`Exceptions/`](src/TreeHouse/Events/Exceptions/) - Event-specific exception hierarchy
 - **Security/**: Security features
   - [`Hash.php`](src/TreeHouse/Security/Hash.php) - Password hashing
   - [`Csrf.php`](src/TreeHouse/Security/Csrf.php) - CSRF protection
@@ -92,6 +103,7 @@ graph TB
 - [`auth.php`](config/auth.php) - Authentication configuration
 - [`view.php`](config/view.php) - Template engine settings
 - [`cron.php`](config/cron.php) - Cron system configuration
+- [`events.php`](config/events.php) - Event system configuration
 - [`routes/`](config/routes/) - Route definitions
 
 ### Entry Points
@@ -200,6 +212,20 @@ graph TB
 4. **Limit Checking** → Strategies/[FixedWindow|SlidingWindow|TokenBucket]Strategy.php
 5. **Response Headers** → RateLimitHeaders.php adds X-RateLimit-* headers
 6. **Rate Limit Exceeded** → HTTP 429 with beautiful error page
+
+### Event Dispatching Flow
+1. **Event Triggered** → Events/Event.php or Events/ModelEvent.php
+2. **Dispatcher Resolution** → Events/SyncEventDispatcher.php
+3. **Listener Discovery** → Container resolution and priority sorting
+4. **Event Execution** → EventListener.handle() or callable execution
+5. **Propagation Control** → Event.stopPropagation() and result handling
+
+### Model Event Flow
+1. **Model Operation** → Database/ActiveRecord.php with HasEvents trait
+2. **Event Creation** → Events/Concerns/HasEvents.php creates lifecycle events
+3. **Event Dispatching** → SyncEventDispatcher.dispatch() or until()
+4. **Listener Execution** → Registered listeners handle model events
+5. **Operation Continuation** → Model operation proceeds or halts based on results
 
 ## Critical Implementation Paths
 
