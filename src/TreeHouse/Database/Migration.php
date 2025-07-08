@@ -765,21 +765,37 @@ class Blueprint
 
     /**
      * Build ALTER TABLE SQL statements
-     * 
+     *
      * @return array
      */
     protected function buildAlterTableSql(): array
     {
         $statements = [];
+        $driver = $this->getDriver();
         
         // Add columns
         foreach ($this->columns as $column) {
             $statements[] = "ALTER TABLE `{$this->table}` ADD COLUMN " . $column->toSql();
         }
         
-        // Add indexes
+        // Add indexes - handle SQLite vs MySQL differences
         foreach ($this->indexes as $index) {
-            $statements[] = "ALTER TABLE `{$this->table}` ADD " . $this->buildIndexSql($index);
+            if ($driver === 'sqlite') {
+                // SQLite uses separate CREATE INDEX statements
+                if ($index['type'] === 'primary') {
+                    // Primary key changes require table recreation in SQLite, skip for now
+                    continue;
+                }
+                $columns = '`' . implode('`, `', $index['columns']) . '`';
+                if ($index['type'] === 'unique') {
+                    $statements[] = "CREATE UNIQUE INDEX `{$index['name']}` ON `{$this->table}` ({$columns})";
+                } else {
+                    $statements[] = "CREATE INDEX `{$index['name']}` ON `{$this->table}` ({$columns})";
+                }
+            } else {
+                // MySQL/other databases use ALTER TABLE ADD
+                $statements[] = "ALTER TABLE `{$this->table}` ADD " . $this->buildIndexSql($index);
+            }
         }
         
         // Execute commands
@@ -1044,7 +1060,13 @@ class Column
         if (isset($this->attributes['default'])) {
             $default = $this->attributes['default'];
             if (is_string($default)) {
-                $sql .= " DEFAULT '{$default}'";
+                // Check if it's a SQL function that shouldn't be quoted
+                $sqlFunctions = ['CURRENT_TIMESTAMP', 'NOW()', 'CURRENT_DATE', 'CURRENT_TIME'];
+                if (in_array(strtoupper($default), $sqlFunctions)) {
+                    $sql .= " DEFAULT {$default}";
+                } else {
+                    $sql .= " DEFAULT '{$default}'";
+                }
             } elseif (is_bool($default)) {
                 $sql .= ' DEFAULT ' . ($default ? '1' : '0');
             } elseif ($default === null) {

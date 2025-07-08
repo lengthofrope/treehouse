@@ -224,15 +224,12 @@ class Connection
      * @param string $query SQL query
      * @param array $bindings Parameter bindings
      * @return bool Success status
+     * @throws DatabaseException
      */
     public function statement(string $query, array $bindings = []): bool
     {
-        try {
-            $this->query($query, $bindings);
-            return true;
-        } catch (\Exception $e) {
-            return false;
-        }
+        $this->query($query, $bindings);
+        return true;
     }
 
     /**

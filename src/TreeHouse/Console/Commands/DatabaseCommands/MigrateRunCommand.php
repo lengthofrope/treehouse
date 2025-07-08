@@ -339,14 +339,14 @@ class MigrateRunCommand extends Command
         $driver = $connection->getPdo()->getAttribute(\PDO::ATTR_DRIVER_NAME);
         
         if ($driver === 'sqlite') {
-            $sql = "CREATE TABLE migrations (
+            $sql = "CREATE TABLE IF NOT EXISTS migrations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 migration TEXT NOT NULL,
                 batch INTEGER NOT NULL,
                 executed_at TEXT NOT NULL
             )";
         } else {
-            $sql = "CREATE TABLE migrations (
+            $sql = "CREATE TABLE IF NOT EXISTS migrations (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 migration VARCHAR(255) NOT NULL,
                 batch INT NOT NULL,
