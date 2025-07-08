@@ -213,6 +213,12 @@ class Application
             return new \LengthOfRope\TreeHouse\Http\Session($config);
         });
 
+        // Register mail manager
+        $this->container->singleton('mail', function () {
+            $config = $this->config['mail'] ?? [];
+            return new \LengthOfRope\TreeHouse\Mail\MailManager($config, $this);
+        });
+
     }
 
     /**
