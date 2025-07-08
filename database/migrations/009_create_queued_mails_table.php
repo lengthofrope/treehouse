@@ -22,16 +22,16 @@ class CreateQueuedMailsTable extends Migration
             // Primary Key
             $table->id();
             
-            // Email Content
-            $table->json('to_addresses');
-            $table->json('from_address');
-            $table->json('cc_addresses')->nullable();
-            $table->json('bcc_addresses')->nullable();
+            // Email Content (using TEXT instead of JSON for compatibility)
+            $table->text('to_addresses');
+            $table->text('from_address');
+            $table->text('cc_addresses')->nullable();
+            $table->text('bcc_addresses')->nullable();
             $table->string('subject', 998);
             $table->text('body_text')->nullable();
             $table->text('body_html')->nullable();
-            $table->json('attachments')->nullable();
-            $table->json('headers')->nullable();
+            $table->text('attachments')->nullable();
+            $table->text('headers')->nullable();
             
             // Mail Configuration
             $table->string('mailer', 50)->default('default');
