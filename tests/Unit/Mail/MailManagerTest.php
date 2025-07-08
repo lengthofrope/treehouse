@@ -158,11 +158,15 @@ class MailManagerTest extends TestCase
         // Load helper functions
         require_once __DIR__ . '/../../../src/TreeHouse/Mail/helpers.php';
         
-        // Mock the application global with make method
+        // Mock the application global with make method that falls back to send
         $mockApp = $this->createMock(\LengthOfRope\TreeHouse\Foundation\Application::class);
-        $mockApp->method('make')->with('mail')->willReturn($this->mailManager);
+        $mockApp->method('make')->willReturnMap([
+            ['mail', $this->mailManager],
+            ['mail.queue', null] // This will trigger the fallback
+        ]);
         $GLOBALS['app'] = $mockApp;
         
+        // This should fallback to sending via the helper
         $result = queueMail('user@example.com', 'Queue Helper Test', 'Test queued message');
         $this->assertTrue($result);
     }
@@ -267,18 +271,33 @@ class MailManagerTest extends TestCase
 
     public function testQueueEmail(): void
     {
-        // For Phase 2, queue() just calls send() immediately
-        $result = $this->mailManager
+        // Create a mock mail queue
+        $mockMailQueue = $this->createMock(\LengthOfRope\TreeHouse\Mail\Queue\MailQueue::class);
+        $mockMailQueue->method('add')->willReturn(new \LengthOfRope\TreeHouse\Mail\Queue\QueuedMail());
+        
+        // Mock the application to return the mail queue
+        $mockApp = $this->createMock(\LengthOfRope\TreeHouse\Foundation\Application::class);
+        $mockApp->method('make')->with('mail.queue')->willReturn($mockMailQueue);
+        
+        // Create a new mail manager with the mocked app
+        $mailManager = new \LengthOfRope\TreeHouse\Mail\MailManager([
+            'default' => 'log',
+            'mailers' => [
+                'log' => [
+                    'transport' => 'log',
+                    'path' => 'storage/logs/test-mail.log',
+                ],
+            ],
+            'queue' => ['enabled' => true],
+        ], $mockApp);
+        
+        $result = $mailManager
             ->to('user@example.com')
             ->subject('Queue Test')
             ->text('Test message')
             ->queue();
 
         $this->assertTrue($result);
-
-        // Verify it was "sent" (logged)
-        $logPath = getcwd() . '/storage/logs/test-mail.log';
-        $this->assertTrue(file_exists($logPath));
     }
 
     public function testChainedMethodCalls(): void

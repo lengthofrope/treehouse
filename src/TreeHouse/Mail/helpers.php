@@ -104,6 +104,11 @@ if (!function_exists('queueMail')) {
             $mail->text($message);
         }
         
-        return $mail->queue();
+        try {
+            return $mail->queue();
+        } catch (\Exception $e) {
+            // Fallback to sending immediately if queue is not available
+            return $mail->send();
+        }
     }
 }

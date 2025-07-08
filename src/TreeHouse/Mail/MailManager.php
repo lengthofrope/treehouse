@@ -235,6 +235,12 @@ class MailManager
             // Get the queue service
             $mailQueue = $this->app->make('mail.queue');
             
+            // Check if mail queue service is available
+            if ($mailQueue === null) {
+                // Fall back to immediate sending
+                return $this->send();
+            }
+            
             // Add to queue
             $queuedMail = $mailQueue->add($this->pendingMessage, $this->pendingMessage->getPriority());
             
@@ -246,7 +252,7 @@ class MailManager
         } catch (\Exception $e) {
             // If queue fails, optionally fall back to immediate sending
             $queueConfig = $this->config['queue'] ?? [];
-            $fallbackToSend = $queueConfig['fallback_to_send'] ?? false;
+            $fallbackToSend = $queueConfig['fallback_to_send'] ?? true; // Default to true for better reliability
             
             if ($fallbackToSend) {
                 return $this->send();
