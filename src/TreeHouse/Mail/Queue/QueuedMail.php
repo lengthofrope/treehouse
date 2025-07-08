@@ -96,6 +96,7 @@ class QueuedMail extends ActiveRecord
         };
     }
 
+
     /**
      * Queue status constants
      */
@@ -131,7 +132,8 @@ class QueuedMail extends ActiveRecord
         
         // Calculate queue time (time from creation to processing start)
         if ($this->created_at) {
-            $this->queue_time = $now->diffInSeconds($this->created_at, true);
+            $createdAt = $this->created_at instanceof Carbon ? $this->created_at : Carbon::parse($this->created_at);
+            $this->queue_time = $now->diffInSeconds($createdAt, true);
         }
         
         // Mark as reserved for processing
@@ -152,7 +154,8 @@ class QueuedMail extends ActiveRecord
         
         // Calculate processing time (time from reservation to completion)
         if ($this->reserved_at) {
-            $this->processing_time = $now->diffInSeconds($this->reserved_at, true);
+            $reservedAt = $this->reserved_at instanceof Carbon ? $this->reserved_at : Carbon::parse($this->reserved_at);
+            $this->processing_time = $now->diffInSeconds($reservedAt, true);
         }
         
         // Set delivery time
@@ -187,7 +190,8 @@ class QueuedMail extends ActiveRecord
         
         // Calculate processing time if we were processing
         if ($this->reserved_at) {
-            $this->processing_time = $now->diffInSeconds($this->reserved_at, true);
+            $reservedAt = $this->reserved_at instanceof Carbon ? $this->reserved_at : Carbon::parse($this->reserved_at);
+            $this->processing_time = $now->diffInSeconds($reservedAt, true);
         }
         
         // Clear reservation

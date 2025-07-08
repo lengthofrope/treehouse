@@ -450,13 +450,18 @@ abstract class ActiveRecord
 
     /**
      * Set an attribute value
-     * 
+     *
      * @param string $key Attribute key
      * @param mixed $value Attribute value
      * @return static
      */
     public function setAttribute(string $key, mixed $value): static
     {
+        // Handle JSON casting for database storage
+        if (isset($this->casts[$key]) && $this->casts[$key] === 'json' && is_array($value)) {
+            $value = json_encode($value);
+        }
+        
         $this->attributes[$key] = $value;
         return $this;
     }
