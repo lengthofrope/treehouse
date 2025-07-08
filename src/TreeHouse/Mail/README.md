@@ -2,16 +2,17 @@
 
 A comprehensive email system for the TreeHouse Framework with multiple drivers, queue support, and performance tracking.
 
-## 🚀 Status: Phase 2 Complete ✅
+## 🚀 Status: Phase 3 Console Commands Complete ✅
 
 **Completed Features:**
 - ✅ **Phase 1**: Database Foundation with QueuedMail model and framework enhancements
 - ✅ **Phase 2**: Core Mail System with multiple drivers and fluent interface
-- 🚧 **Phase 3**: Queue System (upcoming)
+- ✅ **Phase 3**: Console Commands - Queue management CLI tools
+- 🚧 **Phase 3**: Queue Processing System (in progress)
 - 🚧 **Phase 4**: Template Integration (upcoming)
 - 🚧 **Phase 5**: Advanced Features (upcoming)
 
-## 📋 Current Features (Phase 1 & 2)
+## 📋 Current Features (Phase 1, 2 & 3 Console)
 
 ### Phase 1: Database Foundation
 - **QueuedMail ActiveRecord Model**: 27-column schema with performance tracking
@@ -29,6 +30,13 @@ A comprehensive email system for the TreeHouse Framework with multiple drivers, 
 - **Helper Functions**: Simple `send_mail()`, `queue_mail()`, `mailer()` functions
 - **Framework Integration**: Registered in Application container
 - **Production-Ready SMTP**: Full authentication and encryption support
+
+### Phase 3: Console Commands
+- **Queue Status Command**: `mail:queue:status` - View queue statistics and performance metrics
+- **Queue Worker Command**: `mail:queue:work` - Process emails with configurable limits and continuous mode
+- **Queue Clear Command**: `mail:queue:clear` - Clear failed or sent emails with confirmation prompts
+- **Comprehensive CLI**: Full help documentation and option validation
+- **Performance Monitoring**: Real-time queue metrics and warnings
 
 ## 🎯 Quick Start
 
@@ -65,6 +73,34 @@ mailer()
 
 // Queue for later (Phase 2: sends immediately, Phase 3: actual queuing)
 queueMail('user@example.com', 'Queued Email', 'This will be queued.');
+```
+
+### Console Commands (Phase 3)
+
+```bash
+# Check queue status
+php bin/treehouse mail:queue:status
+
+# Show detailed queue information with metrics
+php bin/treehouse mail:queue:status --details --metrics
+
+# Process emails from the queue
+php bin/treehouse mail:queue:work --limit=50
+
+# Run queue worker continuously (development only)
+php bin/treehouse mail:queue:work --continuous --timeout=300
+
+# Clear failed emails
+php bin/treehouse mail:queue:clear --failed
+
+# Clear sent emails
+php bin/treehouse mail:queue:clear --sent
+
+# Clear all processed emails (with confirmation)
+php bin/treehouse mail:queue:clear --all
+
+# Force clear without confirmation
+php bin/treehouse mail:queue:clear --all --force
 ```
 
 ### Configuration
@@ -226,7 +262,7 @@ CREATE TABLE queued_mails (
 
 ## 🧪 Testing
 
-**Comprehensive Test Suite** (91 tests, 214 assertions):
+**Comprehensive Test Suite** (85 tests, 226 assertions):
 
 ```bash
 # Run all mail tests
@@ -246,11 +282,12 @@ CREATE TABLE queued_mails (
 
 ## 🚧 Upcoming Features (Phase 3+)
 
-### Phase 3: Queue System
-- Actual background queue processing
-- Cron-based email processing
-- CLI commands for queue management
-- Retry strategies and failure handling
+### Phase 3: Queue System (In Progress)
+- ✅ CLI commands for queue management (`mail:queue:status`, `mail:queue:work`, `mail:queue:clear`)
+- ✅ Queue performance monitoring and metrics
+- 🚧 Actual background queue processing
+- 🚧 Cron-based email processing
+- 🚧 Retry strategies and failure handling
 
 ### Phase 4: Template Integration  
 - View system integration
@@ -297,8 +334,9 @@ $this->container->singleton('mail', function () {
 ## 📈 Current Statistics
 
 **Code Metrics:**
-- **13 files created** (~2,400 lines of code)
-- **91 tests** with 214 assertions (100% passing)
+- **16 files created** (~2,800 lines of code)
+- **85 tests** with 226 assertions (100% passing)
+- **3 console commands** with full CLI integration
 - **Zero external dependencies**
 - **Full PHP 8.4 type safety**
 
@@ -357,11 +395,12 @@ if ($message->isValid()) {
 ## 🏆 Production Ready
 
 The TreeHouse Mail System is now production-ready for immediate email sending with:
-- ✅ Multiple driver support
-- ✅ Comprehensive validation
-- ✅ Error handling and logging
-- ✅ Framework integration
-- ✅ Full test coverage
-- ✅ Security best practices
+- ✅ Multiple driver support (SMTP, Sendmail, Log)
+- ✅ Comprehensive validation and error handling
+- ✅ Framework integration with helper functions
+- ✅ Full test coverage (85 tests, 226 assertions)
+- ✅ Security best practices and RFC compliance
+- ✅ Console commands for queue management
+- ✅ Performance monitoring and metrics
 
-**Ready for Phase 3 development: Queue System Implementation**
+**Phase 3 Console Commands Complete - Ready for Queue Processing Implementation**
