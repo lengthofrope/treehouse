@@ -139,6 +139,34 @@ class MailManagerTest extends TestCase
         $this->assertStringContainsString('Test message', $logContent);
     }
 
+    public function testSendMailHelper(): void
+    {
+        // Load helper functions
+        require_once __DIR__ . '/../../../src/TreeHouse/Mail/helpers.php';
+        
+        // Mock the application global with make method
+        $mockApp = $this->createMock(\LengthOfRope\TreeHouse\Foundation\Application::class);
+        $mockApp->method('make')->with('mail')->willReturn($this->mailManager);
+        $GLOBALS['app'] = $mockApp;
+        
+        $result = sendMail('user@example.com', 'Helper Test', 'Test message from helper');
+        $this->assertTrue($result);
+    }
+
+    public function testQueueMailHelper(): void
+    {
+        // Load helper functions
+        require_once __DIR__ . '/../../../src/TreeHouse/Mail/helpers.php';
+        
+        // Mock the application global with make method
+        $mockApp = $this->createMock(\LengthOfRope\TreeHouse\Foundation\Application::class);
+        $mockApp->method('make')->with('mail')->willReturn($this->mailManager);
+        $GLOBALS['app'] = $mockApp;
+        
+        $result = queueMail('user@example.com', 'Queue Helper Test', 'Test queued message');
+        $this->assertTrue($result);
+    }
+
     public function testSendHtmlEmail(): void
     {
         $result = $this->mailManager

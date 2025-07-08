@@ -23,7 +23,7 @@ if (!function_exists('mailer')) {
     }
 }
 
-if (!function_exists('send_mail')) {
+if (!function_exists('sendMail')) {
     /**
      * Send a simple email immediately
      *
@@ -34,7 +34,7 @@ if (!function_exists('send_mail')) {
      * @param string|null $from Sender address
      * @return bool True if sent successfully
      */
-    function send_mail(
+    function sendMail(
         string|array $to,
         string $subject,
         string $message,
@@ -64,7 +64,7 @@ if (!function_exists('send_mail')) {
     }
 }
 
-if (!function_exists('queue_mail')) {
+if (!function_exists('queueMail')) {
     /**
      * Queue an email for later processing
      *
@@ -76,7 +76,7 @@ if (!function_exists('queue_mail')) {
      * @param int $priority Priority level (1 = highest, 10 = lowest)
      * @return bool True if queued successfully
      */
-    function queue_mail(
+    function queueMail(
         string|array $to,
         string $subject,
         string $message,
