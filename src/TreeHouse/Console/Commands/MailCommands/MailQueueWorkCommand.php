@@ -8,8 +8,10 @@ use LengthOfRope\TreeHouse\Console\Command;
 use LengthOfRope\TreeHouse\Console\Input\InputInterface;
 use LengthOfRope\TreeHouse\Console\Output\OutputInterface;
 use LengthOfRope\TreeHouse\Console\InputOption;
-use LengthOfRope\TreeHouse\Foundation\Application;
 use Exception;
+
+// Import helper functions
+require_once __DIR__ . '/../../../Support/helpers.php';
 
 /**
  * Mail Queue Work Command
@@ -32,19 +34,6 @@ class MailQueueWorkCommand extends Command
      */
     protected string $description = 'Process emails in the mail queue';
 
-    /**
-     * Application instance
-     */
-    protected Application $app;
-
-    /**
-     * Create a new command instance
-     */
-    public function __construct(Application $app)
-    {
-        parent::__construct();
-        $this->app = $app;
-    }
 
     /**
      * Configure the command
@@ -64,7 +53,7 @@ class MailQueueWorkCommand extends Command
     public function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            $mailQueue = $this->app->make('mail.queue');
+            $mailQueue = $this->getMailQueue();
             
             $limit = (int) $input->getOption('limit', 10);
             $continuous = $input->getOption('continuous', false);
@@ -180,5 +169,17 @@ class MailQueueWorkCommand extends Command
         $output->writeln("  - Total failed: {$totalFailed}");
         
         return 0; // SUCCESS
+    }
+
+    /**
+     * Get the mail queue service
+     */
+    protected function getMailQueue(): \LengthOfRope\TreeHouse\Mail\Queue\MailQueue
+    {
+        // Create TreeHouse Application instance
+        $projectRoot = getcwd();
+        $app = new \LengthOfRope\TreeHouse\Foundation\Application($projectRoot);
+        
+        return $app->make('mail.queue');
     }
 }

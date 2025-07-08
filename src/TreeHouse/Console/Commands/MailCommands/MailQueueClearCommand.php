@@ -8,14 +8,16 @@ use LengthOfRope\TreeHouse\Console\Command;
 use LengthOfRope\TreeHouse\Console\Input\InputInterface;
 use LengthOfRope\TreeHouse\Console\Output\OutputInterface;
 use LengthOfRope\TreeHouse\Console\InputOption;
-use LengthOfRope\TreeHouse\Foundation\Application;
 use Exception;
+
+// Import helper functions
+require_once __DIR__ . '/../../../Support/helpers.php';
 
 /**
  * Mail Queue Clear Command
- * 
+ *
  * Clears failed or sent emails from the queue.
- * 
+ *
  * @package LengthOfRope\TreeHouse\Console\Commands\MailCommands
  * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
@@ -32,19 +34,6 @@ class MailQueueClearCommand extends Command
      */
     protected string $description = 'Clear failed or sent emails from the queue';
 
-    /**
-     * Application instance
-     */
-    protected Application $app;
-
-    /**
-     * Create a new command instance
-     */
-    public function __construct(Application $app)
-    {
-        parent::__construct();
-        $this->app = $app;
-    }
 
     /**
      * Configure the command
@@ -65,7 +54,7 @@ class MailQueueClearCommand extends Command
     public function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            $mailQueue = $this->app->make('mail.queue');
+            $mailQueue = $this->getMailQueue();
             
             $clearFailed = $input->getOption('failed', false);
             $clearSent = $input->getOption('sent', false);
@@ -150,5 +139,17 @@ class MailQueueClearCommand extends Command
             $output->writeln('<error>Failed to clear queue: ' . $e->getMessage() . '</error>');
             return 1; // FAILURE
         }
+    }
+
+    /**
+     * Get the mail queue service
+     */
+    protected function getMailQueue(): \LengthOfRope\TreeHouse\Mail\Queue\MailQueue
+    {
+        // Create TreeHouse Application instance
+        $projectRoot = getcwd();
+        $app = new \LengthOfRope\TreeHouse\Foundation\Application($projectRoot);
+        
+        return $app->make('mail.queue');
     }
 }

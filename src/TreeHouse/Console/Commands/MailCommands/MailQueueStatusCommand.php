@@ -8,14 +8,16 @@ use LengthOfRope\TreeHouse\Console\Command;
 use LengthOfRope\TreeHouse\Console\Input\InputInterface;
 use LengthOfRope\TreeHouse\Console\Output\OutputInterface;
 use LengthOfRope\TreeHouse\Console\InputOption;
-use LengthOfRope\TreeHouse\Foundation\Application;
 use Exception;
+
+// Import helper functions
+require_once __DIR__ . '/../../../Support/helpers.php';
 
 /**
  * Mail Queue Status Command
- * 
+ *
  * Shows the current status and statistics of the mail queue.
- * 
+ *
  * @package LengthOfRope\TreeHouse\Console\Commands\MailCommands
  * @author  Bas de Kort <bdekort@proton.me>
  * @since   1.0.0
@@ -32,19 +34,6 @@ class MailQueueStatusCommand extends Command
      */
     protected string $description = 'Show mail queue status and statistics';
 
-    /**
-     * Application instance
-     */
-    protected Application $app;
-
-    /**
-     * Create a new command instance
-     */
-    public function __construct(Application $app)
-    {
-        parent::__construct();
-        $this->app = $app;
-    }
 
     /**
      * Configure the command
@@ -63,7 +52,7 @@ class MailQueueStatusCommand extends Command
     public function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            $mailQueue = $this->app->make('mail.queue');
+            $mailQueue = $this->getMailQueue();
             $showMetrics = $input->getOption('metrics', false);
             $showDetails = $input->getOption('details', false);
             
@@ -112,7 +101,7 @@ class MailQueueStatusCommand extends Command
         $output->writeln('<info>Queue Configuration</info>');
         $output->writeln('-------------------');
         
-        $config = $this->app->config('mail.queue', []);
+        $config = $this->getConfig('mail.queue', []);
         
         $enabled = $config['enabled'] ?? false;
         $output->writeln("Enabled:           <comment>" . ($enabled ? 'Yes' : 'No') . "</comment>");
@@ -181,7 +170,7 @@ class MailQueueStatusCommand extends Command
         }
         
         // Check if queue is enabled
-        $config = $this->app->config('mail.queue', []);
+        $config = $this->getConfig('mail.queue', []);
         if (!($config['enabled'] ?? false)) {
             $warnings[] = "Mail queue is disabled - emails will be sent immediately";
         }
@@ -193,5 +182,29 @@ class MailQueueStatusCommand extends Command
                 $output->writeln("  - <comment>{$warning}</comment>");
             }
         }
+    }
+
+    /**
+     * Get the mail queue service
+     */
+    protected function getMailQueue(): \LengthOfRope\TreeHouse\Mail\Queue\MailQueue
+    {
+        // Create TreeHouse Application instance
+        $projectRoot = getcwd();
+        $app = new \LengthOfRope\TreeHouse\Foundation\Application($projectRoot);
+        
+        return $app->make('mail.queue');
+    }
+
+    /**
+     * Get configuration value
+     */
+    protected function getConfig(string $key, mixed $default = null): mixed
+    {
+        // Create TreeHouse Application instance
+        $projectRoot = getcwd();
+        $app = new \LengthOfRope\TreeHouse\Foundation\Application($projectRoot);
+        
+        return $app->config($key, $default);
     }
 }
