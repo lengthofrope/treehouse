@@ -224,16 +224,37 @@ class MailManager
 
     /**
      * Queue the message for later processing
-     * 
+     *
      * @return bool True if queued successfully
      */
     public function queue(): bool
     {
         $this->ensurePendingMessage();
         
-        // For now, we'll just send immediately
-        // In Phase 3, this will actually queue the message
-        return $this->send();
+        try {
+            // Get the queue service
+            $mailQueue = $this->app->make('mail.queue');
+            
+            // Add to queue
+            $queuedMail = $mailQueue->add($this->pendingMessage, $this->pendingMessage->getPriority());
+            
+            // Clear the pending message
+            $this->pendingMessage = null;
+            
+            return $queuedMail !== null;
+            
+        } catch (\Exception $e) {
+            // If queue fails, optionally fall back to immediate sending
+            $queueConfig = $this->config['queue'] ?? [];
+            $fallbackToSend = $queueConfig['fallback_to_send'] ?? false;
+            
+            if ($fallbackToSend) {
+                return $this->send();
+            }
+            
+            $this->pendingMessage = null; // Clear even on failure
+            throw $e;
+        }
     }
 
     /**

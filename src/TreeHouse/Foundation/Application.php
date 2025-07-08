@@ -219,6 +219,12 @@ class Application
             return new \LengthOfRope\TreeHouse\Mail\MailManager($config, $this);
         });
 
+        // Register mail queue
+        $this->container->singleton('mail.queue', function () {
+            $config = $this->config['mail']['queue'] ?? [];
+            return new \LengthOfRope\TreeHouse\Mail\Queue\MailQueue($config, $this);
+        });
+
     }
 
     /**
