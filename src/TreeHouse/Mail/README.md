@@ -1,190 +1,516 @@
-# TreeHouse Mail System
+# TreeHouse Framework - Mail Layer
 
-A comprehensive email system for the TreeHouse Framework with multiple drivers, queue support, automated processing, and performance tracking.
+The Mail layer provides a comprehensive email system for the TreeHouse Framework. It offers multiple transport drivers, queue management, template integration, file attachments, event handling, and advanced validation features.
 
-## 🚀 Status: Phase 5 Complete ✅
+## Table of Contents
 
-**Completed Features:**
-- ✅ **Phase 1**: Database Foundation with QueuedMail model and framework enhancements
-- ✅ **Phase 2**: Core Mail System with multiple drivers and fluent interface
-- ✅ **Phase 3**: Complete Queue System with CLI tools, automated processing, and retry logic
-- ✅ **Phase 4**: Template Integration with Mailable classes and email-specific templates
-- ✅ **Phase 5**: Advanced Features with attachments, events, validation, and production polish
+- [Overview](#overview)
+- [Core Components](#core-components)
+- [Mail Interface](#mail-interface)
+- [Mail Manager](#mail-manager)
+- [Transport Drivers](#transport-drivers)
+- [Queue System](#queue-system)
+- [Mailable Classes](#mailable-classes)
+- [Template System](#template-system)
+- [File Attachments](#file-attachments)
+- [Event System](#event-system)
+- [Validation](#validation)
+- [Helper Functions](#helper-functions)
+- [CLI Commands](#cli-commands)
+- [Configuration](#configuration)
+- [Usage Examples](#usage-examples)
+- [Best Practices](#best-practices)
 
-## 📋 Current Features (Phase 1, 2, 3 & 4 Complete)
+## Overview
 
-### Phase 1: Database Foundation
-- **QueuedMail ActiveRecord Model**: 27-column schema with performance tracking
-- **Database Migration**: Production-ready migration with indexes
-- **Enhanced ActiveRecord**: Universal JSON casting for all models
-- **Framework Bug Fixes**: Fixed 5 critical TreeHouse framework bugs
-- **Comprehensive Tests**: 29 tests covering all queue functionality
+The Mail layer implements a driver-based email system that supports:
 
-### Phase 2: Core Mail System
-- **Multiple Mail Drivers**: SMTP (SSL/TLS), Sendmail, Log drivers
-- **MailManager**: Central orchestrator with driver management
-- **Fluent Interface**: Laravel-inspired API for email composition
-- **Address Classes**: RFC-compliant email validation and parsing
-- **Message System**: Full validation and multipart support
-- **Helper Functions**: Simple `sendMail()`, `queueMail()`, `mailer()` functions
-- **Framework Integration**: Registered in Application container
-- **Production-Ready SMTP**: Full authentication and encryption support
+- **Multiple Transport Drivers**: SMTP (SSL/TLS), Sendmail, and Log drivers
+- **Database Queue System**: Reliable email queuing with retry logic and automated processing
+- **Laravel-Style Mailables**: Object-oriented email classes with template integration
+- **Template Engine Integration**: TreeHouse template system with email-safe layouts
+- **File Attachments**: Support for file and data attachments with security validation
+- **Event System**: Full integration with TreeHouse events for monitoring and control
+- **Advanced Validation**: Comprehensive email validation with anti-spam features
+- **CLI Management**: Complete command-line tools for queue and email management
 
-### Phase 3: Complete Queue System
-- **Queue Management Commands**: `mail:queue:status`, `mail:queue:work`, `mail:queue:clear`, `mail:queue:retry`
-- **Automated Processing**: Built-in cron job (`mail:queue:process`) runs every minute
-- **Retry Logic**: Exponential backoff with configurable attempts and delays
-- **Performance Monitoring**: Real-time queue metrics, warnings, and health checks
-- **Centralized Cron Management**: Single source of truth for built-in framework jobs
-- **Comprehensive CLI**: Full help documentation, dry-run modes, and option validation
-- **Production Queue**: Database persistence, reservation system, batch processing
+## Core Components
 
-### Phase 4: Template Integration
-- **Mailable Base Class**: Laravel-style mailable classes for organized email logic
-- **Email Templates**: TreeHouse template engine integration with email-safe layouts
-- **EmailRenderer**: Specialized renderer for email templates with context injection
-- **Template Generation**: `make:mailable` command for generating mailable classes
-- **Email Layouts**: Professional email layouts with responsive design
-- **Auto Text Generation**: Automatic plain text generation from HTML templates
-- **Template Helpers**: Email-specific helper functions for rendering
-- **Framework Integration**: Seamless integration with existing TreeHouse View system
+### MailManager
 
-### Phase 5: Advanced Features
-- **File Attachments**: Support for file attachments with MIME type detection and size validation
-- **Data Attachments**: Attach raw data as files without writing to disk
-- **Event System**: Full integration with TreeHouse events (MailSending, MailSent, MailFailed, MailQueued)
-- **Email Validation**: Comprehensive validation with spam detection and security checks
-- **Event Context**: Rich event data with performance metrics and error details
-- **Attachment Security**: File type validation and size limits for security
-- **Production Polish**: Enhanced error handling, graceful fallbacks, and robust testing
-- **Event Propagation**: Support for cancelling emails and stopping event propagation
-
-## 🎯 Quick Start
-
-### Basic Usage
+The [`MailManager`](MailManager.php:31) manages multiple transport drivers and provides a unified interface:
 
 ```php
-// Simple email (using helper function)
-sendMail('user@example.com', 'Welcome!', 'Welcome to our application!');
+class MailManager
+{
+    public function __construct(array $config, Application $app);
+    public function compose(): static;
+    public function send(): bool;
+    public function queue(): bool;
+    public function getMailer(string $name): MailerInterface;
+    public function getDefaultMailer(): string;
+}
+```
 
-// HTML email with helper
-sendMail(
-    'user@example.com',
-    'Newsletter',
-    '<h1>Monthly Newsletter</h1><p>Content here...</p>',
-    ['X-Priority' => '1']
-);
+### Message
 
+The [`Message`](Messages/Message.php:22) class represents an email message with all its properties:
+
+```php
+class Message
+{
+    public function to(string|array|Address|AddressList $recipients): static;
+    public function cc(string|array|Address|AddressList $recipients): static;
+    public function bcc(string|array|Address|AddressList $recipients): static;
+    public function from(string|Address $sender): static;
+    public function subject(string $subject): static;
+    public function html(string $html): static;
+    public function text(string $text): static;
+    public function attach(string $file, array $options = []): static;
+    public function attachData(string $data, string $name, array $options = []): static;
+    public function send(): bool;
+    public function queue(int $priority = null): QueuedMail|bool;
+}
+```
+
+### Mailable
+
+The [`Mailable`](Mailable.php:29) abstract class provides Laravel-style email classes:
+
+```php
+abstract class Mailable
+{
+    public function to(string|array $recipients): static;
+    public function subject(string $subject): static;
+    public function emailTemplate(string $template, array $data = []): static;
+    public function with(array $data): static;
+    public function attach(string $file, array $options = []): static;
+    public function send(string|array $recipients = null): bool;
+    public function queue(string|array $recipients = null, int $priority = 5): QueuedMail|bool;
+    abstract public function build(): static;
+}
+```
+
+## Mail Interface
+
+### Basic Operations
+
+#### Compose and Send Email
+```php
 // Fluent interface
 mailer()
     ->to('user@example.com')
     ->subject('Welcome!')
-    ->html('<h1>Welcome!</h1>')
-    ->text('Welcome to our application!')
-    ->priority(2)
+    ->html('<h1>Welcome to our app!</h1>')
+    ->text('Welcome to our app!')
     ->send();
 
-// Multiple recipients
+// With multiple recipients
 mailer()
     ->to(['user1@example.com', 'user2@example.com'])
     ->cc('manager@example.com')
+    ->bcc('archive@example.com')
     ->subject('Team Update')
     ->html('<p>Update content</p>')
     ->send();
-
-// Queue for later processing
-queueMail('user@example.com', 'Queued Email', 'This will be processed by the queue.');
 ```
 
-### Template-Based Emails (Phase 4)
-
+#### Queue Email for Later Processing
 ```php
-// Using Mailable classes
-use App\Mail\WelcomeEmail;
-
-// Send welcome email immediately
-$welcomeEmail = new WelcomeEmail($user);
-$welcomeEmail->send($user->email);
-
-// Queue welcome email
-$welcomeEmail = new WelcomeEmail($user);
-$welcomeEmail->queue($user->email, 1); // High priority
-
-// Using email templates directly
-$html = renderEmail('emails.welcome', [
-    'user' => $user,
-    'dashboard_url' => url('/dashboard')
-]);
-
-// Send templated email with helper
-sendMail($user->email, 'Welcome!', renderEmail('emails.welcome', ['user' => $user]));
-```
-
-### CLI Commands (Phase 4)
-
-```bash
-# Generate a new Mailable class
-treehouse make:mailable WelcomeEmail
-
-# Generate with custom template
-treehouse make:mailable OrderConfirmation --template=emails.orders.confirmation
-
-# Force overwrite existing file
-treehouse make:mailable NewsletterEmail --force
-```
-
-### Advanced Features (Phase 5)
-
-```php
-// File attachments
-$message = mailer()->compose()
+// Queue with default priority
+mailer()
     ->to('user@example.com')
-    ->subject('Invoice with attachments')
+    ->subject('Newsletter')
+    ->html('<p>Newsletter content</p>')
+    ->queue();
+
+// Queue with high priority
+mailer()
+    ->to('user@example.com')
+    ->subject('Important Notice')
+    ->html('<p>Important content</p>')
+    ->priority(1)
+    ->queue();
+```
+
+#### File Attachments
+```php
+// Attach files
+mailer()
+    ->to('user@example.com')
+    ->subject('Invoice')
     ->html('<p>Please find your invoice attached.</p>')
     ->attach('/path/to/invoice.pdf', ['as' => 'Invoice-2024.pdf'])
     ->attach('/path/to/receipt.jpg')
     ->send();
 
-// Data attachments (no file required)
-$csvData = "Name,Email\nJohn,john@example.com\nJane,jane@example.com";
-$message = mailer()->compose()
+// Attach raw data
+$csvData = "Name,Email\nJohn,john@example.com";
+mailer()
     ->to('admin@example.com')
     ->subject('User Export')
     ->attachData($csvData, 'users.csv', ['mime' => 'text/csv'])
     ->send();
+```
 
-// Event listeners
-app('events')->listen(MailSending::class, function(MailSending $event) {
-    // Log all outgoing emails
-    log('Sending email: ' . $event->getSubject());
+## Mail Manager
+
+### Driver Management
+
+#### Get Manager Instance
+```php
+$mailManager = new MailManager($config, $app);
+
+// Or via helper
+$mailManager = mailer();
+```
+
+#### Use Specific Driver
+```php
+// Use specific mailer
+mailer()
+    ->mailer('smtp')
+    ->to('user@example.com')
+    ->subject('Production Email')
+    ->send();
+
+// Get driver instance
+$smtpMailer = mailer()->getMailer('smtp');
+```
+
+### Transport Configuration
+```php
+$config = [
+    'default' => 'smtp',
+    'mailers' => [
+        'smtp' => [
+            'transport' => 'smtp',
+            'host' => 'smtp.mailgun.org',
+            'port' => 587,
+            'encryption' => 'tls',
+            'username' => 'postmaster@mg.example.com',
+            'password' => 'secret',
+        ],
+        'sendmail' => [
+            'transport' => 'sendmail',
+            'path' => '/usr/sbin/sendmail -bs',
+        ],
+        'log' => [
+            'transport' => 'log',
+            'path' => 'storage/logs/mail.log',
+        ],
+    ],
+    'from' => [
+        'address' => 'noreply@example.com',
+        'name' => 'Example App',
+    ],
+];
+```
+
+## Transport Drivers
+
+### SMTP Driver
+
+The [`SmtpMailer`](Mailers/SmtpMailer.php:31) provides production-ready SMTP support:
+
+```php
+// SMTP with TLS encryption
+'smtp' => [
+    'transport' => 'smtp',
+    'host' => 'smtp.gmail.com',
+    'port' => 587,
+    'encryption' => 'tls',
+    'username' => 'your-email@gmail.com',
+    'password' => 'your-app-password',
+    'timeout' => 60,
+]
+```
+
+### Sendmail Driver
+
+The [`SendmailMailer`](Mailers/SendmailMailer.php:25) uses the system's sendmail:
+
+```php
+'sendmail' => [
+    'transport' => 'sendmail',
+    'path' => '/usr/sbin/sendmail -bs',
+]
+```
+
+### Log Driver
+
+The [`LogMailer`](Mailers/LogMailer.php:25) logs emails to files (perfect for development):
+
+```php
+'log' => [
+    'transport' => 'log',
+    'path' => 'storage/logs/mail.log',
+]
+```
+
+## Queue System
+
+### QueuedMail Model
+
+The [`QueuedMail`](Queue/QueuedMail.php:29) model provides database persistence:
+
+```php
+class QueuedMail extends ActiveRecord
+{
+    // 27-column schema with performance tracking
+    public function canRetry(): bool;
+    public function markAsSent(): void;
+    public function markAsFailed(string $error): void;
+    public function calculateNextRetry(): void;
+}
+```
+
+### Mail Queue
+
+The [`MailQueue`](Queue/MailQueue.php:30) manages the email queue:
+
+```php
+$mailQueue = new MailQueue($config, $app);
+
+// Add to queue
+$queuedMail = $mailQueue->add($message, $priority);
+
+// Process queue
+$processed = $mailQueue->processQueue($batchSize);
+
+// Get statistics
+$stats = $mailQueue->getStats();
+```
+
+### Automated Processing
+
+The system includes a built-in cron job that processes the queue every minute:
+
+```php
+// Automatic processing via MailQueueProcessor
+// Runs: mail:queue:process every minute
+```
+
+## Mailable Classes
+
+### Creating Mailables
+
+```bash
+# Generate a new Mailable class
+treehouse make:mailable WelcomeEmail
+
+# With custom template
+treehouse make:mailable OrderConfirmation --template=emails.orders.confirmation
+```
+
+### Basic Mailable
+
+```php
+use LengthOfRope\TreeHouse\Mail\Mailable;
+
+class WelcomeEmail extends Mailable
+{
+    public function __construct(
+        protected mixed $user
+    ) {}
+
+    public function build(): static
+    {
+        return $this
+            ->subject('Welcome to Our App!')
+            ->emailTemplate('emails.welcome', [
+                'user' => $this->user,
+                'app_name' => 'MyApp',
+            ]);
+    }
+}
+```
+
+### Using Mailables
+
+```php
+// Send immediately
+$welcomeEmail = new WelcomeEmail($user);
+$welcomeEmail->send($user->email);
+
+// Queue for later
+$welcomeEmail = new WelcomeEmail($user);
+$welcomeEmail->queue($user->email, 1); // High priority
+
+// With attachments
+$welcomeEmail = new WelcomeEmail($user);
+$welcomeEmail
+    ->attach('/path/to/welcome.pdf')
+    ->send($user->email);
+```
+
+## Template System
+
+### Email Templates
+
+The system integrates with TreeHouse's template engine:
+
+```html
+<!-- resources/views/emails/layouts/base.th.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{subject}</title>
+</head>
+<body style="font-family: Arial, sans-serif;">
+    <div th:section="content">
+        <!-- Content will be inserted here -->
+    </div>
     
-    // Cancel emails to blocked domains
-    foreach ($event->getRecipients() as $email) {
-        if (str_ends_with($email, '@blocked-domain.com')) {
-            $event->cancel();
-            break;
-        }
+    <footer style="margin-top: 30px; color: #666;">
+        <p>Best regards,<br>{app.name} Team</p>
+    </footer>
+</body>
+</html>
+```
+
+```html
+<!-- resources/views/emails/welcome.th.html -->
+<div th:extend="emails.layouts.base">
+    <div th:section="content">
+        <h1>Welcome to {app.name}!</h1>
+        <p>Hello {user.name},</p>
+        <p>Thank you for joining us. We're excited to have you on board!</p>
+        <a th:href="dashboard_url" style="background: #007cba; color: white; padding: 10px 20px; text-decoration: none;">
+            Get Started
+        </a>
+    </div>
+</div>
+```
+
+### Email Renderer
+
+The [`EmailRenderer`](EmailRenderer.php:26) provides email-specific template rendering:
+
+```php
+// Render email template
+$html = renderEmail('emails.welcome', [
+    'user' => $user,
+    'dashboard_url' => url('/dashboard')
+]);
+
+// Use in email
+sendMail($user->email, 'Welcome!', $html);
+```
+
+## File Attachments
+
+### File Attachments
+
+```php
+// Attach files with options
+$message->attach('/path/to/file.pdf', [
+    'as' => 'Custom-Name.pdf',
+    'mime' => 'application/pdf'
+]);
+
+// Multiple attachments
+$message
+    ->attach('/path/to/invoice.pdf')
+    ->attach('/path/to/receipt.jpg')
+    ->attach('/path/to/terms.txt');
+```
+
+### Data Attachments
+
+```php
+// Attach generated content
+$csvData = generateCsvReport();
+$message->attachData($csvData, 'report.csv', [
+    'mime' => 'text/csv'
+]);
+
+// Attach binary data
+$pdfData = generatePdfInvoice();
+$message->attachData($pdfData, 'invoice.pdf', [
+    'mime' => 'application/pdf'
+]);
+```
+
+### MIME Type Detection
+
+The system automatically detects MIME types:
+
+```php
+// Automatic detection with fallback
+$attachment = [
+    'path' => '/path/to/file.pdf',
+    'name' => 'document.pdf',
+    'mime' => 'application/pdf', // Auto-detected
+    'size' => 2048576, // Auto-calculated
+];
+```
+
+## Event System
+
+### Mail Events
+
+The system dispatches events throughout the email lifecycle:
+
+```php
+use LengthOfRope\TreeHouse\Mail\Events\{MailSending, MailSent, MailFailed, MailQueued};
+
+// Listen for events
+app('events')->listen(MailSending::class, function(MailSending $event) {
+    // Before email is sent - can cancel
+    if ($shouldBlock) {
+        $event->cancel();
     }
 });
 
 app('events')->listen(MailSent::class, function(MailSent $event) {
-    // Track email performance
-    analytics()->track('email_sent', [
-        'subject' => $event->getSubject(),
-        'mailer' => $event->getMailerUsed(),
-        'send_time' => $event->getSendTime(),
-        'has_attachments' => $event->hasAttachments(),
-    ]);
+    // After successful send
+    $sendTime = $event->getSendTime();
+    $mailer = $event->getMailerUsed();
 });
 
-// Email validation
+app('events')->listen(MailFailed::class, function(MailFailed $event) {
+    // When send fails
+    $error = $event->getErrorMessage();
+    $isRetryable = $event->isRetryable();
+});
+
+app('events')->listen(MailQueued::class, function(MailQueued $event) {
+    // When email is queued
+    $queueId = $event->getQueueId();
+    $priority = $event->getPriority();
+});
+```
+
+### Event Context
+
+Events include rich contextual data:
+
+```php
+$event->getSubject();           // Email subject
+$event->getRecipients();        // Recipient list
+$event->hasAttachments();       // Attachment presence
+$event->getAttachmentCount();   // Number of attachments
+$event->getContext();           // Full event context
+```
+
+## Validation
+
+### Email Validator
+
+The [`EmailValidator`](Validation/EmailValidator.php:27) provides comprehensive validation:
+
+```php
 use LengthOfRope\TreeHouse\Mail\Validation\EmailValidator;
 
 $validator = new EmailValidator([
-    'max_attachment_size' => 5 * 1024 * 1024, // 5MB
-    'max_recipients' => 50,
+    'max_attachment_size' => 10 * 1024 * 1024, // 10MB
+    'max_total_size' => 25 * 1024 * 1024,      // 25MB
+    'max_recipients' => 100,
     'blocked_domains' => ['spam-domain.com'],
     'check_disposable_emails' => true,
+    'allowed_attachment_types' => ['pdf', 'jpg', 'png', 'doc'],
 ]);
 
 if (!$validator->validate($message)) {
@@ -194,11 +520,41 @@ if (!$validator->validate($message)) {
 }
 ```
 
-## 🛠️ CLI Commands Overview
+### Validation Features
 
-The TreeHouse Mail System provides comprehensive CLI tools for email management:
+- **Recipient Validation**: Email format, domain blocking, disposable email detection
+- **Content Validation**: Subject/body length, suspicious pattern detection
+- **Attachment Validation**: File types, size limits, security checks
+- **Size Limits**: Individual and total attachment size validation
+- **Anti-Spam**: Pattern detection for suspicious content
+
+## Helper Functions
+
+### Mail Helpers
+
+The mail system provides convenient global helper functions:
+
+```php
+// Get mail manager
+$mailManager = mailer();
+
+// Send simple email
+sendMail('user@example.com', 'Subject', 'Body content');
+
+// Queue simple email
+queueMail('user@example.com', 'Subject', 'Body content', 1); // High priority
+
+// Render email template
+$html = renderEmail('emails.welcome', ['user' => $user]);
+
+// Send templated email
+sendMail($user->email, 'Welcome!', renderEmail('emails.welcome', ['user' => $user]));
+```
+
+## CLI Commands
 
 ### Mail Generation Commands
+
 ```bash
 # Generate a new Mailable class
 treehouse make:mailable WelcomeEmail
@@ -211,130 +567,53 @@ treehouse make:mailable NewsletterEmail --force
 ```
 
 ### Queue Management Commands
+
 ```bash
 # Check queue status and statistics
 treehouse mail:queue:status
 
-# Show detailed queue information with metrics
+# Show detailed information
 treehouse mail:queue:status --details --metrics
 
-# Process emails from the queue (manual)
+# Process emails manually
 treehouse mail:queue:work --limit=50
 
-# Run queue worker continuously (development only)
+# Process continuously (development)
 treehouse mail:queue:work --continuous --timeout=300
 
-# Retry failed emails with filtering
+# Retry failed emails
 treehouse mail:queue:retry --limit=20 --older-than=60
 
-# Retry specific emails by ID
-treehouse mail:queue:retry 1,2,3 --force
-
-# Dry run to see what would be retried
-treehouse mail:queue:retry --dry-run --max-attempts=2
-
-# Clear failed emails from queue
+# Clear failed emails
 treehouse mail:queue:clear --failed
 
-# Clear sent emails
-treehouse mail:queue:clear --sent
-
-# Clear all processed emails (with confirmation)
+# Clear all processed emails
 treehouse mail:queue:clear --all
-
-# Force clear without confirmation
-treehouse mail:queue:clear --all --force
-```
-
-### Built-in Cron Integration
-```bash
-# The following cron job runs automatically every minute:
-# mail:queue:process - Processes pending emails in the background
-
-# View all cron jobs (includes mail processing)
-treehouse cron:list
-
-# Run cron manually (processes mail queue among other jobs)
-treehouse cron:run
-
-# Test what cron would do
-treehouse cron:run --dry-run
-```
-
-### Command Features
-- **Generation Commands**: Scaffold Mailable classes with template validation
-- **Queue Commands**: Full queue lifecycle management with safety checks
-- **Status Commands**: Real-time metrics, health warnings, performance stats
-- **Processing Commands**: Manual and automated queue processing
-- **Retry Commands**: Smart retry logic with exponential backoff
-- **Clear Commands**: Selective cleanup with confirmation prompts
-
-### Queue Management (Phase 3)
-
-```bash
-# Check queue status
-php bin/treehouse mail:queue:status
-
-# Show detailed queue information with metrics
-php bin/treehouse mail:queue:status --details --metrics
-
-# Process emails from the queue (manual)
-php bin/treehouse mail:queue:work --limit=50
-
-# Run queue worker continuously (development only)
-php bin/treehouse mail:queue:work --continuous --timeout=300
-
-# Retry failed emails
-php bin/treehouse mail:queue:retry --limit=20 --older-than=60
-
-# Retry specific emails by ID
-php bin/treehouse mail:queue:retry 1,2,3 --force
-
-# Dry run to see what would be retried
-php bin/treehouse mail:queue:retry --dry-run --max-attempts=2
-
-# Clear failed emails
-php bin/treehouse mail:queue:clear --failed
-
-# Clear sent emails
-php bin/treehouse mail:queue:clear --sent
-
-# Clear all processed emails (with confirmation)
-php bin/treehouse mail:queue:clear --all
-
-# Force clear without confirmation
-php bin/treehouse mail:queue:clear --all --force
 ```
 
 ### Automated Processing
 
-The mail queue is automatically processed every minute by the built-in cron job:
-
 ```bash
-# View cron jobs (includes mail:queue:process)
-php bin/treehouse cron:list
-
-# Run cron manually (processes due jobs including mail queue)
-php bin/treehouse cron:run
-
-# Test what cron would do
-php bin/treehouse cron:run --dry-run
+# Built-in cron job (runs automatically every minute)
+treehouse cron:list    # View all cron jobs
+treehouse cron:run     # Manual cron execution
 ```
 
-### Configuration
+## Configuration
 
-The system uses `config/mail.php`:
+### Basic Configuration
 
 ```php
+// config/mail.php
 return [
-    'default' => env('MAIL_MAILER', 'log'), // smtp, sendmail, log
+    'default' => env('MAIL_MAILER', 'log'),
     
     'mailers' => [
         'smtp' => [
             'transport' => 'smtp',
             'host' => env('MAIL_HOST', 'localhost'),
             'port' => env('MAIL_PORT', 587),
-            'encryption' => env('MAIL_ENCRYPTION', 'tls'), // tls, ssl
+            'encryption' => env('MAIL_ENCRYPTION', 'tls'),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             'timeout' => 60,
@@ -354,370 +633,201 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
     
-    // Queue Configuration (Phase 3)
+    // Queue Configuration
     'queue' => [
         'enabled' => env('MAIL_QUEUE_ENABLED', true),
         'batch_size' => env('MAIL_QUEUE_BATCH_SIZE', 10),
         'max_attempts' => env('MAIL_QUEUE_MAX_ATTEMPTS', 3),
-        
-        // Enhanced Retry Configuration
-        'retry_strategy' => env('MAIL_QUEUE_RETRY_STRATEGY', 'exponential'), // linear, exponential
-        'base_retry_delay' => env('MAIL_QUEUE_BASE_RETRY_DELAY', 300), // 5 minutes
-        'max_retry_delay' => env('MAIL_QUEUE_MAX_RETRY_DELAY', 3600), // 1 hour
-        'retry_multiplier' => env('MAIL_QUEUE_RETRY_MULTIPLIER', 2),
-        
-        // Performance Monitoring
-        'performance_tracking' => true,
-        'queue_health_check' => true,
-        'alert_on_slow_processing' => true,
-        'alert_on_high_failure_rate' => true,
-        'failure_rate_threshold' => 0.1, // 10%
+        'retry_strategy' => env('MAIL_QUEUE_RETRY_STRATEGY', 'exponential'),
+        'base_retry_delay' => env('MAIL_QUEUE_BASE_RETRY_DELAY', 300),
+        'max_retry_delay' => env('MAIL_QUEUE_MAX_RETRY_DELAY', 3600),
+        'fallback_to_send' => true,
     ],
 ];
 ```
 
-## 🏗️ Architecture
+### Environment Variables
 
-### Mail Drivers (Phase 2)
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.mailgun.org
+MAIL_PORT=587
+MAIL_USERNAME=postmaster@mg.example.com
+MAIL_PASSWORD=your-secret-key
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=noreply@example.com
+MAIL_FROM_NAME="Example App"
 
-**SMTP Driver** (`SmtpMailer`):
-- Native PHP socket implementation
-- SSL/TLS encryption support
-- SMTP authentication (LOGIN)
-- Multipart message support
-- Proper error handling
-
-**Sendmail Driver** (`SendmailMailer`):
-- Uses PHP's `mail()` function
-- Configurable sendmail path
-- Header and body formatting
-
-**Log Driver** (`LogMailer`):
-- Logs emails to files
-- Perfect for development/testing
-- Detailed formatting with all headers
-- File size and entry management
-
-### Queue System (Phase 3)
-
-**MailQueue** (`MailQueue`):
-- Database persistence with reservation system
-- Batch processing with configurable limits
-- Performance metrics tracking
-- Exponential backoff retry logic
-- Health monitoring and statistics
-
-**MailQueueProcessor** (`MailQueueProcessor`):
-- Built-in cron job running every minute
-- Automatic queue processing
-- Error handling and logging
-- Performance tracking
-- Configurable via mail configuration
-
-**Console Commands**:
-- `MailQueueStatusCommand` - Queue monitoring and statistics
-- `MailQueueWorkCommand` - Manual queue processing
-- `MailQueueClearCommand` - Queue cleanup with confirmation
-- `MailQueueRetryCommand` - Failed email retry with filtering
-
-### Address Management
-
-**Address Class**:
-```php
-$address = new Address('user@example.com', 'John Doe');
-echo $address->toString(); // "John Doe" <user@example.com>
-
-// Parse from strings
-$address = Address::parse('"Jane Doe" <jane@example.com>');
+MAIL_QUEUE_ENABLED=true
+MAIL_QUEUE_BATCH_SIZE=10
+MAIL_QUEUE_MAX_ATTEMPTS=3
 ```
 
-**AddressList Class**:
-```php
-$list = new AddressList();
-$list->add('user1@example.com');
-$list->add(new Address('user2@example.com', 'User Two'));
+## Usage Examples
 
-// Supports ArrayAccess and Iterator
-$list[0]; // First address
-foreach ($list as $address) { ... }
-```
-
-### Message System
-
-**Message Class** features:
-- To/CC/BCC recipient management
-- Subject and body (HTML/Text)
-- Custom headers and priority
-- Validation before sending
-- Fluent interface
+### User Registration Email
 
 ```php
-$message = new Message($mailManager);
-$message->to('user@example.com')
-        ->subject('Test')
-        ->html('<p>HTML content</p>')
-        ->text('Text content')
-        ->priority(1)
-        ->header('X-Custom', 'value')
-        ->send();
-```
-
-## 🗄️ Database Schema (Phase 1)
-
-The `queued_mails` table with 27 columns:
-
-```sql
-CREATE TABLE queued_mails (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    
-    -- Email Content (JSON-compatible TEXT fields)
-    to_addresses TEXT NOT NULL,
-    from_address TEXT NOT NULL,
-    cc_addresses TEXT NULL,
-    bcc_addresses TEXT NULL,
-    subject VARCHAR(998) NOT NULL,
-    body_text TEXT NULL,
-    body_html TEXT NULL,
-    attachments TEXT NULL,
-    headers TEXT NULL,
-    
-    -- Mail Configuration
-    mailer VARCHAR(50) NOT NULL DEFAULT 'default',
-    priority TINYINT UNSIGNED NOT NULL DEFAULT 5,
-    
-    -- Retry Logic
-    max_attempts TINYINT UNSIGNED NOT NULL DEFAULT 3,
-    attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
-    last_attempt_at TIMESTAMP NULL,
-    next_retry_at TIMESTAMP NULL,
-    
-    -- Queue Management
-    available_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    reserved_at TIMESTAMP NULL,
-    reserved_until TIMESTAMP NULL,
-    
-    -- Status Tracking
-    failed_at TIMESTAMP NULL,
-    sent_at TIMESTAMP NULL,
-    error_message TEXT NULL,
-    
-    -- Performance Metrics
-    queue_time DECIMAL(10,3) NULL,
-    processing_time DECIMAL(8,3) NULL,
-    delivery_time DECIMAL(8,3) NULL,
-    
-    -- Timestamps
-    created_at TIMESTAMP NULL,
-    updated_at TIMESTAMP NULL,
-    
-    -- Performance Indexes
-    INDEX idx_available_reserved (available_at, reserved_at),
-    INDEX idx_mailer_priority (mailer, priority, available_at),
-    INDEX idx_status (failed_at, sent_at),
-    INDEX idx_retry (next_retry_at, attempts, max_attempts),
-    INDEX idx_performance (queue_time, processing_time, delivery_time),
-    INDEX idx_last_attempt (last_attempt_at)
-);
-```
-
-## 🧪 Testing
-
-**Comprehensive Test Suite** (28 new tests added in Phase 3):
-
-```bash
-# Run all mail tests
-./vendor/bin/phpunit --filter="Mail"
-
-# Run specific test suites
-./vendor/bin/phpunit tests/Unit/Mail/MailManagerTest.php
-./vendor/bin/phpunit tests/Unit/Mail/Support/AddressTest.php
-./vendor/bin/phpunit tests/Unit/Mail/Queue/QueuedMailTest.php
-./vendor/bin/phpunit tests/Unit/Mail/Queue/MailQueueTest.php
-./vendor/bin/phpunit tests/Unit/Mail/Queue/MailQueueProcessorTest.php
-
-# Run console command tests
-./vendor/bin/phpunit tests/Unit/Console/Commands/MailCommands/MailQueueRetryCommandTest.php
-
-# Run cron system tests
-./vendor/bin/phpunit tests/Unit/Cron/JobRegistryTest.php
-```
-
-**Test Coverage:**
-- **MailManager**: 18 tests covering all driver functionality
-- **Address/AddressList**: 35+ tests covering validation and parsing
-- **QueuedMail Model**: 29 tests covering database operations
-- **MailQueue**: 11 tests covering queue operations
-- **MailQueueProcessor**: 7 tests covering cron job functionality
-- **MailQueueRetryCommand**: 11 tests covering console command
-- **JobRegistry**: Enhanced with 10 tests for centralized job management
-- **Mail Drivers**: Integration tests for all transports
-
-## 🚧 Upcoming Features (Phase 4+)
-
-### Phase 4: Template Integration  
-- View system integration
-- Mailable classes
-- Template rendering
-- Layout support
-
-### Phase 5: Advanced Features
-- File attachments
-- Mail events
-- Validation rules
-- Exception hierarchy
-
-## 🔧 Framework Integration
-
-**Service Registration** (in `Application.php`):
-```php
-$this->container->singleton('mail', function () {
-    $config = $this->config['mail'] ?? [];
-    return new \LengthOfRope\TreeHouse\Mail\MailManager($config, $this);
-});
-
-$this->container->singleton('mail.queue', function () {
-    $config = $this->config['mail']['queue'] ?? [];
-    return new \LengthOfRope\TreeHouse\Mail\Queue\MailQueue($config, $this);
-});
-```
-
-**Built-in Cron Job** (automatically registered):
-```php
-// In JobRegistry::getBuiltInJobClasses()
-\LengthOfRope\TreeHouse\Mail\Queue\MailQueueProcessor::class
-```
-
-**Helper Functions** (in `helpers.php`):
-- `mailer()` - Get MailManager instance
-- `sendMail()` - Send simple email immediately
-- `queueMail()` - Queue email for processing
-
-## 🎯 Performance & Production
-
-**Production Features:**
-- SMTP connection pooling and timeout handling
-- Proper SSL/TLS certificate validation
-- Comprehensive error logging
-- Memory-efficient message processing
-- Database connection optimization
-- Automated queue processing every minute
-- Exponential backoff retry logic
-- Performance metrics and health monitoring
-
-**Security:**
-- RFC-compliant email validation
-- SMTP authentication support
-- Input sanitization and validation
-- Secure header handling
-- Database reservation system prevents race conditions
-
-**Monitoring:**
-- Real-time queue statistics
-- Performance metrics (queue time, processing time, delivery time)
-- Failure rate monitoring with configurable thresholds
-- Health checks for queue processing
-- Comprehensive logging with context
-
-## 📈 Current Statistics
-
-**Code Metrics:**
-- **19 files created** (~3,500 lines of code)
-- **Total tests**: 1891 (up from 1883)
-- **New tests added**: 28 tests with comprehensive coverage
-- **4 console commands** with full CLI integration
-- **1 built-in cron job** for automated processing
-- **Zero external dependencies**
-- **Full PHP 8.4 type safety**
-
-**Framework Enhancements:**
-- Fixed 5 critical TreeHouse framework bugs
-- Added universal JSON casting to ActiveRecord
-- Enhanced migration system reliability
-- Improved cross-database compatibility
-- Centralized built-in cron job management
-
-## 📚 Examples
-
-### Working with the Queue
-
-```php
-// Add email to queue
-$message = mailer()->to('user@example.com')->subject('Test');
-$queuedMail = $message->queue();
-
-// Check if email can be retried
-if ($queuedMail->canRetry()) {
-    // Reset for retry
-    $queuedMail->failed_at = null;
-    $queuedMail->error_message = null;
-    $queuedMail->save();
-}
-
-// Get queue statistics
-$stats = app('mail.queue')->getStats();
-echo "Pending: {$stats['pending']}, Failed: {$stats['failed']}";
-```
-
-### Working with Different Drivers
-
-```php
-// Use specific driver
-mailer()->mailer('smtp')
-    ->to('user@example.com')
-    ->subject('Production Email')
-    ->send();
-
-// Get driver info
-$logMailer = mailer()->getMailer('log');
-echo $logMailer->getTransport(); // "log"
-```
-
-### Address Parsing and Validation
-
-```php
-// Parse complex address formats
-$address = Address::parse('"John Doe" <john@example.com>');
-$list = AddressList::parse('user1@example.com, "Jane Doe" <jane@example.com>');
-
-// Validation
-try {
-    new Address('invalid-email'); // Throws InvalidArgumentException
-} catch (InvalidArgumentException $e) {
-    echo "Invalid email: " . $e->getMessage();
-}
-```
-
-### Message Validation
-
-```php
-$message = mailer()->compose();
-$message->to('user@example.com')
-        ->subject('Test');
+class UserRegistrationService
+{
+    public function register(array $userData): User
+    {
+        $user = User::create($userData);
         
-// Check if valid before sending
-if ($message->isValid()) {
-    $message->send();
-} else {
-    $message->validate(); // Throws specific validation errors
+        // Send welcome email
+        $welcomeEmail = new WelcomeEmail($user);
+        $welcomeEmail->queue($user->email, 2); // Medium priority
+        
+        return $user;
+    }
 }
 ```
 
-## 🏆 Production Ready
+### Order Confirmation
 
-The TreeHouse Mail System is now production-ready with complete email functionality:
+```php
+class OrderService
+{
+    public function processOrder(Order $order): void
+    {
+        $order->status = 'confirmed';
+        $order->save();
+        
+        // Send confirmation email with invoice
+        mailer()
+            ->to($order->customer_email)
+            ->subject("Order Confirmation #{$order->id}")
+            ->emailTemplate('emails.order-confirmation', [
+                'order' => $order,
+                'customer' => $order->customer,
+            ])
+            ->attach($order->generateInvoicePdf(), [
+                'as' => "invoice-{$order->id}.pdf"
+            ])
+            ->send();
+    }
+}
+```
 
-- ✅ **Multiple driver support** (SMTP, Sendmail, Log)
-- ✅ **Comprehensive validation and error handling**
-- ✅ **Framework integration** with helper functions
-- ✅ **Full test coverage** (1891 total tests)
-- ✅ **Security best practices** and RFC compliance
-- ✅ **Complete queue system** with automated processing
-- ✅ **Console commands** for queue management
-- ✅ **Performance monitoring** and metrics
-- ✅ **Retry logic** with exponential backoff
-- ✅ **Built-in cron integration** for automated processing
-- ✅ **Production-grade architecture** with proper error handling
+### Newsletter System
 
-**Phase 3 Complete - Ready for Template Integration (Phase 4)**
+```php
+class NewsletterService
+{
+    public function sendNewsletter(Newsletter $newsletter): void
+    {
+        $subscribers = $this->getActiveSubscribers();
+        
+        foreach ($subscribers->chunk(100) as $chunk) {
+            foreach ($chunk as $subscriber) {
+                $newsletterEmail = new NewsletterEmail($newsletter, $subscriber);
+                $newsletterEmail->queue($subscriber->email, 4); // Low priority
+            }
+        }
+    }
+}
+```
 
-The mail system now provides enterprise-grade email functionality with automated queue processing, comprehensive monitoring, and production-ready reliability.
+### Password Reset
+
+```php
+class PasswordResetService
+{
+    public function sendResetLink(string $email): void
+    {
+        $user = User::where('email', $email)->first();
+        if (!$user) return;
+        
+        $token = $this->generateResetToken($user);
+        
+        mailer()
+            ->to($user->email)
+            ->subject('Password Reset Request')
+            ->emailTemplate('emails.password-reset', [
+                'user' => $user,
+                'reset_url' => url("/reset-password/{$token}"),
+                'expires_at' => now()->addHours(2),
+            ])
+            ->send();
+    }
+}
+```
+
+## Best Practices
+
+### Email Security
+
+```php
+// Always validate email addresses
+$validator = new EmailValidator([
+    'check_disposable_emails' => true,
+    'blocked_domains' => ['suspicious-domain.com'],
+]);
+
+// Use HTTPS for production SMTP
+'smtp' => [
+    'host' => 'smtp.example.com',
+    'port' => 587,
+    'encryption' => 'tls', // Always use encryption
+];
+```
+
+### Performance Optimization
+
+```php
+// Use queue for non-critical emails
+queueMail($email, $subject, $body, 3); // Normal priority
+
+// Batch email operations
+$emails = [];
+foreach ($users as $user) {
+    $emails[] = new WelcomeEmail($user);
+}
+// Queue all at once instead of individual sends
+```
+
+### Template Organization
+
+```php
+// Organize templates hierarchically
+resources/views/emails/
+├── layouts/
+│   └── base.th.html
+├── auth/
+│   ├── welcome.th.html
+│   └── password-reset.th.html
+├── orders/
+│   ├── confirmation.th.html
+│   └── shipped.th.html
+└── newsletters/
+    └── monthly.th.html
+```
+
+### Error Handling
+
+```php
+try {
+    mailer()->to($email)->subject($subject)->html($body)->send();
+} catch (Exception $e) {
+    // Log error and fallback
+    error_log("Mail send failed: " . $e->getMessage());
+    
+    // Queue for retry
+    queueMail($email, $subject, $body, 1);
+}
+```
+
+### Monitoring and Maintenance
+
+```php
+// Regular queue monitoring
+$stats = app('mail.queue')->getStats();
+if ($stats['failed'] > 100) {
+    // Alert administrators
+}
+
+// Periodic cleanup (in cron job)
+app('mail.queue')->clearOldMessages(30); // Keep 30 days
+```
+
+The Mail layer provides a complete, production-ready email solution with Laravel-style convenience, robust queue management, and comprehensive monitoring capabilities.
