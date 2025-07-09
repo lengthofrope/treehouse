@@ -194,6 +194,81 @@ if (!$validator->validate($message)) {
 }
 ```
 
+## 🛠️ CLI Commands Overview
+
+The TreeHouse Mail System provides comprehensive CLI tools for email management:
+
+### Mail Generation Commands
+```bash
+# Generate a new Mailable class
+treehouse make:mailable WelcomeEmail
+
+# Generate with custom template
+treehouse make:mailable OrderConfirmation --template=emails.orders.confirmation
+
+# Force overwrite existing file
+treehouse make:mailable NewsletterEmail --force
+```
+
+### Queue Management Commands
+```bash
+# Check queue status and statistics
+treehouse mail:queue:status
+
+# Show detailed queue information with metrics
+treehouse mail:queue:status --details --metrics
+
+# Process emails from the queue (manual)
+treehouse mail:queue:work --limit=50
+
+# Run queue worker continuously (development only)
+treehouse mail:queue:work --continuous --timeout=300
+
+# Retry failed emails with filtering
+treehouse mail:queue:retry --limit=20 --older-than=60
+
+# Retry specific emails by ID
+treehouse mail:queue:retry 1,2,3 --force
+
+# Dry run to see what would be retried
+treehouse mail:queue:retry --dry-run --max-attempts=2
+
+# Clear failed emails from queue
+treehouse mail:queue:clear --failed
+
+# Clear sent emails
+treehouse mail:queue:clear --sent
+
+# Clear all processed emails (with confirmation)
+treehouse mail:queue:clear --all
+
+# Force clear without confirmation
+treehouse mail:queue:clear --all --force
+```
+
+### Built-in Cron Integration
+```bash
+# The following cron job runs automatically every minute:
+# mail:queue:process - Processes pending emails in the background
+
+# View all cron jobs (includes mail processing)
+treehouse cron:list
+
+# Run cron manually (processes mail queue among other jobs)
+treehouse cron:run
+
+# Test what cron would do
+treehouse cron:run --dry-run
+```
+
+### Command Features
+- **Generation Commands**: Scaffold Mailable classes with template validation
+- **Queue Commands**: Full queue lifecycle management with safety checks
+- **Status Commands**: Real-time metrics, health warnings, performance stats
+- **Processing Commands**: Manual and automated queue processing
+- **Retry Commands**: Smart retry logic with exponential backoff
+- **Clear Commands**: Selective cleanup with confirmation prompts
+
 ### Queue Management (Phase 3)
 
 ```bash
