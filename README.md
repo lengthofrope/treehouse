@@ -55,10 +55,13 @@ TreeHouse Framework is built with a clean layered architecture consisting of 16 
    - Production-ready error handling
 
 8. **[Mail Layer](src/TreeHouse/Mail/README.md)**
-   - Comprehensive email system with multiple drivers
-   - Complete queue system with automated processing
-   - SMTP, Sendmail, and Log drivers with SSL/TLS support
-   - Performance monitoring and retry logic
+   - Comprehensive email system with multiple transport drivers (SMTP, Sendmail, Log)
+   - Database-powered queue system with automated processing and retry logic
+   - Laravel-style Mailable classes with TreeHouse template integration
+   - File attachments with security validation and MIME type detection
+   - Full event system integration for monitoring and control
+   - Advanced email validation with anti-spam features
+   - CLI commands for queue management and email generation
 
 9. **[Models Layer](src/TreeHouse/Models/README.md)**
    - Base model classes and utilities
@@ -548,8 +551,14 @@ treehouse user:delete --email="john@example.com"
 treehouse user:list
 ```
 
-### Mail Queue Management
+### Mail System Management
 ```bash
+# Generate new Mailable class
+treehouse make:mailable WelcomeEmail
+
+# Generate with custom template
+treehouse make:mailable OrderConfirmation --template=emails.orders.confirmation
+
 # Check queue status
 treehouse mail:queue:status
 
