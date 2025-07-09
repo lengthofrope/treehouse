@@ -239,11 +239,83 @@ class SmtpMailer implements MailerInterface
         // Content type and body
         $htmlBody = $message->getHtmlBody();
         $textBody = $message->getTextBody();
+        $attachments = $message->getAttachments();
 
-        if ($htmlBody && $textBody) {
-            // Multipart message
+        $data[] = "MIME-Version: 1.0";
+
+        if (!empty($attachments)) {
+            // Mixed multipart with attachments
+            $mixedBoundary = uniqid('mixed_boundary');
+            $data[] = "Content-Type: multipart/mixed; boundary=\"{$mixedBoundary}\"";
+            $data[] = "";
+            
+            // Content part (either alternative or single type)
+            $data[] = "--{$mixedBoundary}";
+            
+            if ($htmlBody && $textBody) {
+                // Alternative multipart for content
+                $altBoundary = uniqid('alt_boundary');
+                $data[] = "Content-Type: multipart/alternative; boundary=\"{$altBoundary}\"";
+                $data[] = "";
+                
+                // Text part
+                $data[] = "--{$altBoundary}";
+                $data[] = "Content-Type: text/plain; charset=UTF-8";
+                $data[] = "Content-Transfer-Encoding: 8bit";
+                $data[] = "";
+                $data[] = $textBody;
+                $data[] = "";
+                
+                // HTML part
+                $data[] = "--{$altBoundary}";
+                $data[] = "Content-Type: text/html; charset=UTF-8";
+                $data[] = "Content-Transfer-Encoding: 8bit";
+                $data[] = "";
+                $data[] = $htmlBody;
+                $data[] = "";
+                $data[] = "--{$altBoundary}--";
+            } elseif ($htmlBody) {
+                // HTML only
+                $data[] = "Content-Type: text/html; charset=UTF-8";
+                $data[] = "Content-Transfer-Encoding: 8bit";
+                $data[] = "";
+                $data[] = $htmlBody;
+            } else {
+                // Text only
+                $data[] = "Content-Type: text/plain; charset=UTF-8";
+                $data[] = "Content-Transfer-Encoding: 8bit";
+                $data[] = "";
+                $data[] = $textBody ?? '';
+            }
+            
+            // Add attachments
+            foreach ($attachments as $attachment) {
+                $data[] = "";
+                $data[] = "--{$mixedBoundary}";
+                $data[] = "Content-Type: {$attachment['mime']}; name=\"{$attachment['name']}\"";
+                $data[] = "Content-Transfer-Encoding: base64";
+                $data[] = "Content-Disposition: attachment; filename=\"{$attachment['name']}\"";
+                $data[] = "";
+                
+                // Encode attachment data
+                if (isset($attachment['data'])) {
+                    // Data attachment
+                    $encodedData = base64_encode($attachment['data']);
+                } else {
+                    // File attachment
+                    $fileData = file_get_contents($attachment['path']);
+                    $encodedData = base64_encode($fileData);
+                }
+                
+                // Split into 76-character lines as per RFC
+                $data[] = chunk_split($encodedData, 76, $this->lineEnding);
+            }
+            
+            $data[] = "--{$mixedBoundary}--";
+            
+        } elseif ($htmlBody && $textBody) {
+            // Multipart message without attachments
             $boundary = uniqid('boundary');
-            $data[] = "MIME-Version: 1.0";
             $data[] = "Content-Type: multipart/alternative; boundary=\"{$boundary}\"";
             $data[] = "";
             
@@ -265,14 +337,12 @@ class SmtpMailer implements MailerInterface
             $data[] = "--{$boundary}--";
         } elseif ($htmlBody) {
             // HTML only
-            $data[] = "MIME-Version: 1.0";
             $data[] = "Content-Type: text/html; charset=UTF-8";
             $data[] = "Content-Transfer-Encoding: 8bit";
             $data[] = "";
             $data[] = $htmlBody;
         } else {
             // Text only
-            $data[] = "MIME-Version: 1.0";
             $data[] = "Content-Type: text/plain; charset=UTF-8";
             $data[] = "Content-Transfer-Encoding: 8bit";
             $data[] = "";

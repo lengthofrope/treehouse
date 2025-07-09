@@ -205,6 +205,35 @@ class MailManager
     }
 
     /**
+     * Add an attachment to the message
+     *
+     * @param string $file Path to file
+     * @param array $options Attachment options (as, mime, etc.)
+     * @return static
+     */
+    public function attach(string $file, array $options = []): static
+    {
+        $this->ensurePendingMessage();
+        $this->pendingMessage->attach($file, $options);
+        return $this;
+    }
+
+    /**
+     * Add raw data as an attachment
+     *
+     * @param string $data Raw file data
+     * @param string $name Filename
+     * @param array $options Attachment options (mime, etc.)
+     * @return static
+     */
+    public function attachData(string $data, string $name, array $options = []): static
+    {
+        $this->ensurePendingMessage();
+        $this->pendingMessage->attachData($data, $name, $options);
+        return $this;
+    }
+
+    /**
      * Send the message immediately
      *
      * @return bool True if sent successfully

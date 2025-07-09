@@ -149,20 +149,24 @@ class SendmailMailer implements MailerInterface
         // Content type
         $htmlBody = $message->getHtmlBody();
         $textBody = $message->getTextBody();
+        $attachments = $message->getAttachments();
 
-        if ($htmlBody && $textBody) {
-            // Multipart message
+        $headers[] = "MIME-Version: 1.0";
+
+        if (!empty($attachments)) {
+            // Mixed multipart with attachments
+            $mixedBoundary = uniqid('mixed_boundary');
+            $headers[] = "Content-Type: multipart/mixed; boundary=\"{$mixedBoundary}\"";
+        } elseif ($htmlBody && $textBody) {
+            // Multipart message without attachments
             $boundary = uniqid('boundary');
-            $headers[] = "MIME-Version: 1.0";
             $headers[] = "Content-Type: multipart/alternative; boundary=\"{$boundary}\"";
         } elseif ($htmlBody) {
             // HTML only
-            $headers[] = "MIME-Version: 1.0";
             $headers[] = "Content-Type: text/html; charset=UTF-8";
             $headers[] = "Content-Transfer-Encoding: 8bit";
         } else {
             // Text only
-            $headers[] = "MIME-Version: 1.0";
             $headers[] = "Content-Type: text/plain; charset=UTF-8";
             $headers[] = "Content-Transfer-Encoding: 8bit";
         }
@@ -185,9 +189,85 @@ class SendmailMailer implements MailerInterface
     {
         $htmlBody = $message->getHtmlBody();
         $textBody = $message->getTextBody();
+        $attachments = $message->getAttachments();
 
-        if ($htmlBody && $textBody) {
-            // Multipart message
+        if (!empty($attachments)) {
+            // Mixed multipart with attachments
+            $mixedBoundary = uniqid('mixed_boundary');
+            $body = [];
+            
+            $body[] = "This is a multi-part message in MIME format.";
+            $body[] = "";
+            
+            // Content part
+            $body[] = "--{$mixedBoundary}";
+            
+            if ($htmlBody && $textBody) {
+                // Alternative multipart for content
+                $altBoundary = uniqid('alt_boundary');
+                $body[] = "Content-Type: multipart/alternative; boundary=\"{$altBoundary}\"";
+                $body[] = "";
+                $body[] = "";
+                
+                // Text part
+                $body[] = "--{$altBoundary}";
+                $body[] = "Content-Type: text/plain; charset=UTF-8";
+                $body[] = "Content-Transfer-Encoding: 8bit";
+                $body[] = "";
+                $body[] = $textBody;
+                $body[] = "";
+                
+                // HTML part
+                $body[] = "--{$altBoundary}";
+                $body[] = "Content-Type: text/html; charset=UTF-8";
+                $body[] = "Content-Transfer-Encoding: 8bit";
+                $body[] = "";
+                $body[] = $htmlBody;
+                $body[] = "";
+                $body[] = "--{$altBoundary}--";
+            } elseif ($htmlBody) {
+                // HTML only
+                $body[] = "Content-Type: text/html; charset=UTF-8";
+                $body[] = "Content-Transfer-Encoding: 8bit";
+                $body[] = "";
+                $body[] = $htmlBody;
+            } else {
+                // Text only
+                $body[] = "Content-Type: text/plain; charset=UTF-8";
+                $body[] = "Content-Transfer-Encoding: 8bit";
+                $body[] = "";
+                $body[] = $textBody ?? '';
+            }
+            
+            // Add attachments
+            foreach ($attachments as $attachment) {
+                $body[] = "";
+                $body[] = "--{$mixedBoundary}";
+                $body[] = "Content-Type: {$attachment['mime']}; name=\"{$attachment['name']}\"";
+                $body[] = "Content-Transfer-Encoding: base64";
+                $body[] = "Content-Disposition: attachment; filename=\"{$attachment['name']}\"";
+                $body[] = "";
+                
+                // Encode attachment data
+                if (isset($attachment['data'])) {
+                    // Data attachment
+                    $encodedData = base64_encode($attachment['data']);
+                } else {
+                    // File attachment
+                    $fileData = file_get_contents($attachment['path']);
+                    $encodedData = base64_encode($fileData);
+                }
+                
+                // Split into 76-character lines as per RFC
+                $body[] = chunk_split($encodedData, 76, "\r\n");
+            }
+            
+            $body[] = "--{$mixedBoundary}--";
+            
+            return implode("\r\n", $body);
+            
+        } elseif ($htmlBody && $textBody) {
+            // Multipart message without attachments
             $boundary = uniqid('boundary');
             $body = [];
             

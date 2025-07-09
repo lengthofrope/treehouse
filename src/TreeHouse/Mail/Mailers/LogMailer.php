@@ -160,6 +160,27 @@ class LogMailer implements MailerInterface
             $entry[] = $htmlBody;
         }
         
+        // Attachments
+        $attachments = $message->getAttachments();
+        if (!empty($attachments)) {
+            $entry[] = "";
+            $entry[] = "ATTACHMENTS:";
+            $entry[] = str_repeat('-', 20);
+            foreach ($attachments as $attachment) {
+                $size = isset($attachment['size']) ? ' (' . $this->formatBytes($attachment['size']) . ')' : '';
+                $entry[] = "  - {$attachment['name']}{$size} [{$attachment['mime']}]";
+                
+                // Show data preview for small attachments
+                if (isset($attachment['data']) && strlen($attachment['data']) < 500) {
+                    $preview = substr($attachment['data'], 0, 100);
+                    if (strlen($attachment['data']) > 100) {
+                        $preview .= '...';
+                    }
+                    $entry[] = "    Preview: " . str_replace("\n", "\\n", $preview);
+                }
+            }
+        }
+        
         $entry[] = "";
         $entry[] = str_repeat('=', 80);
         $entry[] = "";
@@ -267,5 +288,24 @@ class LogMailer implements MailerInterface
         }
         
         return 0;
+    }
+
+    /**
+     * Format bytes into human readable format
+     *
+     * @param int $bytes
+     * @return string
+     */
+    protected function formatBytes(int $bytes): string
+    {
+        if ($bytes < 1024) {
+            return $bytes . ' B';
+        } elseif ($bytes < 1048576) {
+            return round($bytes / 1024, 2) . ' KB';
+        } elseif ($bytes < 1073741824) {
+            return round($bytes / 1048576, 2) . ' MB';
+        } else {
+            return round($bytes / 1073741824, 2) . ' GB';
+        }
     }
 }
