@@ -473,10 +473,40 @@ class Message
 
     /**
      * Queue the message
-     * 
+     *
+     * @param int|null $priority Queue priority (1-5, 1 = highest)
+     * @return \LengthOfRope\TreeHouse\Mail\Queue\QueuedMail|bool
+     */
+    public function queue(int $priority = null): \LengthOfRope\TreeHouse\Mail\Queue\QueuedMail|bool
+    {
+        if ($priority !== null) {
+            $this->priority($priority);
+        }
+        
+        try {
+            // Use global app() helper to get the queue service
+            $mailQueue = app('mail.queue');
+            
+            if ($mailQueue === null) {
+                // Fall back to basic queue method
+                return $this->mailManager->queue();
+            }
+            
+            // Add to queue and return the QueuedMail instance
+            return $mailQueue->add($this, $this->priority);
+            
+        } catch (\Exception $e) {
+            // Fall back to basic queue method
+            return $this->mailManager->queue();
+        }
+    }
+
+    /**
+     * Queue the message (legacy method)
+     *
      * @return bool
      */
-    public function queue(): bool
+    public function queueBool(): bool
     {
         return $this->mailManager->queue();
     }

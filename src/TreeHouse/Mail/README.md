@@ -2,16 +2,16 @@
 
 A comprehensive email system for the TreeHouse Framework with multiple drivers, queue support, automated processing, and performance tracking.
 
-## 🚀 Status: Phase 3 Complete ✅
+## 🚀 Status: Phase 4 Complete ✅
 
 **Completed Features:**
 - ✅ **Phase 1**: Database Foundation with QueuedMail model and framework enhancements
 - ✅ **Phase 2**: Core Mail System with multiple drivers and fluent interface
 - ✅ **Phase 3**: Complete Queue System with CLI tools, automated processing, and retry logic
-- 🚧 **Phase 4**: Template Integration (upcoming)
+- ✅ **Phase 4**: Template Integration with Mailable classes and email-specific templates
 - 🚧 **Phase 5**: Advanced Features (upcoming)
 
-## 📋 Current Features (Phase 1, 2 & 3 Complete)
+## 📋 Current Features (Phase 1, 2, 3 & 4 Complete)
 
 ### Phase 1: Database Foundation
 - **QueuedMail ActiveRecord Model**: 27-column schema with performance tracking
@@ -20,13 +20,13 @@ A comprehensive email system for the TreeHouse Framework with multiple drivers, 
 - **Framework Bug Fixes**: Fixed 5 critical TreeHouse framework bugs
 - **Comprehensive Tests**: 29 tests covering all queue functionality
 
-### Phase 2: Core Mail System  
+### Phase 2: Core Mail System
 - **Multiple Mail Drivers**: SMTP (SSL/TLS), Sendmail, Log drivers
 - **MailManager**: Central orchestrator with driver management
 - **Fluent Interface**: Laravel-inspired API for email composition
 - **Address Classes**: RFC-compliant email validation and parsing
 - **Message System**: Full validation and multipart support
-- **Helper Functions**: Simple `send_mail()`, `queue_mail()`, `mailer()` functions
+- **Helper Functions**: Simple `sendMail()`, `queueMail()`, `mailer()` functions
 - **Framework Integration**: Registered in Application container
 - **Production-Ready SMTP**: Full authentication and encryption support
 
@@ -38,6 +38,16 @@ A comprehensive email system for the TreeHouse Framework with multiple drivers, 
 - **Centralized Cron Management**: Single source of truth for built-in framework jobs
 - **Comprehensive CLI**: Full help documentation, dry-run modes, and option validation
 - **Production Queue**: Database persistence, reservation system, batch processing
+
+### Phase 4: Template Integration
+- **Mailable Base Class**: Laravel-style mailable classes for organized email logic
+- **Email Templates**: TreeHouse template engine integration with email-safe layouts
+- **EmailRenderer**: Specialized renderer for email templates with context injection
+- **Template Generation**: `make:mailable` command for generating mailable classes
+- **Email Layouts**: Professional email layouts with responsive design
+- **Auto Text Generation**: Automatic plain text generation from HTML templates
+- **Template Helpers**: Email-specific helper functions for rendering
+- **Framework Integration**: Seamless integration with existing TreeHouse View system
 
 ## 🎯 Quick Start
 
@@ -74,6 +84,43 @@ mailer()
 
 // Queue for later processing
 queueMail('user@example.com', 'Queued Email', 'This will be processed by the queue.');
+```
+
+### Template-Based Emails (Phase 4)
+
+```php
+// Using Mailable classes
+use App\Mail\WelcomeEmail;
+
+// Send welcome email immediately
+$welcomeEmail = new WelcomeEmail($user);
+$welcomeEmail->send($user->email);
+
+// Queue welcome email
+$welcomeEmail = new WelcomeEmail($user);
+$welcomeEmail->queue($user->email, 1); // High priority
+
+// Using email templates directly
+$html = renderEmail('emails.welcome', [
+    'user' => $user,
+    'dashboard_url' => url('/dashboard')
+]);
+
+// Send templated email with helper
+sendMail($user->email, 'Welcome!', renderEmail('emails.welcome', ['user' => $user]));
+```
+
+### CLI Commands (Phase 4)
+
+```bash
+# Generate a new Mailable class
+treehouse make:mailable WelcomeEmail
+
+# Generate with custom template
+treehouse make:mailable OrderConfirmation --template=emails.orders.confirmation
+
+# Force overwrite existing file
+treehouse make:mailable NewsletterEmail --force
 ```
 
 ### Queue Management (Phase 3)

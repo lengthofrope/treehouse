@@ -225,6 +225,11 @@ class Application
             return new \LengthOfRope\TreeHouse\Mail\Queue\MailQueue($config, $this);
         });
 
+        // Register email renderer
+        $this->container->singleton('mail.renderer', function () {
+            return new \LengthOfRope\TreeHouse\Mail\EmailRenderer($this);
+        });
+
     }
 
     /**
