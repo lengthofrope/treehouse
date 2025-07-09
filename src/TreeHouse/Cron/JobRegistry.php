@@ -55,6 +55,47 @@ class JobRegistry
     }
 
     /**
+     * Get built-in framework job classes
+     *
+     * @return array<string> Array of built-in job class names
+     */
+    public static function getBuiltInJobClasses(): array
+    {
+        return [
+            \LengthOfRope\TreeHouse\Cron\Jobs\CacheCleanupJob::class,
+            \LengthOfRope\TreeHouse\Cron\Jobs\LockCleanupJob::class,
+            \LengthOfRope\TreeHouse\Mail\Queue\MailQueueProcessor::class,
+        ];
+    }
+
+    /**
+     * Load and register all built-in jobs
+     *
+     * @param bool $ignoreErrors Whether to ignore registration errors
+     * @return int Number of jobs successfully registered
+     */
+    public function loadBuiltInJobs(bool $ignoreErrors = true): int
+    {
+        $loaded = 0;
+        
+        foreach (static::getBuiltInJobClasses() as $jobClass) {
+            if (class_exists($jobClass)) {
+                try {
+                    $this->registerClass($jobClass);
+                    $loaded++;
+                } catch (\Throwable $e) {
+                    if (!$ignoreErrors) {
+                        throw $e;
+                    }
+                    // Continue with other jobs if ignoring errors
+                }
+            }
+        }
+        
+        return $loaded;
+    }
+
+    /**
      * Register a job class
      *
      * @param string $jobClass Job class name
