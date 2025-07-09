@@ -608,7 +608,7 @@ class Message
      * @param int|null $priority Queue priority (1-5, 1 = highest)
      * @return \LengthOfRope\TreeHouse\Mail\Queue\QueuedMail|bool
      */
-    public function queue(int $priority = null): \LengthOfRope\TreeHouse\Mail\Queue\QueuedMail|bool
+    public function queue(?int $priority = null): \LengthOfRope\TreeHouse\Mail\Queue\QueuedMail|bool
     {
         if ($priority !== null) {
             $this->priority($priority);
