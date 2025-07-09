@@ -1,0 +1,171 @@
+<div th:extend="layouts.app">
+    <div th:section="content">
+        <!-- Mail System Overview -->
+        <div class="mb-12">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-4">TreeHouse Mail System</h1>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    A comprehensive email system with multiple transport drivers, queue management, 
+                    template integration, file attachments, and advanced validation features.
+                </p>
+            </div>
+        </div>
+
+        <!-- Feature Cards -->
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            <a href="/mail/send-test" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Send Test Email</h3>
+                <p class="text-gray-600 text-center">Send a simple email to test the mail system functionality.</p>
+            </a>
+            
+            <a href="/mail/send-templated" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-200 transition-colors">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Templated Email</h3>
+                <p class="text-gray-600 text-center">Send emails using Mailable classes and TreeHouse templates.</p>
+            </a>
+            
+            <a href="/mail/queue" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
+                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-yellow-200 transition-colors">
+                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Queue Email</h3>
+                <p class="text-gray-600 text-center">Queue emails for background processing with priority support.</p>
+            </a>
+            
+            <a href="/mail/attachments" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
+                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-red-200 transition-colors">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">File Attachments</h3>
+                <p class="text-gray-600 text-center">Send emails with file attachments and data attachments.</p>
+            </a>
+            
+            <a href="/mail/queue-status" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
+                <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-indigo-200 transition-colors">
+                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Queue Status</h3>
+                <p class="text-gray-600 text-center">Monitor the mail queue status and statistics.</p>
+            </a>
+            
+            <div class="treehouse-card p-6 bg-gray-50">
+                <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">CLI Commands</h3>
+                <p class="text-gray-600 text-center mb-4">Manage mail system via command line:</p>
+                <div class="space-y-1 text-sm font-mono text-gray-500">
+                    <div>treehouse make:mailable</div>
+                    <div>treehouse mail:queue:status</div>
+                    <div>treehouse mail:queue:work</div>
+                    <div>treehouse mail:queue:clear</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Features -->
+        <div class="grid md:grid-cols-2 gap-8 mb-12">
+            <div class="treehouse-card p-8">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Transport Drivers</h3>
+                <ul class="space-y-3">
+                    <li class="flex items-center">
+                        <div class="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                        <span class="text-gray-700"><strong>SMTP:</strong> Production-ready with SSL/TLS support</span>
+                    </li>
+                    <li class="flex items-center">
+                        <div class="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                        <span class="text-gray-700"><strong>Sendmail:</strong> System sendmail integration</span>
+                    </li>
+                    <li class="flex items-center">
+                        <div class="w-2 h-2 bg-yellow-500 rounded-full mr-3"></div>
+                        <span class="text-gray-700"><strong>Log:</strong> Development and testing driver</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="treehouse-card p-8">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Advanced Features</h3>
+                <ul class="space-y-3">
+                    <li class="flex items-center">
+                        <div class="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                        <span class="text-gray-700"><strong>Events:</strong> Mail lifecycle event handling</span>
+                    </li>
+                    <li class="flex items-center">
+                        <div class="w-2 h-2 bg-red-500 rounded-full mr-3"></div>
+                        <span class="text-gray-700"><strong>Validation:</strong> Anti-spam and security checks</span>
+                    </li>
+                    <li class="flex items-center">
+                        <div class="w-2 h-2 bg-indigo-500 rounded-full mr-3"></div>
+                        <span class="text-gray-700"><strong>Templates:</strong> TreeHouse template integration</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Quick Start Code -->
+        <div class="treehouse-card p-8">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">Quick Start Examples</h3>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-2">Simple Email</h4>
+                    <pre class="bg-gray-100 p-4 rounded-lg text-sm overflow-x-auto"><code>// Send simple email
+sendMail(
+    'user@example.com',
+    'Welcome!',
+    'Welcome to our app!'
+);</code></pre>
+                </div>
+                
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-2">Queue Email</h4>
+                    <pre class="bg-gray-100 p-4 rounded-lg text-sm overflow-x-auto"><code>// Queue for background processing
+queueMail(
+    'user@example.com',
+    'Newsletter',
+    'Monthly newsletter content',
+    1 // High priority
+);</code></pre>
+                </div>
+                
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-2">Fluent Interface</h4>
+                    <pre class="bg-gray-100 p-4 rounded-lg text-sm overflow-x-auto"><code>// Fluent email building
+mailer()
+    ->to('user@example.com')
+    ->subject('Welcome!')
+    ->html('<h1>Welcome!</h1>')
+    ->send();</code></pre>
+                </div>
+                
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-2">Mailable Classes</h4>
+                    <pre class="bg-gray-100 p-4 rounded-lg text-sm overflow-x-auto"><code>// Laravel-style Mailables
+$welcome = new WelcomeEmail($user);
+$welcome->send($user->email);</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

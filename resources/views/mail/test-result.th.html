@@ -1,0 +1,92 @@
+<div th:extend="layouts.app">
+    <div th:section="content">
+        <div class="max-w-2xl mx-auto">
+            <!-- Success Result -->
+            <div th:if="success" class="text-center mb-8">
+                <div class="w-16 h-16 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-green-900 mb-2">Email Sent Successfully!</h1>
+                <p class="text-green-700">Your test email has been sent successfully.</p>
+            </div>
+
+            <!-- Error Result -->
+            <div th:unless="success" class="text-center mb-8">
+                <div class="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-red-900 mb-2">Email Send Failed</h1>
+                <p class="text-red-700">There was an error sending the email.</p>
+            </div>
+
+            <!-- Email Details -->
+            <div class="treehouse-card p-8 mb-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Email Details</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Recipient:</span>
+                        <span class="font-medium text-gray-900">{email}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Subject:</span>
+                        <span class="font-medium text-gray-900">{subject}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Method:</span>
+                        <span class="font-medium text-gray-900">sendMail() helper</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success Message -->
+            <div th:if="success" class="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
+                <h4 class="text-green-900 font-semibold mb-2">✓ Email Sent</h4>
+                <p class="text-green-800">{message}</p>
+                <div class="mt-4 text-sm text-green-700">
+                    <p><strong>Note:</strong> Check your email inbox (including spam folder) to verify delivery.</p>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div th:unless="success" class="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+                <h4 class="text-red-900 font-semibold mb-2">✗ Error Details</h4>
+                <p class="text-red-800 font-mono text-sm">{error}</p>
+                <div class="mt-4 text-sm text-red-700">
+                    <p><strong>Common Issues:</strong></p>
+                    <ul class="list-disc list-inside mt-2 space-y-1">
+                        <li>Check mail configuration in config/mail.php</li>
+                        <li>Verify SMTP credentials if using SMTP driver</li>
+                        <li>Ensure mail driver is properly configured</li>
+                        <li>Check log files for additional error details</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-center space-x-4">
+                <a href="/mail/send-test" class="treehouse-btn-secondary">
+                    Send Another Test
+                </a>
+                <a href="/mail" class="treehouse-btn">
+                    Back to Mail System
+                </a>
+            </div>
+
+            <!-- Code Example -->
+            <div class="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
+                <h4 class="font-semibold text-gray-900 mb-3">Code Used</h4>
+                <pre class="bg-gray-100 p-4 rounded text-sm text-gray-800 overflow-x-auto"><code>// TreeHouse Mail System - Simple Email
+try {
+    sendMail('{email}', '{subject}', $message);
+    echo "Email sent successfully!";
+} catch (\Exception $e) {
+    echo "Error: " . $e->getMessage();
+}</code></pre>
+            </div>
+        </div>
+    </div>
+</div>

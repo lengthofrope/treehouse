@@ -1,0 +1,123 @@
+<div th:extend="layouts.app">
+    <div th:section="content">
+        <div class="max-w-2xl mx-auto">
+            <!-- Success Result -->
+            <div th:if="success" class="text-center mb-8">
+                <div class="w-16 h-16 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-purple-900 mb-2">Templated Email Sent!</h1>
+                <p class="text-purple-700">Your welcome email has been sent using Mailable classes and TreeHouse templates.</p>
+            </div>
+
+            <!-- Error Result -->
+            <div th:unless="success" class="text-center mb-8">
+                <div class="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-red-900 mb-2">Templated Email Failed</h1>
+                <p class="text-red-700">There was an error sending the templated email.</p>
+            </div>
+
+            <!-- Email Details -->
+            <div class="treehouse-card p-8 mb-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Email Details</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Recipient:</span>
+                        <span class="font-medium text-gray-900">{email}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Recipient Name:</span>
+                        <span class="font-medium text-gray-900">{name}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Template:</span>
+                        <span class="font-medium text-gray-900">emails.welcome</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Mailable Class:</span>
+                        <span class="font-medium text-gray-900">WelcomeEmail</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success Message -->
+            <div th:if="success" class="bg-purple-50 border border-purple-200 rounded-lg p-6 mb-8">
+                <h4 class="text-purple-900 font-semibold mb-2">✓ Professional Email Sent</h4>
+                <p class="text-purple-800">{message}</p>
+                <div class="mt-4 text-sm text-purple-700">
+                    <p><strong>Features Used:</strong></p>
+                    <ul class="list-disc list-inside mt-2 space-y-1">
+                        <li>Laravel-style Mailable class (WelcomeEmail)</li>
+                        <li>TreeHouse template engine (emails.welcome.th.html)</li>
+                        <li>Email-safe responsive layout</li>
+                        <li>Variable interpolation and data binding</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div th:unless="success" class="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+                <h4 class="text-red-900 font-semibold mb-2">✗ Error Details</h4>
+                <p class="text-red-800 font-mono text-sm">{error}</p>
+                <div class="mt-4 text-sm text-red-700">
+                    <p><strong>Common Issues:</strong></p>
+                    <ul class="list-disc list-inside mt-2 space-y-1">
+                        <li>Check if WelcomeEmail class exists in src/App/Mail/</li>
+                        <li>Verify welcome email template exists in resources/views/emails/</li>
+                        <li>Ensure mail configuration is correct</li>
+                        <li>Check template compilation and syntax</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Template Information -->
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8">
+                <h4 class="font-semibold text-gray-900 mb-3">Template Structure</h4>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Layout:</span>
+                        <span class="font-mono text-gray-900">resources/views/emails/layouts/base.th.html</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Template:</span>
+                        <span class="font-mono text-gray-900">resources/views/emails/welcome.th.html</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Mailable:</span>
+                        <span class="font-mono text-gray-900">src/App/Mail/WelcomeEmail.php</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-center space-x-4">
+                <a href="/mail/send-templated" class="treehouse-btn-secondary">
+                    Send Another Welcome Email
+                </a>
+                <a href="/mail" class="treehouse-btn">
+                    Back to Mail System
+                </a>
+            </div>
+
+            <!-- Code Example -->
+            <div class="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
+                <h4 class="font-semibold text-gray-900 mb-3">Code Used</h4>
+                <pre class="bg-gray-100 p-4 rounded text-sm text-gray-800 overflow-x-auto"><code>// TreeHouse Mail System - Mailable Classes
+$user = (object)[
+    'name' => '{name}',
+    'email' => '{email}',
+    'id' => rand(1000, 9999)
+];
+
+$welcomeEmail = new WelcomeEmail($user);
+$welcomeEmail->send($user->email);</code></pre>
+            </div>
+        </div>
+    </div>
+</div>

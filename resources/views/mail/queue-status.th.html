@@ -1,0 +1,191 @@
+<div th:extend="layouts.app">
+    <div th:section="content">
+        <div class="max-w-4xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-indigo-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Mail Queue Status</h1>
+                <p class="text-gray-600">Monitor queue performance, statistics, and email processing status.</p>
+            </div>
+
+            <!-- Success State -->
+            <div th:if="success">
+                <!-- Status Cards -->
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="treehouse-card p-6 text-center">
+                        <div class="text-3xl font-bold text-blue-600 mb-2">{stats.pending}</div>
+                        <div class="text-sm text-gray-600">Pending Emails</div>
+                    </div>
+                    
+                    <div class="treehouse-card p-6 text-center">
+                        <div class="text-3xl font-bold text-green-600 mb-2">{stats.sent}</div>
+                        <div class="text-sm text-gray-600">Sent Successfully</div>
+                    </div>
+                    
+                    <div class="treehouse-card p-6 text-center">
+                        <div class="text-3xl font-bold text-red-600 mb-2">{stats.failed}</div>
+                        <div class="text-sm text-gray-600">Failed to Send</div>
+                    </div>
+                    
+                    <div class="treehouse-card p-6 text-center">
+                        <div class="text-3xl font-bold text-yellow-600 mb-2">{stats.processing}</div>
+                        <div class="text-sm text-gray-600">Currently Processing</div>
+                    </div>
+                </div>
+
+                <!-- Detailed Statistics -->
+                <div class="grid md:grid-cols-2 gap-8 mb-8">
+                    <div class="treehouse-card p-8">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-6">Queue Statistics</h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Total Emails:</span>
+                                <span class="font-medium text-gray-900">{stats.total}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Success Rate:</span>
+                                <span class="font-medium text-green-600">{stats.success_rate}%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Average Processing Time:</span>
+                                <span class="font-medium text-gray-900">{stats.avg_processing_time}s</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Last Processed:</span>
+                                <span class="font-medium text-gray-900">{stats.last_processed}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="treehouse-card p-8">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-6">Queue Health</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">Queue Status:</span>
+                                <span class="flex items-center">
+                                    <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                                    <span class="font-medium text-green-600">Healthy</span>
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Worker Status:</span>
+                                <span class="font-medium text-green-600">Active</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Next Scheduled Run:</span>
+                                <span class="font-medium text-gray-900">Within 1 minute</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Queue Size Limit:</span>
+                                <span class="font-medium text-gray-900">10,000 emails</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Priority Breakdown -->
+                <div class="treehouse-card p-8 mb-8">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-6">Priority Breakdown</h3>
+                    <div class="grid md:grid-cols-5 gap-4">
+                        <div class="text-center p-4 bg-red-50 rounded-lg">
+                            <div class="text-2xl font-bold text-red-600">{stats.priority_1}</div>
+                            <div class="text-sm text-red-600">Priority 1</div>
+                            <div class="text-xs text-gray-500">Critical</div>
+                        </div>
+                        <div class="text-center p-4 bg-orange-50 rounded-lg">
+                            <div class="text-2xl font-bold text-orange-600">{stats.priority_2}</div>
+                            <div class="text-sm text-orange-600">Priority 2</div>
+                            <div class="text-xs text-gray-500">High</div>
+                        </div>
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <div class="text-2xl font-bold text-blue-600">{stats.priority_3}</div>
+                            <div class="text-sm text-blue-600">Priority 3</div>
+                            <div class="text-xs text-gray-500">Normal</div>
+                        </div>
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <div class="text-2xl font-bold text-gray-600">{stats.priority_4}</div>
+                            <div class="text-sm text-gray-600">Priority 4</div>
+                            <div class="text-xs text-gray-500">Low</div>
+                        </div>
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <div class="text-2xl font-bold text-gray-500">{stats.priority_5}</div>
+                            <div class="text-sm text-gray-500">Priority 5</div>
+                            <div class="text-xs text-gray-500">Lowest</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CLI Commands -->
+                <div class="treehouse-card p-8">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-6">Queue Management Commands</h3>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">Monitoring Commands</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="bg-gray-100 p-3 rounded font-mono">treehouse mail:queue:status</div>
+                                <div class="bg-gray-100 p-3 rounded font-mono">treehouse mail:queue:status --details</div>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">Processing Commands</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="bg-gray-100 p-3 rounded font-mono">treehouse mail:queue:work</div>
+                                <div class="bg-gray-100 p-3 rounded font-mono">treehouse mail:queue:retry</div>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">Maintenance Commands</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="bg-gray-100 p-3 rounded font-mono">treehouse mail:queue:clear --failed</div>
+                                <div class="bg-gray-100 p-3 rounded font-mono">treehouse mail:queue:clear --sent</div>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-3">Automated Processing</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="bg-green-100 p-3 rounded">
+                                    <div class="font-semibold text-green-800">Built-in Cron Job</div>
+                                    <div class="text-green-700">Runs every minute automatically</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div th:unless="success">
+                <div class="treehouse-card p-8 text-center">
+                    <div class="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-red-900 mb-2">Queue Status Unavailable</h3>
+                    <p class="text-red-700 mb-4">Unable to retrieve queue statistics.</p>
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-left">
+                        <h4 class="font-semibold text-red-900 mb-2">Error:</h4>
+                        <p class="text-red-800 font-mono text-sm">{error}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-center space-x-4 mt-8">
+                <button onclick="location.reload()" class="treehouse-btn-secondary">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Refresh Status
+                </button>
+                <a href="/mail" class="treehouse-btn">
+                    Back to Mail System
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

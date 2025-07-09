@@ -29,6 +29,18 @@ $router->get('/about', function() {
     ])->render());
 });
 
+// Mail System Demo Routes
+$router->get('/mail', 'App\Controllers\MailController@index');
+$router->get('/mail/send-test', 'App\Controllers\MailController@sendTest');
+$router->post('/mail/send-test', 'App\Controllers\MailController@sendTest');
+$router->get('/mail/send-templated', 'App\Controllers\MailController@sendTemplated');
+$router->post('/mail/send-templated', 'App\Controllers\MailController@sendTemplated');
+$router->get('/mail/queue', 'App\Controllers\MailController@queue');
+$router->post('/mail/queue', 'App\Controllers\MailController@queue');
+$router->get('/mail/attachments', 'App\Controllers\MailController@attachments');
+$router->post('/mail/attachments', 'App\Controllers\MailController@attachments');
+$router->get('/mail/queue-status', 'App\Controllers\MailController@queueStatus');
+
 // Example form handling
 $router->post('/contact', function() {
     // In a real application, you would validate and process the form data

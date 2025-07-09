@@ -1,0 +1,150 @@
+<div th:extend="layouts.app">
+    <div th:section="content">
+        <div class="max-w-2xl mx-auto">
+            <!-- Success Result -->
+            <div th:if="success" class="text-center mb-8">
+                <div class="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-red-900 mb-2">Email with Attachments Sent!</h1>
+                <p class="text-red-700">Your email with CSV and JSON attachments has been sent successfully.</p>
+            </div>
+
+            <!-- Error Result -->
+            <div th:unless="success" class="text-center mb-8">
+                <div class="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-red-900 mb-2">Email with Attachments Failed</h1>
+                <p class="text-red-700">There was an error sending the email with attachments.</p>
+            </div>
+
+            <!-- Email Details -->
+            <div class="treehouse-card p-8 mb-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Email Details</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Recipient:</span>
+                        <span class="font-medium text-gray-900">{email}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Subject:</span>
+                        <span class="font-medium text-gray-900">{subject}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Attachments:</span>
+                        <span class="font-medium text-gray-900">2 files (CSV + JSON)</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Method:</span>
+                        <span class="font-medium text-gray-900">Data attachments</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success Message -->
+            <div th:if="success" class="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+                <h4 class="text-red-900 font-semibold mb-2">✓ Email with Attachments Sent</h4>
+                <p class="text-red-800">{message}</p>
+                
+                <div class="mt-4">
+                    <h5 class="font-semibold text-red-900 mb-2">Attachments Included:</h5>
+                    <div class="space-y-2">
+                        <div class="flex items-center bg-white rounded p-3 border border-red-200">
+                            <svg class="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <div>
+                                <div class="font-medium text-gray-900">users.csv</div>
+                                <div class="text-sm text-gray-600">Sample user data in CSV format</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center bg-white rounded p-3 border border-red-200">
+                            <svg class="w-5 h-5 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                            <div>
+                                <div class="font-medium text-gray-900">system-info.json</div>
+                                <div class="text-sm text-gray-600">TreeHouse system information in JSON format</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 text-sm text-red-700">
+                    <p><strong>Note:</strong> Check your email client to verify that both attachments were received correctly.</p>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div th:unless="success" class="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+                <h4 class="text-red-900 font-semibold mb-2">✗ Error Details</h4>
+                <p class="text-red-800 font-mono text-sm">{error}</p>
+                <div class="mt-4 text-sm text-red-700">
+                    <p><strong>Common Issues:</strong></p>
+                    <ul class="list-disc list-inside mt-2 space-y-1">
+                        <li>Check attachment size limits in mail configuration</li>
+                        <li>Verify MIME type detection is working correctly</li>
+                        <li>Ensure mail driver supports attachments</li>
+                        <li>Check memory limits for large attachments</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Attachment Features -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+                <h4 class="text-blue-900 font-semibold mb-3">Attachment Features Used</h4>
+                <div class="grid md:grid-cols-2 gap-4 text-sm text-blue-800">
+                    <div>
+                        <h5 class="font-semibold mb-2">Data Attachments:</h5>
+                        <ul class="space-y-1">
+                            <li>• Dynamic content generation</li>
+                            <li>• No temporary files required</li>
+                            <li>• Custom MIME type specification</li>
+                            <li>• Automatic encoding handling</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h5 class="font-semibold mb-2">Security Features:</h5>
+                        <ul class="space-y-1">
+                            <li>• File type validation</li>
+                            <li>• Size limit enforcement</li>
+                            <li>• MIME type verification</li>
+                            <li>• Content security scanning</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-center space-x-4">
+                <a href="/mail/attachments" class="treehouse-btn-secondary">
+                    Send Another with Attachments
+                </a>
+                <a href="/mail" class="treehouse-btn">
+                    Back to Mail System
+                </a>
+            </div>
+
+            <!-- Code Example -->
+            <div class="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
+                <h4 class="font-semibold text-gray-900 mb-3">Code Used</h4>
+                <pre class="bg-gray-100 p-4 rounded text-sm text-gray-800 overflow-x-auto"><code>// TreeHouse Mail System - Data Attachments
+$csvData = "Name,Email,Role\nJohn,john@example.com,Admin";
+$jsonData = json_encode(['system' => 'TreeHouse'], JSON_PRETTY_PRINT);
+
+mailer()
+    ->to('{email}')
+    ->subject('{subject}')
+    ->html('<h1>Email with Attachments</h1>')
+    ->attachData($csvData, 'users.csv', ['mime' => 'text/csv'])
+    ->attachData($jsonData, 'system-info.json', ['mime' => 'application/json'])
+    ->send();</code></pre>
+            </div>
+        </div>
+    </div>
+</div>

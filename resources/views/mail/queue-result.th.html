@@ -1,0 +1,133 @@
+<div th:extend="layouts.app">
+    <div th:section="content">
+        <div class="max-w-2xl mx-auto">
+            <!-- Success Result -->
+            <div th:if="success" class="text-center mb-8">
+                <div class="w-16 h-16 bg-yellow-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-yellow-900 mb-2">Email Queued Successfully!</h1>
+                <p class="text-yellow-700">Your email has been added to the queue and will be processed automatically.</p>
+            </div>
+
+            <!-- Error Result -->
+            <div th:unless="success" class="text-center mb-8">
+                <div class="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-red-900 mb-2">Queue Failed</h1>
+                <p class="text-red-700">There was an error adding the email to the queue.</p>
+            </div>
+
+            <!-- Email Details -->
+            <div class="treehouse-card p-8 mb-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Queue Details</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Recipient:</span>
+                        <span class="font-medium text-gray-900">{email}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Subject:</span>
+                        <span class="font-medium text-gray-900">{subject}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Priority:</span>
+                        <span class="font-medium text-gray-900">
+                            {priority}
+                            <span th:switch="priority">
+                                <span th:case="1" class="text-red-600 text-sm">(Highest - Critical)</span>
+                                <span th:case="2" class="text-orange-600 text-sm">(High - Important)</span>
+                                <span th:case="3" class="text-blue-600 text-sm">(Normal - Default)</span>
+                                <span th:case="4" class="text-gray-600 text-sm">(Low - Bulk)</span>
+                                <span th:case="5" class="text-gray-500 text-sm">(Lowest - Newsletter)</span>
+                            </span>
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Processing:</span>
+                        <span class="font-medium text-gray-900">Automatic (every minute)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success Message -->
+            <div th:if="success" class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
+                <h4 class="text-yellow-900 font-semibold mb-2">✓ Email Queued</h4>
+                <p class="text-yellow-800">{message}</p>
+                <div class="mt-4 text-sm text-yellow-700">
+                    <p><strong>Next Steps:</strong></p>
+                    <ul class="list-disc list-inside mt-2 space-y-1">
+                        <li>Email will be processed by the automatic queue worker</li>
+                        <li>Higher priority emails are processed first</li>
+                        <li>Failed emails are automatically retried with exponential backoff</li>
+                        <li>Check queue status to monitor processing</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div th:unless="success" class="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+                <h4 class="text-red-900 font-semibold mb-2">✗ Queue Error</h4>
+                <p class="text-red-800 font-mono text-sm">{error}</p>
+                <div class="mt-4 text-sm text-red-700">
+                    <p><strong>Common Issues:</strong></p>
+                    <ul class="list-disc list-inside mt-2 space-y-1">
+                        <li>Check database connection and configuration</li>
+                        <li>Verify queued_mails table exists and is accessible</li>
+                        <li>Ensure queue system is properly configured</li>
+                        <li>Check application logs for detailed error information</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Queue Processing Timeline -->
+            <div th:if="success" class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+                <h4 class="text-blue-900 font-semibold mb-3">Processing Timeline</h4>
+                <div class="space-y-3">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                        <span class="text-blue-800"><strong>Now:</strong> Email stored in database queue</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+                        <span class="text-blue-800"><strong>Within 1 minute:</strong> Queue worker will process email</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                        <span class="text-blue-800"><strong>Delivery:</strong> Email sent via configured mail driver</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-center space-x-4">
+                <a href="/mail/queue" class="treehouse-btn-secondary">
+                    Queue Another Email
+                </a>
+                <a href="/mail/queue-status" class="treehouse-btn-secondary">
+                    Check Queue Status
+                </a>
+                <a href="/mail" class="treehouse-btn">
+                    Back to Mail System
+                </a>
+            </div>
+
+            <!-- Code Example -->
+            <div class="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
+                <h4 class="font-semibold text-gray-900 mb-3">Code Used</h4>
+                <pre class="bg-gray-100 p-4 rounded text-sm text-gray-800 overflow-x-auto"><code>// TreeHouse Mail System - Queue Email
+try {
+    queueMail('{email}', '{subject}', $message, {priority});
+    echo "Email queued successfully!";
+} catch (\Exception $e) {
+    echo "Queue error: " . $e->getMessage();
+}</code></pre>
+            </div>
+        </div>
+    </div>
+</div>
