@@ -1,56 +1,59 @@
 <div th:extend="layouts.app">
     <div th:section="content">
         <!-- Demo Navigation -->
-        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-            <a href="/templating" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
-                <div class="w-12 h-12 bg-treehouse-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-treehouse-200 transition-colors">
-                    <svg class="w-6 h-6 text-treehouse-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
-                    </svg>
-                </div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Templating Engine</h3>
-                <p class="text-gray-600 text-center">Explore dot notation, dynamic attributes, and powerful template features.</p>
-            </a>
-            
-            <a href="/components" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
-                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                    </svg>
-                </div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Dynamic Components</h3>
-                <p class="text-gray-600 text-center">See reusable UI components with data binding and dynamic behavior.</p>
-            </a>
-            
-            <a href="/layouts" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
-                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-200 transition-colors">
-                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path>
-                    </svg>
-                </div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Layout System</h3>
-                <p class="text-gray-600 text-center">Learn about template inheritance and section management.</p>
-            </a>
-            
-            <a href="/cli" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
-                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
-                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3"></path>
-                    </svg>
-                </div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">CLI Commands</h3>
-                <p class="text-gray-600 text-center">Complete guide to TreeHouse command-line tools and utilities.</p>
-            </a>
-            
-            <a href="/mail" class="treehouse-card p-6 hover:shadow-lg transition-shadow group">
-                <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-indigo-200 transition-colors">
-                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                    </svg>
-                </div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Mail System</h3>
-                <p class="text-gray-600 text-center">Comprehensive email system with queues, templates, and attachments.</p>
-            </a>
+        <div class="mb-12">
+            <!-- Single grid for all 5 items: 1 col mobile, 2 col tablet (natural flow), 6 col desktop (3/2 centered) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8">
+                <a href="/templating" class="treehouse-card p-6 hover:shadow-lg transition-shadow group lg:col-span-2">
+                    <div class="w-12 h-12 bg-treehouse-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-treehouse-200 transition-colors">
+                        <svg class="w-6 h-6 text-treehouse-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Templating Engine</h3>
+                    <p class="text-gray-600 text-center">Explore dot notation, dynamic attributes, and powerful template features.</p>
+                </a>
+                
+                <a href="/components" class="treehouse-card p-6 hover:shadow-lg transition-shadow group lg:col-span-2">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Dynamic Components</h3>
+                    <p class="text-gray-600 text-center">See reusable UI components with data binding and dynamic behavior.</p>
+                </a>
+                
+                <a href="/layouts" class="treehouse-card p-6 hover:shadow-lg transition-shadow group lg:col-span-2">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-200 transition-colors">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Layout System</h3>
+                    <p class="text-gray-600 text-center">Learn about template inheritance and section management.</p>
+                </a>
+                
+                <a href="/cli" class="treehouse-card p-6 hover:shadow-lg transition-shadow group lg:col-span-2 lg:col-start-2">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">CLI Commands</h3>
+                    <p class="text-gray-600 text-center">Complete guide to TreeHouse command-line tools and utilities.</p>
+                </a>
+                
+                <a href="/mail" class="treehouse-card p-6 hover:shadow-lg transition-shadow group lg:col-span-2">
+                    <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-indigo-200 transition-colors">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center">Mail System</h3>
+                    <p class="text-gray-600 text-center">Comprehensive email system with queues, templates, and attachments.</p>
+                </a>
+            </div>
         </div>
 
         <!-- Features Grid -->
