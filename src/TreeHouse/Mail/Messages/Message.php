@@ -594,12 +594,52 @@ class Message
 
     /**
      * Send the message
-     * 
+     *
      * @return bool
      */
     public function send(): bool
     {
-        return $this->mailManager->send();
+        // Validate the message before sending
+        $this->validate();
+        
+        // Get the mailer to use
+        $mailerName = $this->mailer ?? $this->mailManager->getDefaultMailer();
+        $mailer = $this->mailManager->getMailer($mailerName);
+        
+        $startTime = microtime(true);
+        
+        try {
+            $result = $mailer->send($this);
+            $sendTime = microtime(true) - $startTime;
+            
+            // Dispatch mail sent event if possible
+            $this->dispatchEvent(new \LengthOfRope\TreeHouse\Mail\Events\MailSent($this, $mailerName, $sendTime));
+            
+            return $result;
+        } catch (\Exception $e) {
+            // Dispatch mail failed event if possible
+            $this->dispatchEvent(new \LengthOfRope\TreeHouse\Mail\Events\MailFailed($this, $e, $mailerName));
+            throw $e;
+        }
+    }
+
+    /**
+     * Dispatch an event through the application's event system
+     *
+     * @param object $event
+     * @return void
+     */
+    protected function dispatchEvent(object $event): void
+    {
+        try {
+            $eventDispatcher = app('events');
+            if ($eventDispatcher !== null) {
+                $eventDispatcher->dispatch($event);
+            }
+        } catch (\Exception $e) {
+            // Silently fail if event system is not available
+            // Mail functionality should not depend on events
+        }
     }
 
     /**
