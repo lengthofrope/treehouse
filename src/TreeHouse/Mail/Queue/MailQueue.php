@@ -79,8 +79,10 @@ class MailQueue
         $queuedMail->body_text = $message->getTextBody();
         $queuedMail->headers = empty($message->getHeaders()) ? null : $message->getHeaders();
         
-        // Set configuration
-        $queuedMail->mailer = $message->getMailer() ?? 'default';
+        // Set configuration - get default mailer from mail manager
+        $mailManager = $this->app->make('mail');
+        $defaultMailer = $mailManager->getDefaultMailer();
+        $queuedMail->mailer = $message->getMailer() ?? $defaultMailer;
         $queuedMail->priority = $priority ?? $message->getPriority();
         $queuedMail->max_attempts = $this->config['max_attempts'];
         

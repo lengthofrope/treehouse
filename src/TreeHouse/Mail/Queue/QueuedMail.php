@@ -298,21 +298,58 @@ class QueuedMail extends ActiveRecord
     public static function getAvailableForProcessing(?string $mailer = null, int $limit = 10): Collection
     {
         $now = Carbon::now();
+        
+        // Build the base query
         $query = static::query()
             ->where('available_at', '<=', $now)
             ->whereNull('sent_at')
-            ->whereNull('failed_at')
-            ->where('reserved_at', null)
-            ->orWhere('reserved_until', '<', $now)
+            ->whereNull('failed_at');
+            
+        // Add reservation condition - emails that are either not reserved OR have expired reservations
+        $query->whereNull('reserved_at');
+        
+        // Get unreserved emails
+        $unreservedQuery = clone $query;
+        if ($mailer) {
+            $unreservedQuery->where('mailer', $mailer);
+        }
+        $unreserved = $unreservedQuery
             ->orderBy('priority', 'asc')
             ->orderBy('available_at', 'asc')
-            ->limit($limit);
+            ->limit($limit)
+            ->get();
             
-        if ($mailer) {
-            $query->where('mailer', $mailer);
+        // If we need more emails and haven't reached the limit, get expired reservations
+        if ($unreserved->count() < $limit) {
+            $remainingLimit = $limit - $unreserved->count();
+            
+            $expiredQuery = static::query()
+                ->where('available_at', '<=', $now)
+                ->whereNull('sent_at')
+                ->whereNull('failed_at')
+                ->whereNotNull('reserved_at')
+                ->where('reserved_until', '<', $now);
+                
+            if ($mailer) {
+                $expiredQuery->where('mailer', $mailer);
+            }
+            
+            $expired = $expiredQuery
+                ->orderBy('priority', 'asc')
+                ->orderBy('available_at', 'asc')
+                ->limit($remainingLimit)
+                ->get();
+                
+            // Combine results
+            $all = $unreserved->merge($expired);
+            
+            // Sort the combined results by priority first, then by available_at
+            $sorted = $all->sortBy('priority')->sortBy('available_at');
+            
+            return $sorted->take($limit);
         }
         
-        return $query->get();
+        return $unreserved;
     }
 
     /**
