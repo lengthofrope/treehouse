@@ -506,8 +506,9 @@ treehouse serve --port=8000 --host=localhost
 # Show all available commands (when inside a TreeHouse project)
 treehouse --help
 
-# Show commands by group (e.g., user commands)
+# Show commands by group (e.g., user commands, mail commands)
 treehouse user
+treehouse mail
 
 # Both global and local commands work identically
 treehouse cache:clear    # Global command
@@ -547,6 +548,27 @@ treehouse user:delete --email="john@example.com"
 treehouse user:list
 ```
 
+### Mail Queue Management
+```bash
+# Check queue status
+treehouse mail:queue:status
+
+# Show detailed queue information
+treehouse mail:queue:status --details --metrics
+
+# Process emails manually
+treehouse mail:queue:work --limit=50
+
+# Retry failed emails
+treehouse mail:queue:retry --limit=20
+
+# Clear failed emails
+treehouse mail:queue:clear --failed
+
+# Clear sent emails
+treehouse mail:queue:clear --sent
+```
+
 ### Database
 ```bash
 # Run migrations
@@ -554,6 +576,18 @@ treehouse migrate:run
 
 # Create migration
 treehouse migrate:create create_posts_table
+```
+
+### Cron Jobs
+```bash
+# List all cron jobs (includes mail queue processor)
+treehouse cron:list
+
+# Run cron jobs manually
+treehouse cron:run
+
+# Test cron execution
+treehouse cron:run --dry-run
 ```
 
 ### Testing
@@ -1045,7 +1079,7 @@ GitHub: [@lengthofrope](https://github.com/lengthofrope)
 
 For detailed information about each framework layer, see the individual README files:
 
-### Core Framework Layers (15)
+### Core Framework Layers (16)
 
 - [Foundation Layer](src/TreeHouse/Foundation/README.md) - Application bootstrap and dependency injection
 - [Database Layer](src/TreeHouse/Database/README.md) - ORM, QueryBuilder, and database management
@@ -1054,6 +1088,7 @@ For detailed information about each framework layer, see the individual README f
 - [Console Layer](src/TreeHouse/Console/README.md) - CLI commands and console application
 - [Cron Layer](src/TreeHouse/Cron/README.md) - Task scheduling and background job processing
 - [Errors Layer](src/TreeHouse/Errors/README.md) - Error handling and exception management
+- [Mail Layer](src/TreeHouse/Mail/README.md) - Email system with drivers, queue, and automation
 - [Events Layer](src/TreeHouse/Events/README.md) - Event system and loose coupling architecture
 - [Models Layer](src/TreeHouse/Models/README.md) - Base model classes and database patterns
 - [Cache Layer](src/TreeHouse/Cache/README.md) - Caching system and performance optimization
