@@ -164,6 +164,7 @@ class CronRunCommand extends Command
         $builtInJobs = [
             \LengthOfRope\TreeHouse\Cron\Jobs\CacheCleanupJob::class,
             \LengthOfRope\TreeHouse\Cron\Jobs\LockCleanupJob::class,
+            \LengthOfRope\TreeHouse\Mail\Queue\MailQueueProcessor::class,
         ];
 
         $loaded = 0;

@@ -23,7 +23,6 @@ return [
     'jobs' => [
         // Example custom jobs:
         // \App\Cron\DatabaseCleanupJob::class,
-        // \App\Cron\EmailQueueProcessorJob::class,
         // \App\Cron\ReportGenerationJob::class,
     ],
 

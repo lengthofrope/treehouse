@@ -25,6 +25,7 @@ use LengthOfRope\TreeHouse\Console\Commands\UserCommands\UserRoleCommand;
 use LengthOfRope\TreeHouse\Console\Commands\MailCommands\MailQueueWorkCommand;
 use LengthOfRope\TreeHouse\Console\Commands\MailCommands\MailQueueStatusCommand;
 use LengthOfRope\TreeHouse\Console\Commands\MailCommands\MailQueueClearCommand;
+use LengthOfRope\TreeHouse\Console\Commands\MailCommands\MailQueueRetryCommand;
 use LengthOfRope\TreeHouse\Console\Helpers\ConfigLoader;
 use Throwable;
 
@@ -139,6 +140,7 @@ class Application
             $this->register(new MailQueueWorkCommand());
             $this->register(new MailQueueStatusCommand());
             $this->register(new MailQueueClearCommand());
+            $this->register(new MailQueueRetryCommand());
         } else {
             // Outside a TreeHouse project - only register the new project command
             $this->register(new NewProjectCommand());
