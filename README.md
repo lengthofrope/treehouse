@@ -8,7 +8,7 @@ Please note that this framework is in WIP state. It is nowhere near production r
 
 ## Architecture Overview
 
-TreeHouse Framework is built with a clean layered architecture consisting of 15 core layers, plus advanced middleware systems, making it a comprehensive 16+ component framework. Each layer provides specific functionality and maintains clear separation of concerns:
+TreeHouse Framework is built with a clean layered architecture consisting of 16 core layers, plus advanced middleware systems, making it a comprehensive 17+ component framework. Each layer provides specific functionality and maintains clear separation of concerns:
 
 ### Core Layers
 
@@ -54,49 +54,58 @@ TreeHouse Framework is built with a clean layered architecture consisting of 15 
    - Error logging and debugging utilities
    - Production-ready error handling
 
-8. **[Models Layer](src/TreeHouse/Models/README.md)**
+8. **[Mail Layer](src/TreeHouse/Mail/README.md)**
+   - Comprehensive email system with multiple transport drivers (SMTP, Sendmail, Log)
+   - Database-powered queue system with automated processing and retry logic
+   - Laravel-style Mailable classes with TreeHouse template integration
+   - File attachments with security validation and MIME type detection
+   - Full event system integration for monitoring and control
+   - Advanced email validation with anti-spam features
+   - CLI commands for queue management and email generation
+
+9. **[Models Layer](src/TreeHouse/Models/README.md)**
    - Base model classes and utilities
    - Model relationships and data handling
    - Database interaction patterns
    - Advanced model features and helpers
 
-9. **[Cache Layer](src/TreeHouse/Cache/README.md)**
-   - High-performance file-based caching
-   - Pattern matching and wildcard cache operations
-   - Cache prefixing and namespace organization
-   - TTL support and automatic cleanup
+10. **[Cache Layer](src/TreeHouse/Cache/README.md)**
+    - High-performance file-based caching
+    - Pattern matching and wildcard cache operations
+    - Cache prefixing and namespace organization
+    - TTL support and automatic cleanup
 
-10. **[Http Layer](src/TreeHouse/Http/README.md)**
+11. **[Http Layer](src/TreeHouse/Http/README.md)**
     - HTTP request and response handling
     - Session management with security features
     - Cookie handling and file upload processing
     - Security headers and HTTPS enforcement
 
-11. **[Security Layer](src/TreeHouse/Security/README.md)**
+12. **[Security Layer](src/TreeHouse/Security/README.md)**
     - CSRF protection with token validation
     - AES-256-CBC encryption for sensitive data
     - Secure password hashing with modern algorithms
     - Input sanitization and XSS prevention
 
-12. **[Support Layer](src/TreeHouse/Support/README.md)**
+13. **[Support Layer](src/TreeHouse/Support/README.md)**
     - Collection class with 50+ utility methods
     - String manipulation and validation utilities
     - Carbon integration for date/time handling
     - Array utilities with dot notation support
 
-13. **[Validation Layer](src/TreeHouse/Validation/README.md)**
+14. **[Validation Layer](src/TreeHouse/Validation/README.md)**
     - Comprehensive validation system with 25+ rules
     - Custom validation rule support
     - Conditional validation and nested data handling
     - Internationalized error messages
 
-14. **[View Layer](src/TreeHouse/View/README.md)**
+15. **[View Layer](src/TreeHouse/View/README.md)**
     - Custom template engine with HTML-valid syntax
     - Layout inheritance and component system
     - Template compilation with caching
     - Authentication and authorization integration
 
-15. **[Events Layer](src/TreeHouse/Events/README.md)**
+16. **[Events Layer](src/TreeHouse/Events/README.md)**
     - Comprehensive event system for loose coupling
     - Model lifecycle events with cancellation support
     - Synchronous event dispatching with priority
@@ -104,7 +113,7 @@ TreeHouse Framework is built with a clean layered architecture consisting of 15 
 
 ### Advanced Middleware Systems
 
-16. **[Rate Limiting System](src/TreeHouse/Router/Middleware/RateLimit/README.md)**
+17. **[Rate Limiting System](src/TreeHouse/Router/Middleware/RateLimit/README.md)**
      - **Multiple Rate Limiting Strategies:**
        - Fixed Window Strategy - Simple time-based windows
        - Sliding Window Strategy - Precise rate limiting without boundary bursts
@@ -500,8 +509,9 @@ treehouse serve --port=8000 --host=localhost
 # Show all available commands (when inside a TreeHouse project)
 treehouse --help
 
-# Show commands by group (e.g., user commands)
+# Show commands by group (e.g., user commands, mail commands)
 treehouse user
+treehouse mail
 
 # Both global and local commands work identically
 treehouse cache:clear    # Global command
@@ -541,6 +551,33 @@ treehouse user:delete --email="john@example.com"
 treehouse user:list
 ```
 
+### Mail System Management
+```bash
+# Generate new Mailable class
+treehouse make:mailable WelcomeEmail
+
+# Generate with custom template
+treehouse make:mailable OrderConfirmation --template=emails.orders.confirmation
+
+# Check queue status
+treehouse mail:queue:status
+
+# Show detailed queue information
+treehouse mail:queue:status --details --metrics
+
+# Process emails manually
+treehouse mail:queue:work --limit=50
+
+# Retry failed emails
+treehouse mail:queue:retry --limit=20
+
+# Clear failed emails
+treehouse mail:queue:clear --failed
+
+# Clear sent emails
+treehouse mail:queue:clear --sent
+```
+
 ### Database
 ```bash
 # Run migrations
@@ -548,6 +585,18 @@ treehouse migrate:run
 
 # Create migration
 treehouse migrate:create create_posts_table
+```
+
+### Cron Jobs
+```bash
+# List all cron jobs (includes mail queue processor)
+treehouse cron:list
+
+# Run cron jobs manually
+treehouse cron:run
+
+# Test cron execution
+treehouse cron:run --dry-run
 ```
 
 ### Testing
@@ -1039,7 +1088,7 @@ GitHub: [@lengthofrope](https://github.com/lengthofrope)
 
 For detailed information about each framework layer, see the individual README files:
 
-### Core Framework Layers (15)
+### Core Framework Layers (16)
 
 - [Foundation Layer](src/TreeHouse/Foundation/README.md) - Application bootstrap and dependency injection
 - [Database Layer](src/TreeHouse/Database/README.md) - ORM, QueryBuilder, and database management
@@ -1048,6 +1097,7 @@ For detailed information about each framework layer, see the individual README f
 - [Console Layer](src/TreeHouse/Console/README.md) - CLI commands and console application
 - [Cron Layer](src/TreeHouse/Cron/README.md) - Task scheduling and background job processing
 - [Errors Layer](src/TreeHouse/Errors/README.md) - Error handling and exception management
+- [Mail Layer](src/TreeHouse/Mail/README.md) - Email system with drivers, queue, and automation
 - [Events Layer](src/TreeHouse/Events/README.md) - Event system and loose coupling architecture
 - [Models Layer](src/TreeHouse/Models/README.md) - Base model classes and database patterns
 - [Cache Layer](src/TreeHouse/Cache/README.md) - Caching system and performance optimization

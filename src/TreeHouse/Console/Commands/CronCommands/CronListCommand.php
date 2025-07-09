@@ -106,20 +106,7 @@ class CronListCommand extends Command
         }
 
         // Load built-in jobs
-        $builtInJobs = [
-            \LengthOfRope\TreeHouse\Cron\Jobs\CacheCleanupJob::class,
-            \LengthOfRope\TreeHouse\Cron\Jobs\LockCleanupJob::class,
-        ];
-
-        foreach ($builtInJobs as $jobClass) {
-            if (class_exists($jobClass)) {
-                try {
-                    $jobRegistry->registerClass($jobClass);
-                } catch (\Throwable $e) {
-                    // Continue with other jobs
-                }
-            }
-        }
+        $jobRegistry->loadBuiltInJobs(true);
 
         return $jobRegistry;
     }

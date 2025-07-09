@@ -161,24 +161,7 @@ class CronRunCommand extends Command
      */
     private function loadBuiltInJobs(JobRegistry $jobRegistry, OutputInterface $output): void
     {
-        $builtInJobs = [
-            \LengthOfRope\TreeHouse\Cron\Jobs\CacheCleanupJob::class,
-            \LengthOfRope\TreeHouse\Cron\Jobs\LockCleanupJob::class,
-        ];
-
-        $loaded = 0;
-        foreach ($builtInJobs as $jobClass) {
-            if (class_exists($jobClass)) {
-                try {
-                    $jobRegistry->registerClass($jobClass);
-                    $loaded++;
-                } catch (\Throwable $e) {
-                    if ($output->isVerbose()) {
-                        $this->warn($output, "Failed to load built-in job {$jobClass}: {$e->getMessage()}");
-                    }
-                }
-            }
-        }
+        $loaded = $jobRegistry->loadBuiltInJobs(true);
 
         if ($output->isVerbose() && $loaded > 0) {
             $this->info($output, "Loaded {$loaded} built-in jobs");

@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="subject">Email Subject</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
+    <!-- Email-safe table layout -->
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+            <td style="padding: 20px 0;">
+                <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border: 1px solid #cccccc;">
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="padding: 20px; background-color: #f8f9fa;">
+                            <h1 style="margin: 0; color: #333333; font-size: 24px;" th:text="app.name">App Name</h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 20px;" th:yield="content">
+                            <!-- Email content will be inserted here -->
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 20px; background-color: #f8f9fa; text-align: center; font-size: 12px; color: #666666;">
+                            <p style="margin: 0;">© {year} {app.name}. All rights reserved.</p>
+                            <p style="margin: 10px 0 0 0;">
+                                <a th:href="unsubscribe_url" style="color: #666666;">Unsubscribe</a> | 
+                                <a th:href="view_url" style="color: #666666;">View in browser</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

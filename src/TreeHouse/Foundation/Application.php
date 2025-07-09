@@ -213,6 +213,23 @@ class Application
             return new \LengthOfRope\TreeHouse\Http\Session($config);
         });
 
+        // Register mail manager
+        $this->container->singleton('mail', function () {
+            $config = $this->config['mail'] ?? [];
+            return new \LengthOfRope\TreeHouse\Mail\MailManager($config, $this);
+        });
+
+        // Register mail queue
+        $this->container->singleton('mail.queue', function () {
+            $config = $this->config['mail']['queue'] ?? [];
+            return new \LengthOfRope\TreeHouse\Mail\Queue\MailQueue($config, $this);
+        });
+
+        // Register email renderer
+        $this->container->singleton('mail.renderer', function () {
+            return new \LengthOfRope\TreeHouse\Mail\EmailRenderer($this);
+        });
+
     }
 
     /**
