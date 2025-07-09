@@ -114,7 +114,7 @@ class MailQueue
      * @param int $timeoutSeconds Reservation timeout in seconds
      * @return array Array of successfully reserved emails
      */
-    public function reserve(array $emails, int $timeoutSeconds = null): array
+    public function reserve(array $emails, ?int $timeoutSeconds = null): array
     {
         $timeoutSeconds = $timeoutSeconds ?: $this->config['reservation_timeout'];
         $reservedUntil = Carbon::now()->addSeconds($timeoutSeconds);
