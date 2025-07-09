@@ -172,7 +172,7 @@ abstract class Mailable
 
     /**
      * Build the message instance
-     * 
+     *
      * @return Message
      */
     protected function buildMessage(): Message
@@ -182,12 +182,15 @@ abstract class Mailable
 
         // Get mail manager
         $mailManager = app('mail');
+        
+        // Create a new message directly
+        $message = new Message($mailManager);
+        
+        // Apply mailer if specified
         if ($this->mailer) {
-            $mailManager = $mailManager->mailer($this->mailer);
+            $message->mailer($this->mailer);
         }
-
-        // Create message
-        $message = $mailManager->compose();
+        
         $message->subject($this->subject);
         $message->priority($this->priority);
 
