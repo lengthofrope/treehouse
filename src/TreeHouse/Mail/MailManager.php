@@ -11,6 +11,10 @@ use LengthOfRope\TreeHouse\Mail\Mailers\LogMailer;
 use LengthOfRope\TreeHouse\Mail\Messages\Message;
 use LengthOfRope\TreeHouse\Mail\Support\Address;
 use LengthOfRope\TreeHouse\Mail\Support\AddressList;
+use LengthOfRope\TreeHouse\Mail\Events\MailSending;
+use LengthOfRope\TreeHouse\Mail\Events\MailSent;
+use LengthOfRope\TreeHouse\Mail\Events\MailFailed;
+use LengthOfRope\TreeHouse\Mail\Events\MailQueued;
 use LengthOfRope\TreeHouse\Foundation\Application;
 use RuntimeException;
 
@@ -202,21 +206,43 @@ class MailManager
 
     /**
      * Send the message immediately
-     * 
+     *
      * @return bool True if sent successfully
      */
     public function send(): bool
     {
         $this->ensurePendingMessage();
         
+        // Dispatch mail sending event
+        $sendingEvent = new MailSending($this->pendingMessage);
+        $this->dispatchEvent($sendingEvent);
+        
+        // Check if sending was cancelled
+        if ($sendingEvent->isCancelled()) {
+            $this->pendingMessage = null;
+            return false;
+        }
+        
         $mailerName = $this->pendingMessage->getMailer() ?? $this->getDefaultMailer();
         $mailer = $this->getMailer($mailerName);
         
+        $startTime = microtime(true);
+        
         try {
             $result = $mailer->send($this->pendingMessage);
+            $sendTime = microtime(true) - $startTime;
+            
+            // Dispatch mail sent event
+            $sentEvent = new MailSent($this->pendingMessage, $mailerName, $sendTime);
+            $this->dispatchEvent($sentEvent);
+            
             $this->pendingMessage = null; // Clear after sending
             return $result;
         } catch (\Exception $e) {
+            // Dispatch mail failed event
+            $failedEvent = new MailFailed($this->pendingMessage, $e, $mailerName);
+            $this->dispatchEvent($failedEvent);
+            
             $this->pendingMessage = null; // Clear even on failure
             throw $e;
         }
@@ -243,6 +269,12 @@ class MailManager
             
             // Add to queue
             $queuedMail = $mailQueue->add($this->pendingMessage, $this->pendingMessage->getPriority());
+            
+            // Dispatch mail queued event
+            if ($queuedMail !== null) {
+                $queuedEvent = new MailQueued($this->pendingMessage, $queuedMail);
+                $this->dispatchEvent($queuedEvent);
+            }
             
             // Clear the pending message
             $this->pendingMessage = null;
@@ -337,6 +369,25 @@ class MailManager
     {
         if ($this->pendingMessage === null) {
             $this->compose();
+        }
+    }
+
+    /**
+     * Dispatch an event through the application's event system
+     *
+     * @param object $event
+     * @return void
+     */
+    protected function dispatchEvent(object $event): void
+    {
+        try {
+            $eventDispatcher = $this->app->make('events');
+            if ($eventDispatcher !== null) {
+                $eventDispatcher->dispatch($event);
+            }
+        } catch (\Exception $e) {
+            // Silently fail if event system is not available
+            // Mail functionality should not depend on events
         }
     }
 }

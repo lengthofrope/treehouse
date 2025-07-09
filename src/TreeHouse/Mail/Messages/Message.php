@@ -272,7 +272,7 @@ class Message
 
     /**
      * Set the mailer to use for this message
-     * 
+     *
      * @param string $mailer Mailer name
      * @return static
      */
@@ -280,6 +280,86 @@ class Message
     {
         $this->mailer = $mailer;
         return $this;
+    }
+
+    /**
+     * Add an attachment to the message
+     *
+     * @param string $file Path to file
+     * @param array $options Attachment options (as, mime, etc.)
+     * @return static
+     */
+    public function attach(string $file, array $options = []): static
+    {
+        if (!file_exists($file)) {
+            throw new InvalidArgumentException("Attachment file does not exist: {$file}");
+        }
+
+        $attachment = [
+            'path' => $file,
+            'name' => $options['as'] ?? basename($file),
+            'mime' => $options['mime'] ?? $this->getMimeType($file),
+            'size' => filesize($file),
+        ];
+
+        $this->attachments[] = $attachment;
+        return $this;
+    }
+
+    /**
+     * Add raw data as an attachment
+     *
+     * @param string $data Raw file data
+     * @param string $name Filename
+     * @param array $options Attachment options (mime, etc.)
+     * @return static
+     */
+    public function attachData(string $data, string $name, array $options = []): static
+    {
+        $attachment = [
+            'data' => $data,
+            'name' => $name,
+            'mime' => $options['mime'] ?? 'application/octet-stream',
+            'size' => strlen($data),
+        ];
+
+        $this->attachments[] = $attachment;
+        return $this;
+    }
+
+    /**
+     * Get MIME type of a file
+     *
+     * @param string $file
+     * @return string
+     */
+    protected function getMimeType(string $file): string
+    {
+        if (function_exists('finfo_file')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = finfo_file($finfo, $file);
+            finfo_close($finfo);
+            if ($mime !== false) {
+                return $mime;
+            }
+        }
+
+        // Fallback to extension-based detection
+        $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        return match ($extension) {
+            'pdf' => 'application/pdf',
+            'doc' => 'application/msword',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls' => 'application/vnd.ms-excel',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'txt' => 'text/plain',
+            'csv' => 'text/csv',
+            'zip' => 'application/zip',
+            default => 'application/octet-stream',
+        };
     }
 
     // Getters
@@ -387,12 +467,42 @@ class Message
 
     /**
      * Get the mailer name
-     * 
+     *
      * @return string|null
      */
     public function getMailer(): ?string
     {
         return $this->mailer;
+    }
+
+    /**
+     * Get all attachments
+     *
+     * @return array
+     */
+    public function getAttachments(): array
+    {
+        return $this->attachments;
+    }
+
+    /**
+     * Check if message has attachments
+     *
+     * @return bool
+     */
+    public function hasAttachments(): bool
+    {
+        return !empty($this->attachments);
+    }
+
+    /**
+     * Get total size of all attachments in bytes
+     *
+     * @return int
+     */
+    public function getAttachmentsSize(): int
+    {
+        return array_sum(array_column($this->attachments, 'size'));
     }
 
     /**
@@ -443,10 +553,11 @@ class Message
 
     /**
      * Validate the message and throw exception if invalid
-     * 
+     *
+     * @param array $options Validation options (max_attachment_size, max_total_size)
      * @throws InvalidArgumentException
      */
-    public function validate(): void
+    public function validate(array $options = []): void
     {
         if ($this->to->isEmpty()) {
             throw new InvalidArgumentException('Message must have at least one recipient');
@@ -458,6 +569,26 @@ class Message
         
         if (!$this->hasContent()) {
             throw new InvalidArgumentException('Message must have content (HTML or text body)');
+        }
+
+        // Validate attachments
+        $maxAttachmentSize = $options['max_attachment_size'] ?? (10 * 1024 * 1024); // 10MB default
+        $maxTotalSize = $options['max_total_size'] ?? (25 * 1024 * 1024); // 25MB default
+
+        foreach ($this->attachments as $attachment) {
+            $size = $attachment['size'] ?? 0;
+            if ($size > $maxAttachmentSize) {
+                $sizeMB = round($size / (1024 * 1024), 2);
+                $maxMB = round($maxAttachmentSize / (1024 * 1024), 2);
+                throw new InvalidArgumentException("Attachment '{$attachment['name']}' is too large ({$sizeMB}MB). Maximum size is {$maxMB}MB.");
+            }
+        }
+
+        $totalSize = $this->getAttachmentsSize();
+        if ($totalSize > $maxTotalSize) {
+            $totalMB = round($totalSize / (1024 * 1024), 2);
+            $maxTotalMB = round($maxTotalSize / (1024 * 1024), 2);
+            throw new InvalidArgumentException("Total attachment size ({$totalMB}MB) exceeds maximum ({$maxTotalMB}MB).");
         }
     }
 

@@ -2,14 +2,14 @@
 
 A comprehensive email system for the TreeHouse Framework with multiple drivers, queue support, automated processing, and performance tracking.
 
-## 🚀 Status: Phase 4 Complete ✅
+## 🚀 Status: Phase 5 Complete ✅
 
 **Completed Features:**
 - ✅ **Phase 1**: Database Foundation with QueuedMail model and framework enhancements
 - ✅ **Phase 2**: Core Mail System with multiple drivers and fluent interface
 - ✅ **Phase 3**: Complete Queue System with CLI tools, automated processing, and retry logic
 - ✅ **Phase 4**: Template Integration with Mailable classes and email-specific templates
-- 🚧 **Phase 5**: Advanced Features (upcoming)
+- ✅ **Phase 5**: Advanced Features with attachments, events, validation, and production polish
 
 ## 📋 Current Features (Phase 1, 2, 3 & 4 Complete)
 
@@ -48,6 +48,16 @@ A comprehensive email system for the TreeHouse Framework with multiple drivers, 
 - **Auto Text Generation**: Automatic plain text generation from HTML templates
 - **Template Helpers**: Email-specific helper functions for rendering
 - **Framework Integration**: Seamless integration with existing TreeHouse View system
+
+### Phase 5: Advanced Features
+- **File Attachments**: Support for file attachments with MIME type detection and size validation
+- **Data Attachments**: Attach raw data as files without writing to disk
+- **Event System**: Full integration with TreeHouse events (MailSending, MailSent, MailFailed, MailQueued)
+- **Email Validation**: Comprehensive validation with spam detection and security checks
+- **Event Context**: Rich event data with performance metrics and error details
+- **Attachment Security**: File type validation and size limits for security
+- **Production Polish**: Enhanced error handling, graceful fallbacks, and robust testing
+- **Event Propagation**: Support for cancelling emails and stopping event propagation
 
 ## 🎯 Quick Start
 
@@ -121,6 +131,67 @@ treehouse make:mailable OrderConfirmation --template=emails.orders.confirmation
 
 # Force overwrite existing file
 treehouse make:mailable NewsletterEmail --force
+```
+
+### Advanced Features (Phase 5)
+
+```php
+// File attachments
+$message = mailer()->compose()
+    ->to('user@example.com')
+    ->subject('Invoice with attachments')
+    ->html('<p>Please find your invoice attached.</p>')
+    ->attach('/path/to/invoice.pdf', ['as' => 'Invoice-2024.pdf'])
+    ->attach('/path/to/receipt.jpg')
+    ->send();
+
+// Data attachments (no file required)
+$csvData = "Name,Email\nJohn,john@example.com\nJane,jane@example.com";
+$message = mailer()->compose()
+    ->to('admin@example.com')
+    ->subject('User Export')
+    ->attachData($csvData, 'users.csv', ['mime' => 'text/csv'])
+    ->send();
+
+// Event listeners
+app('events')->listen(MailSending::class, function(MailSending $event) {
+    // Log all outgoing emails
+    log('Sending email: ' . $event->getSubject());
+    
+    // Cancel emails to blocked domains
+    foreach ($event->getRecipients() as $email) {
+        if (str_ends_with($email, '@blocked-domain.com')) {
+            $event->cancel();
+            break;
+        }
+    }
+});
+
+app('events')->listen(MailSent::class, function(MailSent $event) {
+    // Track email performance
+    analytics()->track('email_sent', [
+        'subject' => $event->getSubject(),
+        'mailer' => $event->getMailerUsed(),
+        'send_time' => $event->getSendTime(),
+        'has_attachments' => $event->hasAttachments(),
+    ]);
+});
+
+// Email validation
+use LengthOfRope\TreeHouse\Mail\Validation\EmailValidator;
+
+$validator = new EmailValidator([
+    'max_attachment_size' => 5 * 1024 * 1024, // 5MB
+    'max_recipients' => 50,
+    'blocked_domains' => ['spam-domain.com'],
+    'check_disposable_emails' => true,
+]);
+
+if (!$validator->validate($message)) {
+    foreach ($validator->getErrors() as $error) {
+        echo "Validation error: {$error}\n";
+    }
+}
 ```
 
 ### Queue Management (Phase 3)
