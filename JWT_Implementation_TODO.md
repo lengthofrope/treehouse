@@ -34,33 +34,76 @@
 - [x] **API Authentication** - Streamlined API endpoint protection
 - [x] **Rate Limiting Integration** - JWT-based rate limiting support
 
-## 🔄 Phase 4: Token Management (PLANNED)
-- [ ] **Token Blacklisting** - Invalid token management system
-- [ ] **Token Refresh** - Automatic token renewal mechanism
-- [ ] **Multi-Device Management** - Device-specific token handling
-- [ ] **Token Revocation** - Immediate token invalidation
-- [ ] **Session Management** - JWT-based session handling
+## 🔄 Phase 4: Stateless Token Features (IN PROGRESS)
+- [ ] **Cleanup Existing Components** - Simplify JwtUserProvider for pure stateless operation
+- [ ] **Stateless Token Refresh** - JWT-based refresh token mechanism (no database)
+- [ ] **Token Introspection** - Decode and inspect token contents
+- [ ] **Enhanced Token Validation** - Improved validation with better error messages
+- [ ] **Token Utilities** - Helper functions for token manipulation
 
-## 🛡️ Phase 5: Security Enhancements (PLANNED)
+### 🧹 **Stateless Cleanup Plan:**
+
+#### **JwtUserProvider Simplifications:**
+1. **Remove hybrid mode support** - Lines 96-98, 114-118, 352-366
+2. **Remove fallback provider dependencies** - Constructor parameter, properties
+3. **Remove remember token methods** - Lines 132-139, 151-157 (not used in stateless)
+4. **Remove password validation** - Lines 209-223 (no passwords in JWT-only auth)
+5. **Remove Hash dependency** - Not needed without password validation
+6. **Simplify configuration** - Remove mode switching, focus on stateless options
+7. **Enhanced error handling** - Better JWT validation error messages
+
+#### **Code Changes Needed:**
+```php
+// OLD Constructor:
+public function __construct(JwtConfig $jwtConfig, Hash $hash, array $config = [], ?UserProvider $fallbackProvider = null)
+
+// NEW Constructor:
+public function __construct(JwtConfig $jwtConfig, array $config = [])
+
+// Remove methods:
+- retrieveByToken()
+- updateRememberToken()
+- rehashPasswordIfRequired()
+- setFallbackProvider()
+- getFallbackProvider()
+- isHybridMode()
+
+// Simplify methods:
+- retrieveById() - Remove hybrid logic
+- validateCredentials() - Remove password validation
+- retrieveByCredentials() - JWT token only
+```
+
+#### **Configuration Simplification:**
+```php
+// OLD Config:
+'mode' => 'stateless',
+'embed_user_data' => false,
+'fallback_provider' => DatabaseUserProvider
+
+// NEW Config:
+'user_claim' => 'user_data',
+'required_user_fields' => ['id', 'email'],
+'embed_user_data' => true  // Always true in stateless
+```
+
+## 🛡️ Phase 5: Security & Developer Tools (PLANNED)
 - [ ] **Key Rotation** - Automatic JWT signing key rotation
-- [ ] **Audit Logging** - JWT authentication event logging
-- [ ] **Breach Detection** - Suspicious activity detection
 - [ ] **Security Headers** - Automatic security header management
+- [ ] **Breach Detection** - Suspicious activity detection (rate limiting, IP tracking)
 - [ ] **CSRF Protection** - JWT-based CSRF protection
-
-## 📊 Phase 6: Analytics & Monitoring (PLANNED)
-- [ ] **Authentication Metrics** - Login/logout statistics
-- [ ] **Performance Monitoring** - JWT operation performance tracking
-- [ ] **Usage Analytics** - Token usage patterns and insights
-- [ ] **Health Checks** - JWT system health monitoring
-- [ ] **Alerting System** - Security and performance alerts
-
-## 🔧 Phase 7: Developer Tools (PLANNED)
 - [ ] **JWT CLI Tools** - Command-line JWT management utilities
 - [ ] **Debug Mode** - Enhanced debugging for JWT operations
 - [ ] **Testing Utilities** - JWT-specific testing helpers
+- [ ] **Configuration Validation** - Validate JWT config on startup
+
+## 📊 Phase 6: Monitoring & Documentation (PLANNED)
+- [ ] **Performance Monitoring** - JWT operation performance tracking (in-memory)
+- [ ] **Health Checks** - JWT system health monitoring
+- [ ] **Alerting System** - Security and performance alerts (log-based)
 - [ ] **Documentation Generator** - Automatic JWT endpoint documentation
 - [ ] **Migration Tools** - Session-to-JWT migration utilities
+- [ ] **Enhanced Error Handling** - Better JWT error responses
 
 ---
 
