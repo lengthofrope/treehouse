@@ -17,6 +17,62 @@ use PHPUnit\Framework\MockObject\MockObject;
 use InvalidArgumentException;
 
 /**
+ * Simple test request implementation to avoid PHPUnit deprecation
+ * Note: We extend Request but override only the methods we need for testing
+ */
+class TestRequest extends Request
+{
+    private array $testHeaders = [];
+    private array $testCookies = [];
+    private array $testQuery = [];
+
+    public function __construct()
+    {
+        // Don't call parent constructor to avoid complexity
+    }
+
+    public function header(string $key, ?string $default = null): ?string
+    {
+        return $this->testHeaders[$key] ?? $default;
+    }
+
+    public function cookie(string $key, ?string $default = null): ?string
+    {
+        return $this->testCookies[$key] ?? $default;
+    }
+
+    public function query(?string $key = null, mixed $default = null): mixed
+    {
+        if ($key === null) {
+            return $this->testQuery;
+        }
+        return $this->testQuery[$key] ?? $default;
+    }
+
+    public function setHeader(string $key, mixed $value): void
+    {
+        $this->testHeaders[$key] = $value;
+    }
+
+    public function setCookie(string $key, mixed $value): void
+    {
+        $this->testCookies[$key] = $value;
+    }
+
+    public function setQuery(string $key, mixed $value): void
+    {
+        $this->testQuery[$key] = $value;
+    }
+
+    public function clearAll(): void
+    {
+        $this->testHeaders = [];
+        $this->testCookies = [];
+        $this->testQuery = [];
+    }
+}
+
+/**
  * JwtGuard Test Suite
  *
  * Comprehensive tests for JWT authentication guard including:
@@ -34,7 +90,7 @@ class JwtGuardTest extends TestCase
 {
     private JwtGuard $guard;
     private MockObject|UserProvider $mockProvider;
-    private ?MockObject $mockRequest = null;
+    private TestRequest $testRequest;
     private JwtConfig $jwtConfig;
     private array $testUser;
     private string $validToken;
@@ -55,6 +111,9 @@ class JwtGuardTest extends TestCase
         // Create mock user provider
         $this->mockProvider = $this->createMock(UserProvider::class);
 
+        // Create test request (no PHPUnit mocking)
+        $this->testRequest = new TestRequest();
+
         // Test user data
         $this->testUser = [
             'id' => 1,
@@ -67,30 +126,13 @@ class JwtGuardTest extends TestCase
         $generator = new TokenGenerator($this->jwtConfig);
         $this->validToken = $generator->generateAuthToken(1);
 
-        // Create guard instance without request for now (avoid PHPUnit deprecation)
+        // Create guard instance
+        /** @var Request $testRequest */
+        $testRequest = $this->testRequest;
         $this->guard = new JwtGuard(
             $this->mockProvider,
             $this->jwtConfig,
-            null
-        );
-    }
-
-    private function getMockRequest(): MockObject
-    {
-        if ($this->mockRequest === null) {
-            $this->mockRequest = $this->createMock(Request::class);
-        }
-        return $this->mockRequest;
-    }
-
-    private function createGuardWithMockRequest(): JwtGuard
-    {
-        $mockRequest = $this->getMockRequest();
-        /** @var Request $mockRequest */
-        return new JwtGuard(
-            $this->mockProvider,
-            $this->jwtConfig,
-            $mockRequest
+            $testRequest
         );
     }
 
@@ -103,21 +145,14 @@ class JwtGuardTest extends TestCase
 
     public function testCheckReturnsFalseWhenNotAuthenticated(): void
     {
-        $guard = $this->createGuardWithMockRequest();
-        $mockRequest = $this->getMockRequest();
-        $mockRequest->expects($this->any())->method('header')->willReturn(null);
-        $mockRequest->expects($this->any())->method('cookie')->willReturn(null);
-        $mockRequest->expects($this->any())->method('query')->willReturn(null);
+        $this->testRequest->clearAll(); // Ensure all values are null
 
-        $this->assertFalse($guard->check());
+        $this->assertFalse($this->guard->check());
     }
 
     public function testCheckReturnsTrueWhenAuthenticated(): void
     {
-        $this->mockRequest->expects($this->any())
-            ->method('header')
-            ->with('authorization')
-            ->willReturn('Bearer ' . $this->validToken);
+        $this->testRequest->setHeader('authorization', 'Bearer ' . $this->validToken);
 
         $this->mockProvider->expects($this->any())
             ->method('retrieveById')
@@ -129,19 +164,14 @@ class JwtGuardTest extends TestCase
 
     public function testGuestReturnsTrueWhenNotAuthenticated(): void
     {
-        $this->mockRequest->expects($this->any())->method('header')->willReturn(null);
-        $this->mockRequest->expects($this->any())->method('cookie')->willReturn(null);
-        $this->mockRequest->expects($this->any())->method('query')->willReturn(null);
+        $this->testRequest->clearAll();
 
         $this->assertTrue($this->guard->guest());
     }
 
     public function testGuestReturnsFalseWhenAuthenticated(): void
     {
-        $this->mockRequest->expects($this->any())
-            ->method('header')
-            ->with('authorization')
-            ->willReturn('Bearer ' . $this->validToken);
+        $this->testRequest->setHeader('authorization', 'Bearer ' . $this->validToken);
 
         $this->mockProvider->expects($this->any())
             ->method('retrieveById')
@@ -153,19 +183,14 @@ class JwtGuardTest extends TestCase
 
     public function testUserReturnsNullWhenNotAuthenticated(): void
     {
-        $this->mockRequest->expects($this->any())->method('header')->willReturn(null);
-        $this->mockRequest->expects($this->any())->method('cookie')->willReturn(null);
-        $this->mockRequest->expects($this->any())->method('query')->willReturn(null);
+        $this->testRequest->clearAll();
 
         $this->assertNull($this->guard->user());
     }
 
     public function testUserReturnsUserWhenAuthenticated(): void
     {
-        $this->mockRequest->expects($this->any())
-            ->method('header')
-            ->with('authorization')
-            ->willReturn('Bearer ' . $this->validToken);
+        $this->testRequest->setHeader('authorization', 'Bearer ' . $this->validToken);
 
         $this->mockProvider->expects($this->any())
             ->method('retrieveById')
@@ -178,20 +203,14 @@ class JwtGuardTest extends TestCase
 
     public function testUserReturnsNullForInvalidToken(): void
     {
-        $this->mockRequest->expects($this->any())
-            ->method('header')
-            ->with('authorization')
-            ->willReturn('Bearer invalid-token');
+        $this->testRequest->setHeader('authorization', 'Bearer invalid-token');
 
         $this->assertNull($this->guard->user());
     }
 
     public function testUserReturnsNullWhenProviderReturnsNull(): void
     {
-        $this->mockRequest->expects($this->any())
-            ->method('header')
-            ->with('authorization')
-            ->willReturn('Bearer ' . $this->validToken);
+        $this->testRequest->setHeader('authorization', 'Bearer ' . $this->validToken);
 
         $this->mockProvider->expects($this->any())
             ->method('retrieveById')
@@ -203,10 +222,7 @@ class JwtGuardTest extends TestCase
 
     public function testIdReturnsUserIdWhenAuthenticated(): void
     {
-        $this->mockRequest->expects($this->any())
-            ->method('header')
-            ->with('authorization')
-            ->willReturn('Bearer ' . $this->validToken);
+        $this->testRequest->setHeader('authorization', 'Bearer ' . $this->validToken);
 
         $this->mockProvider->expects($this->any())
             ->method('retrieveById')
@@ -218,9 +234,7 @@ class JwtGuardTest extends TestCase
 
     public function testIdReturnsNullWhenNotAuthenticated(): void
     {
-        $this->mockRequest->expects($this->any())->method('header')->willReturn(null);
-        $this->mockRequest->expects($this->any())->method('cookie')->willReturn(null);
-        $this->mockRequest->expects($this->any())->method('query')->willReturn(null);
+        $this->testRequest->clearAll();
 
         $this->assertNull($this->guard->id());
     }
@@ -430,19 +444,14 @@ class JwtGuardTest extends TestCase
 
     public function testGetTokenReturnsNullWhenNotAuthenticated(): void
     {
-        $this->mockRequest->expects($this->any())->method('header')->willReturn(null);
-        $this->mockRequest->expects($this->any())->method('cookie')->willReturn(null);
-        $this->mockRequest->expects($this->any())->method('query')->willReturn(null);
+        $this->testRequest->clearAll();
 
         $this->assertNull($this->guard->getToken());
     }
 
     public function testGetTokenReturnsTokenWhenAuthenticated(): void
     {
-        $this->mockRequest->expects($this->any())
-            ->method('header')
-            ->with('authorization')
-            ->willReturn('Bearer ' . $this->validToken);
+        $this->testRequest->setHeader('authorization', 'Bearer ' . $this->validToken);
 
         $this->mockProvider->expects($this->any())
             ->method('retrieveById')
@@ -455,19 +464,14 @@ class JwtGuardTest extends TestCase
 
     public function testGetClaimsReturnsNullWhenNotAuthenticated(): void
     {
-        $this->mockRequest->expects($this->any())->method('header')->willReturn(null);
-        $this->mockRequest->expects($this->any())->method('cookie')->willReturn(null);
-        $this->mockRequest->expects($this->any())->method('query')->willReturn(null);
+        $this->testRequest->clearAll();
 
         $this->assertNull($this->guard->getClaims());
     }
 
     public function testGetClaimsReturnsClaimsWhenAuthenticated(): void
     {
-        $this->mockRequest->expects($this->any())
-            ->method('header')
-            ->with('authorization')
-            ->willReturn('Bearer ' . $this->validToken);
+        $this->testRequest->setHeader('authorization', 'Bearer ' . $this->validToken);
 
         $this->mockProvider->expects($this->any())
             ->method('retrieveById')
@@ -487,13 +491,12 @@ class JwtGuardTest extends TestCase
         $initialToken = $this->guard->getToken();
         $this->assertNotNull($initialToken);
 
-        // Create new request
-        $newRequest = $this->createMock(Request::class);
-        $newRequest->expects($this->any())->method('header')->willReturn(null);
-        $newRequest->expects($this->any())->method('cookie')->willReturn(null);
-        $newRequest->expects($this->any())->method('query')->willReturn(null);
+        // Create new test request
+        $newRequest = new TestRequest();
+        $newRequest->clearAll();
 
         // Set new request should reset state
+        /** @var Request $newRequest */
         $this->guard->setRequest($newRequest);
         $this->assertNull($this->guard->getToken());
     }
@@ -528,10 +531,7 @@ class JwtGuardTest extends TestCase
 
     public function testTokenExtractionFromAuthorizationHeader(): void
     {
-        $this->mockRequest->expects($this->any())
-            ->method('header')
-            ->with('authorization')
-            ->willReturn('Bearer ' . $this->validToken);
+        $this->testRequest->setHeader('authorization', 'Bearer ' . $this->validToken);
 
         $this->mockProvider->expects($this->any())
             ->method('retrieveById')
@@ -544,15 +544,8 @@ class JwtGuardTest extends TestCase
 
     public function testTokenExtractionFromCookie(): void
     {
-        $this->mockRequest->expects($this->any())
-            ->method('header')
-            ->with('authorization')
-            ->willReturn(null);
-
-        $this->mockRequest->expects($this->any())
-            ->method('cookie')
-            ->with('jwt_token')
-            ->willReturn($this->validToken);
+        $this->testRequest->clearAll();
+        $this->testRequest->setCookie('jwt_token', $this->validToken);
 
         $this->mockProvider->expects($this->any())
             ->method('retrieveById')
@@ -565,20 +558,8 @@ class JwtGuardTest extends TestCase
 
     public function testTokenExtractionFromQueryParameter(): void
     {
-        $this->mockRequest->expects($this->any())
-            ->method('header')
-            ->with('authorization')
-            ->willReturn(null);
-
-        $this->mockRequest->expects($this->any())
-            ->method('cookie')
-            ->with('jwt_token')
-            ->willReturn(null);
-
-        $this->mockRequest->expects($this->any())
-            ->method('query')
-            ->with('token')
-            ->willReturn($this->validToken);
+        $this->testRequest->clearAll();
+        $this->testRequest->setQuery('token', $this->validToken);
 
         $this->mockProvider->expects($this->any())
             ->method('retrieveById')
@@ -594,14 +575,8 @@ class JwtGuardTest extends TestCase
         $headerToken = $this->validToken;
         $cookieToken = 'cookie-token';
 
-        $this->mockRequest->expects($this->any())
-            ->method('header')
-            ->with('authorization')
-            ->willReturn('Bearer ' . $headerToken);
-
-        // Cookie should not be called since header is found first
-        $this->mockRequest->expects($this->never())
-            ->method('cookie');
+        $this->testRequest->setHeader('authorization', 'Bearer ' . $headerToken);
+        $this->testRequest->setCookie('jwt_token', $cookieToken);
 
         $this->mockProvider->expects($this->any())
             ->method('retrieveById')
@@ -614,29 +589,14 @@ class JwtGuardTest extends TestCase
 
     public function testInvalidAuthorizationHeaderFormat(): void
     {
-        $this->mockRequest->expects($this->any())
-            ->method('header')
-            ->with('authorization')
-            ->willReturn('Basic dXNlcjpwYXNz'); // Not Bearer
-
-        $this->mockRequest->expects($this->any())
-            ->method('cookie')
-            ->with('jwt_token')
-            ->willReturn(null);
-
-        $this->mockRequest->expects($this->any())
-            ->method('query')
-            ->with('token')
-            ->willReturn(null);
+        $this->testRequest->setHeader('authorization', 'Basic dXNlcjpwYXNz'); // Not Bearer
 
         $this->assertNull($this->guard->user());
     }
 
     public function testUserResolutionOnlyAttemptedOnce(): void
     {
-        $this->mockRequest->expects($this->any())->method('header')->willReturn(null);
-        $this->mockRequest->expects($this->any())->method('cookie')->willReturn(null);
-        $this->mockRequest->expects($this->any())->method('query')->willReturn(null);
+        $this->testRequest->clearAll();
 
         // Call user() multiple times
         $this->assertNull($this->guard->user());
@@ -644,7 +604,6 @@ class JwtGuardTest extends TestCase
         $this->assertNull($this->guard->user());
 
         // This test verifies that user resolution is only attempted once
-        // The expectation is already set up above with the any() calls
         $this->assertTrue(true); // Just verify the calls above completed
     }
 

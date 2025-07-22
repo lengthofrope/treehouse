@@ -37,18 +37,25 @@ class AuthManagerJwtTest extends TestCase
     private MockObject|Session $mockSession;
     private MockObject|Cookie $mockCookie;
     private MockObject|Hash $mockHash;
-    private MockObject|Request $mockRequest;
+    private Request $mockRequest;
     private array $config;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Create mocks
+        // Create mocks (use anonymous class for Request to avoid PHPUnit deprecation)
         $this->mockSession = $this->createMock(Session::class);
         $this->mockCookie = $this->createMock(Cookie::class);
         $this->mockHash = $this->createMock(Hash::class);
-        $this->mockRequest = $this->createMock(Request::class);
+        
+        // Create test request to avoid PHPUnit deprecation with Request::method()
+        $this->mockRequest = new class extends Request {
+            public function __construct() {}
+            public function header(string $key, ?string $default = null): ?string { return null; }
+            public function cookie(string $key, ?string $default = null): ?string { return null; }
+            public function query(?string $key = null, mixed $default = null): mixed { return null; }
+        };
 
         // Configuration with JWT setup
         $this->config = [
@@ -124,11 +131,6 @@ class AuthManagerJwtTest extends TestCase
 
     public function testJwtGuardUsesCurrentRequest(): void
     {
-        $this->mockRequest->expects($this->any())
-            ->method('header')
-            ->with('authorization')
-            ->willReturn('Bearer test-token');
-
         $guard = $this->authManager->guard('api');
         
         // Verify guard received the request (indirectly by checking behavior)
@@ -141,9 +143,15 @@ class AuthManagerJwtTest extends TestCase
         $guard = $this->authManager->guard('api');
         $this->assertInstanceOf(JwtGuard::class, $guard);
 
-        // Create new request
-        $newRequest = $this->createMock(Request::class);
-        $newRequest->expects($this->any())->method('header')->willReturn('Bearer new-token');
+        // Create new test request
+        $newRequest = new class extends Request {
+            public function __construct() {}
+            public function header(string $key, ?string $default = null): ?string {
+                return $key === 'authorization' ? 'Bearer new-token' : null;
+            }
+            public function cookie(string $key, ?string $default = null): ?string { return null; }
+            public function query(?string $key = null, mixed $default = null): mixed { return null; }
+        };
 
         // Set new request
         $this->authManager->setRequest($newRequest);
@@ -292,10 +300,6 @@ class AuthManagerJwtTest extends TestCase
 
     public function testAuthManagerDelegatesMethodsToJwtGuard(): void
     {
-        $this->mockRequest->expects($this->any())->method('header')->willReturn(null);
-        $this->mockRequest->expects($this->any())->method('cookie')->willReturn(null);
-        $this->mockRequest->expects($this->any())->method('query')->willReturn(null);
-
         // Test that methods are properly delegated to JWT guard
         $this->assertFalse($this->authManager->check('api'));
         $this->assertTrue($this->authManager->guest('api'));
@@ -388,9 +392,15 @@ class AuthManagerJwtTest extends TestCase
         // Create guard first
         $guard = $this->authManager->guard('api');
         
-        // Create new request
-        $newRequest = $this->createMock(Request::class);
-        $newRequest->expects($this->any())->method('header')->willReturn('Bearer test-token');
+        // Create new test request
+        $newRequest = new class extends Request {
+            public function __construct() {}
+            public function header(string $key, ?string $default = null): ?string {
+                return $key === 'authorization' ? 'Bearer test-token' : null;
+            }
+            public function cookie(string $key, ?string $default = null): ?string { return null; }
+            public function query(?string $key = null, mixed $default = null): mixed { return null; }
+        };
         
         // Set request - should update existing guards
         $this->authManager->setRequest($newRequest);
