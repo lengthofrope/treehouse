@@ -31,20 +31,20 @@ This directory contains the core JWT authentication components for the TreeHouse
 
 ```php
 // Generate a token pair
-$tokens = jwt_create_pair($userId, [
+$tokens = jwtCreatePair($userId, [
     'email' => $user->email,
     'name' => $user->name,
     'role' => $user->role,
 ]);
 
 // Validate a token
-if (jwt_valid($tokens['access_token'])) {
-    $userId = jwt_user_id($tokens['access_token']);
-    $claims = jwt_claims($tokens['access_token']);
+if (jwtValid($tokens['access_token'])) {
+    $userId = jwtUserId($tokens['access_token']);
+    $claims = jwtClaims($tokens['access_token']);
 }
 
 // Refresh tokens
-$newTokens = jwt_refresh($tokens['refresh_token']);
+$newTokens = jwtRefresh($tokens['refresh_token']);
 ```
 
 ### Advanced Token Management
@@ -74,25 +74,25 @@ $info = $introspector->getTokenInfo($token);
 
 ```php
 // Quick validation
-if (jwt_valid($token)) {
+if (jwtValid($token)) {
     echo "Token is valid";
 }
 
 // Extract user information
-$userId = jwt_user_id($token);
-$expiresIn = jwt_expires_in($token);
-$isExpired = jwt_expired($token);
+$userId = jwtUserId($token);
+$expiresIn = jwtExpiresIn($token);
+$isExpired = jwtExpired($token);
 
 // Get token information
-$info = jwt_info($token);
+$info = jwtInfo($token);
 echo "User: {$info['user_id']}, Status: {$info['status']}";
 
 // Security assessment
-$security = jwt_security_check($token);
+$security = jwtSecurityCheck($token);
 echo "Security Score: {$security['score']}/100";
 
 // Token comparison
-$comparison = jwt_compare($token1, $token2);
+$comparison = jwtCompare($token1, $token2);
 if ($comparison['same_user']) {
     echo "Both tokens belong to the same user";
 }

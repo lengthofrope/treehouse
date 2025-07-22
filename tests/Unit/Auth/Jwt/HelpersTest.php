@@ -63,7 +63,7 @@ class HelpersTest extends TestCase
 
     public function testJwtDecodeValid(): void
     {
-        $result = jwt_decode($this->validToken, $this->jwtConfig->toArray());
+        $result = jwtDecode($this->validToken, $this->jwtConfig->toArray());
 
         $this->assertTrue($result['valid']);
         $this->assertArrayHasKey('header', $result);
@@ -75,7 +75,7 @@ class HelpersTest extends TestCase
 
     public function testJwtDecodeInvalid(): void
     {
-        $result = jwt_decode('invalid.token.here');
+        $result = jwtDecode('invalid.token.here');
 
         $this->assertFalse($result['valid']);
         $this->assertArrayHasKey('error', $result);
@@ -83,7 +83,7 @@ class HelpersTest extends TestCase
 
     public function testJwtClaimsValid(): void
     {
-        $claims = jwt_claims($this->validToken, $this->jwtConfig->toArray());
+        $claims = jwtClaims($this->validToken, $this->jwtConfig->toArray());
 
         $this->assertArrayHasKey('standard', $claims);
         $this->assertArrayHasKey('custom', $claims);
@@ -93,7 +93,7 @@ class HelpersTest extends TestCase
 
     public function testJwtClaimsInvalid(): void
     {
-        $claims = jwt_claims('invalid.token');
+        $claims = jwtClaims('invalid.token');
 
         $this->assertArrayHasKey('error', $claims);
         $this->assertEquals('Failed to extract claims', $claims['error']);
@@ -101,18 +101,18 @@ class HelpersTest extends TestCase
 
     public function testJwtValidTrue(): void
     {
-        $this->assertTrue(jwt_valid($this->validToken, $this->jwtConfig->toArray()));
+        $this->assertTrue(jwtValid($this->validToken, $this->jwtConfig->toArray()));
     }
 
     public function testJwtValidFalse(): void
     {
-        $this->assertFalse(jwt_valid('invalid.token'));
-        $this->assertFalse(jwt_valid($this->expiredToken, $this->jwtConfig->toArray()));
+        $this->assertFalse(jwtValid('invalid.token'));
+        $this->assertFalse(jwtValid($this->expiredToken, $this->jwtConfig->toArray()));
     }
 
     public function testJwtValidateValid(): void
     {
-        $result = jwt_validate($this->validToken, $this->jwtConfig->toArray());
+        $result = jwtValidate($this->validToken, $this->jwtConfig->toArray());
 
         $this->assertTrue($result['valid']);
         $this->assertArrayHasKey('claims', $result);
@@ -124,7 +124,7 @@ class HelpersTest extends TestCase
 
     public function testJwtValidateInvalid(): void
     {
-        $result = jwt_validate('invalid.token');
+        $result = jwtValidate('invalid.token');
 
         $this->assertFalse($result['valid']);
         $this->assertArrayHasKey('error', $result);
@@ -132,12 +132,12 @@ class HelpersTest extends TestCase
 
     public function testJwtGenerate(): void
     {
-        $token = jwt_generate(789, ['role' => 'user'], $this->jwtConfig->toArray());
+        $token = jwtGenerate(789, ['role' => 'user'], $this->jwtConfig->toArray());
 
         $this->assertIsString($token);
-        $this->assertTrue(jwt_valid($token, $this->jwtConfig->toArray()));
+        $this->assertTrue(jwtValid($token, $this->jwtConfig->toArray()));
         
-        $claims = jwt_claims($token, $this->jwtConfig->toArray());
+        $claims = jwtClaims($token, $this->jwtConfig->toArray());
         $this->assertEquals('789', $claims['standard']['sub']);
     }
 
@@ -146,7 +146,7 @@ class HelpersTest extends TestCase
         // First create a refresh token
         $refreshToken = $this->tokenGenerator->generateRefreshToken('555', 'refresh-id-123');
         
-        $result = jwt_refresh($refreshToken, ['updated' => true], $this->jwtConfig->toArray());
+        $result = jwtRefresh($refreshToken, ['updated' => true], $this->jwtConfig->toArray());
 
         $this->assertArrayHasKey('access_token', $result);
         $this->assertArrayHasKey('token_type', $result);
@@ -156,7 +156,7 @@ class HelpersTest extends TestCase
 
     public function testJwtRefreshInvalid(): void
     {
-        $result = jwt_refresh('invalid.refresh.token');
+        $result = jwtRefresh('invalid.refresh.token');
 
         $this->assertArrayHasKey('success', $result);
         $this->assertFalse($result['success']);
@@ -165,7 +165,7 @@ class HelpersTest extends TestCase
 
     public function testJwtInfoValid(): void
     {
-        $info = jwt_info($this->validToken, $this->jwtConfig->toArray());
+        $info = jwtInfo($this->validToken, $this->jwtConfig->toArray());
 
         $this->assertArrayHasKey('summary', $info);
         $this->assertArrayHasKey('user_id', $info);
@@ -177,7 +177,7 @@ class HelpersTest extends TestCase
 
     public function testJwtInfoInvalid(): void
     {
-        $info = jwt_info('invalid.token');
+        $info = jwtInfo('invalid.token');
 
         $this->assertEquals('Invalid token', $info['summary']);
         $this->assertArrayHasKey('error', $info);
@@ -185,23 +185,23 @@ class HelpersTest extends TestCase
 
     public function testJwtExpiredFalse(): void
     {
-        $this->assertFalse(jwt_expired($this->validToken, $this->jwtConfig->toArray()));
+        $this->assertFalse(jwtExpired($this->validToken, $this->jwtConfig->toArray()));
     }
 
     public function testJwtExpiredTrue(): void
     {
         // Test with actual expired token - should return true
-        $expiredResult = jwt_expired($this->expiredToken, $this->jwtConfig->toArray());
+        $expiredResult = jwtExpired($this->expiredToken, $this->jwtConfig->toArray());
         $this->assertIsBool($expiredResult);
         
         // Test with invalid token - behavior may vary but should return bool
-        $invalidResult = jwt_expired('invalid.token');
+        $invalidResult = jwtExpired('invalid.token');
         $this->assertIsBool($invalidResult);
     }
 
     public function testJwtExpiresIn(): void
     {
-        $expiresIn = jwt_expires_in($this->validToken, $this->jwtConfig->toArray());
+        $expiresIn = jwtExpiresIn($this->validToken, $this->jwtConfig->toArray());
 
         $this->assertIsInt($expiresIn);
         $this->assertGreaterThan(0, $expiresIn);
@@ -210,24 +210,24 @@ class HelpersTest extends TestCase
 
     public function testJwtExpiresInExpired(): void
     {
-        $this->assertNull(jwt_expires_in($this->expiredToken, $this->jwtConfig->toArray()));
-        $this->assertNull(jwt_expires_in('invalid.token'));
+        $this->assertNull(jwtExpiresIn($this->expiredToken, $this->jwtConfig->toArray()));
+        $this->assertNull(jwtExpiresIn('invalid.token'));
     }
 
     public function testJwtUserId(): void
     {
-        $userId = jwt_user_id($this->validToken, $this->jwtConfig->toArray());
+        $userId = jwtUserId($this->validToken, $this->jwtConfig->toArray());
         $this->assertEquals('123', $userId);
     }
 
     public function testJwtUserIdInvalid(): void
     {
-        $this->assertNull(jwt_user_id('invalid.token'));
+        $this->assertNull(jwtUserId('invalid.token'));
     }
 
     public function testJwtCreatePair(): void
     {
-        $pair = jwt_create_pair(999, ['name' => 'Test User'], $this->jwtConfig->toArray());
+        $pair = jwtCreatePair(999, ['name' => 'Test User'], $this->jwtConfig->toArray());
 
         $this->assertArrayHasKey('access_token', $pair);
         $this->assertArrayHasKey('refresh_token', $pair);
@@ -237,16 +237,16 @@ class HelpersTest extends TestCase
         $this->assertEquals('Bearer', $pair['token_type']);
         
         // Verify tokens are valid
-        $this->assertTrue(jwt_valid($pair['access_token'], $this->jwtConfig->toArray()));
-        $this->assertEquals('999', jwt_user_id($pair['access_token'], $this->jwtConfig->toArray()));
+        $this->assertTrue(jwtValid($pair['access_token'], $this->jwtConfig->toArray()));
+        $this->assertEquals('999', jwtUserId($pair['access_token'], $this->jwtConfig->toArray()));
     }
 
     public function testJwtCompare(): void
     {
-        $token1 = jwt_generate(111, ['role' => 'admin'], $this->jwtConfig->toArray());
-        $token2 = jwt_generate(111, ['role' => 'user'], $this->jwtConfig->toArray());
+        $token1 = jwtGenerate(111, ['role' => 'admin'], $this->jwtConfig->toArray());
+        $token2 = jwtGenerate(111, ['role' => 'user'], $this->jwtConfig->toArray());
 
-        $comparison = jwt_compare($token1, $token2, $this->jwtConfig->toArray());
+        $comparison = jwtCompare($token1, $token2, $this->jwtConfig->toArray());
 
         $this->assertTrue($comparison['comparable']);
         $this->assertTrue($comparison['same_user']);
@@ -256,7 +256,7 @@ class HelpersTest extends TestCase
 
     public function testJwtCompareInvalid(): void
     {
-        $comparison = jwt_compare($this->validToken, 'invalid.token');
+        $comparison = jwtCompare($this->validToken, 'invalid.token');
 
         $this->assertFalse($comparison['comparable']);
         // Error might be in the comparison or just not comparable
@@ -265,7 +265,7 @@ class HelpersTest extends TestCase
 
     public function testJwtSecurityCheck(): void
     {
-        $security = jwt_security_check($this->validToken, $this->jwtConfig->toArray());
+        $security = jwtSecurityCheck($this->validToken, $this->jwtConfig->toArray());
 
         $this->assertArrayHasKey('score', $security);
         $this->assertArrayHasKey('level', $security);
@@ -279,7 +279,7 @@ class HelpersTest extends TestCase
 
     public function testJwtSecurityCheckInvalid(): void
     {
-        $security = jwt_security_check('invalid.token');
+        $security = jwtSecurityCheck('invalid.token');
 
         $this->assertIsArray($security);
         
@@ -290,8 +290,8 @@ class HelpersTest extends TestCase
         } else {
             // Should at least have an error or some indication of failure
             $this->assertTrue(
-                isset($security['error']) ||
-                isset($security['warnings']) ||
+                isset($security['error']) || 
+                isset($security['warnings']) || 
                 isset($security['recommendations'])
             );
         }
@@ -312,7 +312,7 @@ class HelpersTest extends TestCase
             'ttl' => 1800,
         ];
 
-        $config = jwt_config($configArray);
+        $config = jwtConfig($configArray);
 
         $this->assertInstanceOf(JwtConfig::class, $config);
     }
@@ -320,17 +320,17 @@ class HelpersTest extends TestCase
     public function testHelpersWithDefaultConfig(): void
     {
         // Test that helpers work with default config when none provided
-        $token = jwt_generate(777);
+        $token = jwtGenerate(777);
         
         $this->assertIsString($token);
-        $this->assertTrue(jwt_valid($token));
-        $this->assertEquals('777', jwt_user_id($token));
+        $this->assertTrue(jwtValid($token));
+        $this->assertEquals('777', jwtUserId($token));
     }
 
     public function testJwtDecodeWithDefaultConfig(): void
     {
-        $token = jwt_generate(888);
-        $result = jwt_decode($token);
+        $token = jwtGenerate(888);
+        $result = jwtDecode($token);
 
         $this->assertTrue($result['valid']);
         $this->assertArrayHasKey('claims', $result);
@@ -338,7 +338,7 @@ class HelpersTest extends TestCase
 
     public function testJwtValidateWithExpiredToken(): void
     {
-        $result = jwt_validate($this->expiredToken, $this->jwtConfig->toArray());
+        $result = jwtValidate($this->expiredToken, $this->jwtConfig->toArray());
 
         $this->assertFalse($result['valid']);
         $this->assertArrayHasKey('error', $result);
@@ -347,12 +347,12 @@ class HelpersTest extends TestCase
 
     public function testJwtClaimsFromGeneratedToken(): void
     {
-        $token = jwt_generate(333, [
+        $token = jwtGenerate(333, [
             'email' => 'test@example.com',
             'roles' => ['admin', 'user'],
         ], $this->jwtConfig->toArray());
 
-        $claims = jwt_claims($token, $this->jwtConfig->toArray());
+        $claims = jwtClaims($token, $this->jwtConfig->toArray());
 
         $this->assertEquals('333', $claims['standard']['sub']);
         $this->assertArrayHasKey('user', $claims['custom']);
@@ -360,8 +360,8 @@ class HelpersTest extends TestCase
 
     public function testJwtInfoFromGeneratedToken(): void
     {
-        $token = jwt_generate(444, ['name' => 'Test User'], $this->jwtConfig->toArray());
-        $info = jwt_info($token, $this->jwtConfig->toArray());
+        $token = jwtGenerate(444, ['name' => 'Test User'], $this->jwtConfig->toArray());
+        $info = jwtInfo($token, $this->jwtConfig->toArray());
 
         $this->assertEquals('Valid JWT token', $info['summary']);
         $this->assertEquals('444', $info['user_id']);
@@ -372,47 +372,47 @@ class HelpersTest extends TestCase
     public function testComplexWorkflow(): void
     {
         // Generate initial token pair
-        $pair = jwt_create_pair(666, ['email' => 'user@example.com'], $this->jwtConfig->toArray());
+        $pair = jwtCreatePair(666, ['email' => 'user@example.com'], $this->jwtConfig->toArray());
         
         // Validate access token
-        $this->assertTrue(jwt_valid($pair['access_token'], $this->jwtConfig->toArray()));
+        $this->assertTrue(jwtValid($pair['access_token'], $this->jwtConfig->toArray()));
         
         // Extract user info
-        $this->assertEquals('666', jwt_user_id($pair['access_token'], $this->jwtConfig->toArray()));
+        $this->assertEquals('666', jwtUserId($pair['access_token'], $this->jwtConfig->toArray()));
         
         // Check security
-        $security = jwt_security_check($pair['access_token'], $this->jwtConfig->toArray());
+        $security = jwtSecurityCheck($pair['access_token'], $this->jwtConfig->toArray());
         $this->assertGreaterThan(0, $security['score']);
         
         // Get token info
-        $info = jwt_info($pair['access_token'], $this->jwtConfig->toArray());
+        $info = jwtInfo($pair['access_token'], $this->jwtConfig->toArray());
         $this->assertEquals('Valid JWT token', $info['summary']);
         
         // Refresh the token
-        $refreshResult = jwt_refresh($pair['refresh_token'], ['updated' => true], $this->jwtConfig->toArray());
+        $refreshResult = jwtRefresh($pair['refresh_token'], ['updated' => true], $this->jwtConfig->toArray());
         $this->assertArrayHasKey('access_token', $refreshResult);
         
         // Validate new token
-        $this->assertTrue(jwt_valid($refreshResult['access_token'], $this->jwtConfig->toArray()));
+        $this->assertTrue(jwtValid($refreshResult['access_token'], $this->jwtConfig->toArray()));
     }
 
     public function testErrorHandling(): void
     {
         // Test various error conditions
-        $this->assertFalse(jwt_valid(''));
-        $this->assertFalse(jwt_valid('not.a.token'));
-        $this->assertFalse(jwt_valid('has.only.two'));
+        $this->assertFalse(jwtValid(''));
+        $this->assertFalse(jwtValid('not.a.token'));
+        $this->assertFalse(jwtValid('has.only.two'));
         
-        $this->assertNull(jwt_user_id(''));
-        $this->assertNull(jwt_expires_in(''));
-        // jwt_expired should return true for invalid tokens, but let's be flexible
-        $expiredResult = jwt_expired('');
+        $this->assertNull(jwtUserId(''));
+        $this->assertNull(jwtExpiresIn(''));
+        // jwtExpired should return true for invalid tokens, but let's be flexible
+        $expiredResult = jwtExpired('');
         $this->assertIsBool($expiredResult);
         
-        $claims = jwt_claims('invalid');
+        $claims = jwtClaims('invalid');
         $this->assertArrayHasKey('error', $claims);
         
-        $info = jwt_info('invalid');
+        $info = jwtInfo('invalid');
         $this->assertEquals('Invalid token', $info['summary']);
     }
 }

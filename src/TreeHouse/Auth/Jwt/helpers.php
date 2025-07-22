@@ -9,7 +9,7 @@ use LengthOfRope\TreeHouse\Auth\Jwt\TokenIntrospector;
 use LengthOfRope\TreeHouse\Auth\Jwt\RefreshTokenManager;
 use LengthOfRope\TreeHouse\Errors\Exceptions\InvalidArgumentException;
 
-if (!function_exists('jwt_decode')) {
+if (!function_exists('jwtDecode')) {
     /**
      * Decode a JWT token without validation (for inspection)
      *
@@ -17,7 +17,7 @@ if (!function_exists('jwt_decode')) {
      * @param array|null $config Optional JWT configuration
      * @return array Decoded token data or error information
      */
-    function jwt_decode(string $token, ?array $config = null): array
+    function jwtDecode(string $token, ?array $config = null): array
     {
         try {
             $jwtConfig = $config ? new JwtConfig($config) : getDefaultJwtConfig();
@@ -35,7 +35,7 @@ if (!function_exists('jwt_decode')) {
     }
 }
 
-if (!function_exists('jwt_claims')) {
+if (!function_exists('jwtClaims')) {
     /**
      * Extract claims from a JWT token safely
      *
@@ -43,7 +43,7 @@ if (!function_exists('jwt_claims')) {
      * @param array|null $config Optional JWT configuration
      * @return array Extracted claims or error information
      */
-    function jwt_claims(string $token, ?array $config = null): array
+    function jwtClaims(string $token, ?array $config = null): array
     {
         try {
             $jwtConfig = $config ? new JwtConfig($config) : getDefaultJwtConfig();
@@ -60,7 +60,7 @@ if (!function_exists('jwt_claims')) {
     }
 }
 
-if (!function_exists('jwt_valid')) {
+if (!function_exists('jwtValid')) {
     /**
      * Check if a JWT token is valid
      *
@@ -68,7 +68,7 @@ if (!function_exists('jwt_valid')) {
      * @param array|null $config Optional JWT configuration
      * @return bool True if valid, false otherwise
      */
-    function jwt_valid(string $token, ?array $config = null): bool
+    function jwtValid(string $token, ?array $config = null): bool
     {
         try {
             $jwtConfig = $config ? new JwtConfig($config) : getDefaultJwtConfig();
@@ -83,7 +83,7 @@ if (!function_exists('jwt_valid')) {
     }
 }
 
-if (!function_exists('jwt_validate')) {
+if (!function_exists('jwtValidate')) {
     /**
      * Validate a JWT token and return detailed results
      *
@@ -91,7 +91,7 @@ if (!function_exists('jwt_validate')) {
      * @param array|null $config Optional JWT configuration
      * @return array Validation results with detailed error information
      */
-    function jwt_validate(string $token, ?array $config = null): array
+    function jwtValidate(string $token, ?array $config = null): array
     {
         try {
             $jwtConfig = $config ? new JwtConfig($config) : getDefaultJwtConfig();
@@ -123,7 +123,7 @@ if (!function_exists('jwt_validate')) {
     }
 }
 
-if (!function_exists('jwt_generate')) {
+if (!function_exists('jwtGenerate')) {
     /**
      * Generate a JWT token for a user
      *
@@ -132,7 +132,7 @@ if (!function_exists('jwt_generate')) {
      * @param array|null $config Optional JWT configuration
      * @return string Generated JWT token
      */
-    function jwt_generate(string|int $userId, array $claims = [], ?array $config = null): string
+    function jwtGenerate(string|int $userId, array $claims = [], ?array $config = null): string
     {
         $jwtConfig = $config ? new JwtConfig($config) : getDefaultJwtConfig();
         $generator = new TokenGenerator($jwtConfig);
@@ -141,7 +141,7 @@ if (!function_exists('jwt_generate')) {
     }
 }
 
-if (!function_exists('jwt_refresh')) {
+if (!function_exists('jwtRefresh')) {
     /**
      * Refresh an access token using a refresh token
      *
@@ -150,7 +150,7 @@ if (!function_exists('jwt_refresh')) {
      * @param array|null $config Optional JWT configuration
      * @return array New token pair or error information
      */
-    function jwt_refresh(string $refreshToken, array $additionalClaims = [], ?array $config = null): array
+    function jwtRefresh(string $refreshToken, array $additionalClaims = [], ?array $config = null): array
     {
         try {
             $jwtConfig = $config ? new JwtConfig($config) : getDefaultJwtConfig();
@@ -168,7 +168,7 @@ if (!function_exists('jwt_refresh')) {
     }
 }
 
-if (!function_exists('jwt_info')) {
+if (!function_exists('jwtInfo')) {
     /**
      * Get human-readable information about a JWT token
      *
@@ -176,7 +176,7 @@ if (!function_exists('jwt_info')) {
      * @param array|null $config Optional JWT configuration
      * @return array Human-readable token information
      */
-    function jwt_info(string $token, ?array $config = null): array
+    function jwtInfo(string $token, ?array $config = null): array
     {
         try {
             $jwtConfig = $config ? new JwtConfig($config) : getDefaultJwtConfig();
@@ -193,7 +193,7 @@ if (!function_exists('jwt_info')) {
     }
 }
 
-if (!function_exists('jwt_expired')) {
+if (!function_exists('jwtExpired')) {
     /**
      * Check if a JWT token is expired
      *
@@ -201,7 +201,7 @@ if (!function_exists('jwt_expired')) {
      * @param array|null $config Optional JWT configuration
      * @return bool True if expired, false if active or invalid
      */
-    function jwt_expired(string $token, ?array $config = null): bool
+    function jwtExpired(string $token, ?array $config = null): bool
     {
         try {
             $jwtConfig = $config ? new JwtConfig($config) : getDefaultJwtConfig();
@@ -216,7 +216,7 @@ if (!function_exists('jwt_expired')) {
     }
 }
 
-if (!function_exists('jwt_expires_in')) {
+if (!function_exists('jwtExpiresIn')) {
     /**
      * Get the number of seconds until a JWT token expires
      *
@@ -224,7 +224,7 @@ if (!function_exists('jwt_expires_in')) {
      * @param array|null $config Optional JWT configuration
      * @return int|null Seconds until expiration, null if invalid/expired
      */
-    function jwt_expires_in(string $token, ?array $config = null): ?int
+    function jwtExpiresIn(string $token, ?array $config = null): ?int
     {
         try {
             $jwtConfig = $config ? new JwtConfig($config) : getDefaultJwtConfig();
@@ -244,7 +244,7 @@ if (!function_exists('jwt_expires_in')) {
     }
 }
 
-if (!function_exists('jwt_user_id')) {
+if (!function_exists('jwtUserId')) {
     /**
      * Extract user ID from a JWT token
      *
@@ -252,10 +252,10 @@ if (!function_exists('jwt_user_id')) {
      * @param array|null $config Optional JWT configuration
      * @return string|null User ID or null if not found
      */
-    function jwt_user_id(string $token, ?array $config = null): ?string
+    function jwtUserId(string $token, ?array $config = null): ?string
     {
         try {
-            $claims = jwt_claims($token, $config);
+            $claims = jwtClaims($token, $config);
             
             if (isset($claims['error'])) {
                 return null;
@@ -269,7 +269,7 @@ if (!function_exists('jwt_user_id')) {
     }
 }
 
-if (!function_exists('jwt_create_pair')) {
+if (!function_exists('jwtCreatePair')) {
     /**
      * Create an access and refresh token pair for a user
      *
@@ -278,7 +278,7 @@ if (!function_exists('jwt_create_pair')) {
      * @param array|null $config Optional JWT configuration
      * @return array Token pair with access and refresh tokens
      */
-    function jwt_create_pair(string|int $userId, array $userClaims = [], ?array $config = null): array
+    function jwtCreatePair(string|int $userId, array $userClaims = [], ?array $config = null): array
     {
         try {
             $jwtConfig = $config ? new JwtConfig($config) : getDefaultJwtConfig();
@@ -296,7 +296,7 @@ if (!function_exists('jwt_create_pair')) {
     }
 }
 
-if (!function_exists('jwt_compare')) {
+if (!function_exists('jwtCompare')) {
     /**
      * Compare two JWT tokens for similarity
      *
@@ -305,7 +305,7 @@ if (!function_exists('jwt_compare')) {
      * @param array|null $config Optional JWT configuration
      * @return array Comparison results
      */
-    function jwt_compare(string $token1, string $token2, ?array $config = null): array
+    function jwtCompare(string $token1, string $token2, ?array $config = null): array
     {
         try {
             $jwtConfig = $config ? new JwtConfig($config) : getDefaultJwtConfig();
@@ -322,7 +322,7 @@ if (!function_exists('jwt_compare')) {
     }
 }
 
-if (!function_exists('jwt_security_check')) {
+if (!function_exists('jwtSecurityCheck')) {
     /**
      * Assess the security characteristics of a JWT token
      *
@@ -330,7 +330,7 @@ if (!function_exists('jwt_security_check')) {
      * @param array|null $config Optional JWT configuration
      * @return array Security assessment
      */
-    function jwt_security_check(string $token, ?array $config = null): array
+    function jwtSecurityCheck(string $token, ?array $config = null): array
     {
         try {
             $jwtConfig = $config ? new JwtConfig($config) : getDefaultJwtConfig();
@@ -361,17 +361,28 @@ if (!function_exists('getDefaultJwtConfig')) {
         static $defaultConfig = null;
         
         if ($defaultConfig === null) {
-            // Try to get config from auth manager if available
+            // Try to get config from application container first
             try {
-                if (function_exists('auth')) {
-                    $authManager = auth();
+                if (function_exists('app')) {
+                    $authManager = app('auth');
                     if ($authManager && method_exists($authManager, 'getJwtConfig')) {
                         $defaultConfig = $authManager->getJwtConfig();
                         return $defaultConfig;
                     }
                 }
             } catch (\Exception $e) {
-                // Fall through to environment config if auth manager is not available
+                // Try fallback auth helper
+                try {
+                    if (function_exists('auth')) {
+                        $authManager = auth();
+                        if ($authManager && method_exists($authManager, 'getJwtConfig')) {
+                            $defaultConfig = $authManager->getJwtConfig();
+                            return $defaultConfig;
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Fall through to environment config
+                }
             }
             
             // Fallback to environment variables
@@ -391,14 +402,14 @@ if (!function_exists('getDefaultJwtConfig')) {
     }
 }
 
-if (!function_exists('jwt_config')) {
+if (!function_exists('jwtConfig')) {
     /**
      * Create a JWT configuration from array
      *
      * @param array $config Configuration array
      * @return JwtConfig JWT configuration instance
      */
-    function jwt_config(array $config): JwtConfig
+    function jwtConfig(array $config): JwtConfig
     {
         return new JwtConfig($config);
     }
