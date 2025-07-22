@@ -299,7 +299,9 @@ class EnhancedPermissionMiddlewareTest extends TestCase
                 ->method('check')
                 ->willReturn(false);
 
-        $this->authManager->expects($this->once())
+        // The guard method will be called 2 times:
+        // 1 time in getCurrentUser() + 1 time in hasJwtGuard()
+        $this->authManager->expects($this->exactly(2))
                          ->method('guard')
                          ->with('api')
                          ->willReturn($jwtGuard);
@@ -406,13 +408,17 @@ class EnhancedPermissionMiddlewareTest extends TestCase
             public function __construct(private array $permissions) {}
             
             public function getAuthIdentifier(): mixed { return 1; }
-            public function getAuthPassword(): string { return 'password'; }
             public function hasRole(string $role): bool { return in_array($role, ['user', 'admin']); }
-            public function hasPermission(string $permission): bool { 
-                return in_array($permission, $this->permissions); 
+            public function hasAnyRole(array $roles): bool { return !empty(array_intersect($roles, ['user', 'admin'])); }
+            public function can(string $permission): bool {
+                return in_array($permission, $this->permissions);
             }
-            public function getRoles(): array { return ['user']; }
-            public function getPermissions(): array { return $this->permissions; }
+            public function cannot(string $permission): bool {
+                return !$this->can($permission);
+            }
+            public function assignRole(string $role): void { }
+            public function removeRole(string $role): void { }
+            public function getRole(): string|array { return 'user'; }
         };
     }
 

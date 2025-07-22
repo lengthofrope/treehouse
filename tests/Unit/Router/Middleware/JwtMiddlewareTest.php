@@ -35,7 +35,7 @@ class JwtMiddlewareTest extends TestCase
         // Set up global app instance
         $GLOBALS['app'] = $this->createMockApp([
             'auth' => $this->authManager
-        ]);
+        ], []);
 
         $this->request = new Request([], [], [], [], [
             'REQUEST_METHOD' => 'GET',
@@ -229,12 +229,15 @@ class JwtMiddlewareTest extends TestCase
 
     public function testUnauthenticatedReturnsJsonWithDebugInfo(): void
     {
-        $this->middleware = new JwtMiddleware(['api']);
-
-        // Mock app with debug mode enabled
+        // Mock app with debug mode enabled BEFORE creating middleware
         $GLOBALS['app'] = $this->createMockApp([
             'auth' => $this->authManager
-        ], ['app.debug' => true, 'auth.guards' => ['api' => ['driver' => 'jwt']]]);
+        ], [
+            'app' => ['debug' => true],
+            'auth' => ['guards' => ['api' => ['driver' => 'jwt']]]
+        ]);
+
+        $this->middleware = new JwtMiddleware(['api']);
 
         // Mock JWT guard (fails)
         $jwtGuard = $this->createMock(JwtGuard::class);

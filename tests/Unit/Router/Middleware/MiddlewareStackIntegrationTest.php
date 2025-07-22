@@ -299,15 +299,21 @@ class MiddlewareStackIntegrationTest extends TestCase
             public function __construct(private array $roles, private array $permissions) {}
             
             public function getAuthIdentifier(): mixed { return 1; }
-            public function getAuthPassword(): string { return 'password'; }
-            public function hasRole(string $role): bool { 
-                return in_array($role, $this->roles); 
+            public function hasRole(string $role): bool {
+                return in_array($role, $this->roles);
             }
-            public function hasPermission(string $permission): bool { 
-                return in_array($permission, $this->permissions); 
+            public function hasAnyRole(array $roles): bool {
+                return !empty(array_intersect($roles, $this->roles));
             }
-            public function getRoles(): array { return $this->roles; }
-            public function getPermissions(): array { return $this->permissions; }
+            public function can(string $permission): bool {
+                return in_array($permission, $this->permissions);
+            }
+            public function cannot(string $permission): bool {
+                return !$this->can($permission);
+            }
+            public function assignRole(string $role): void { }
+            public function removeRole(string $role): void { }
+            public function getRole(): string|array { return $this->roles; }
         };
     }
 
@@ -319,6 +325,25 @@ class MiddlewareStackIntegrationTest extends TestCase
             public function make(string $abstract): mixed
             {
                 return $this->services[$abstract] ?? null;
+            }
+
+            public function config(string $key, mixed $default = null): mixed
+            {
+                $keys = explode('.', $key);
+                $config = [
+                    'app' => ['debug' => false],
+                    'auth' => ['guards' => ['api' => ['driver' => 'jwt']]]
+                ];
+
+                $value = $config;
+                foreach ($keys as $segment) {
+                    if (!is_array($value) || !array_key_exists($segment, $value)) {
+                        return $default;
+                    }
+                    $value = $value[$segment];
+                }
+
+                return $value;
             }
         };
     }

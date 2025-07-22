@@ -218,14 +218,16 @@ class AuthMiddlewareTest extends TestCase
         $apiGuard->expects($this->once())
                 ->method('check')
                 ->willReturn(false);
-        $apiGuard->expects($this->once())
-                ->method('setRequest')
-                ->with($this->request);
+        // setRequest is only called after successful authentication, not for failed auth
 
-        $this->authManager->expects($this->exactly(2))
+        // The guard method will be called 4 times:
+        // 2 times in authentication loop + 2 times in hasJwtGuard() method
+        $this->authManager->expects($this->exactly(4))
                          ->method('guard')
                          ->willReturnMap([
                              ['web', $webGuard],
+                             ['api', $apiGuard],
+                             ['web', $webGuard],  // hasJwtGuard() calls
                              ['api', $apiGuard]
                          ]);
 
@@ -255,7 +257,9 @@ class AuthMiddlewareTest extends TestCase
               ->method('check')
               ->willReturn(false);
 
-        $this->authManager->expects($this->once())
+        // The guard method will be called 2 times:
+        // 1 time in authentication loop + 1 time in hasJwtGuard() method
+        $this->authManager->expects($this->exactly(2))
                          ->method('guard')
                          ->with(null)
                          ->willReturn($guard);
@@ -285,7 +289,9 @@ class AuthMiddlewareTest extends TestCase
               ->method('check')
               ->willReturn(false);
 
-        $this->authManager->expects($this->once())
+        // The guard method will be called 2 times:
+        // 1 time in authentication loop + 1 time in hasJwtGuard() method
+        $this->authManager->expects($this->exactly(2))
                          ->method('guard')
                          ->with('web')
                          ->willReturn($guard);
@@ -318,11 +324,11 @@ class AuthMiddlewareTest extends TestCase
         $jwtGuard->expects($this->once())
                 ->method('check')
                 ->willReturn(false);
-        $jwtGuard->expects($this->once())
-                ->method('setRequest')
-                ->with($request);
+        // setRequest is only called after successful authentication, not for failed auth
 
-        $this->authManager->expects($this->once())
+        // The guard method will be called 2 times:
+        // 1 time in authentication loop + 1 time in hasJwtGuard() method
+        $this->authManager->expects($this->exactly(2))
                          ->method('guard')
                          ->with('api')
                          ->willReturn($jwtGuard);
@@ -398,11 +404,13 @@ class AuthMiddlewareTest extends TestCase
     {
         return new class implements Authorizable {
             public function getAuthIdentifier(): mixed { return 1; }
-            public function getAuthPassword(): string { return 'password'; }
             public function hasRole(string $role): bool { return true; }
-            public function hasPermission(string $permission): bool { return true; }
-            public function getRoles(): array { return ['user']; }
-            public function getPermissions(): array { return ['read']; }
+            public function hasAnyRole(array $roles): bool { return true; }
+            public function can(string $permission): bool { return true; }
+            public function cannot(string $permission): bool { return false; }
+            public function assignRole(string $role): void { }
+            public function removeRole(string $role): void { }
+            public function getRole(): string|array { return 'user'; }
         };
     }
 

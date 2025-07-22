@@ -176,7 +176,7 @@ class AuthMiddleware implements MiddlewareInterface
         foreach ($this->guards as $guardName) {
             try {
                 $guard = $this->authManager->guard($guardName);
-                if (get_class($guard) === 'LengthOfRope\TreeHouse\Auth\JwtGuard') {
+                if ($guard instanceof \LengthOfRope\TreeHouse\Auth\JwtGuard) {
                     return true;
                 }
             } catch (\Exception $e) {
