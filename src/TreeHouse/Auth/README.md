@@ -6,8 +6,9 @@ The Auth layer provides comprehensive authentication and authorization capabilit
 
 ## Features
 
-- **Multi-Guard Authentication**: Support for multiple authentication guards (session, API, etc.)
-- **User Providers**: Flexible user data retrieval from database or custom sources
+- **Multi-Guard Authentication**: Support for multiple authentication guards (session, JWT, API, etc.)
+- **JWT Authentication**: Stateless JWT-based authentication with token management
+- **User Providers**: Flexible user data retrieval from database, JWT, or custom sources
 - **Session Management**: Secure session handling with remember tokens
 - **Role-Based Access Control**: Hierarchical role system with permission inheritance
 - **Permission System**: Granular permission checking and middleware protection
@@ -61,6 +62,97 @@ $guard->login($user, $remember = true);
 
 // Logout
 $guard->logout();
+```
+
+### JwtGuard
+
+The [`JwtGuard`](JwtGuard.php:35) provides stateless JWT-based authentication:
+
+```php
+// Basic JWT authentication
+$jwtConfig = new JwtConfig([
+    'secret' => 'your-secret-key',
+    'algorithm' => 'HS256',
+    'ttl' => 900, // 15 minutes
+    'issuer' => 'your-app',
+    'audience' => 'your-users',
+]);
+
+$jwtGuard = new JwtGuard($provider, $jwtConfig, $request);
+
+// Check authentication status (from JWT token)
+if ($jwtGuard->check()) {
+    $user = $jwtGuard->user();
+    $token = $jwtGuard->getToken();
+    $claims = $jwtGuard->getClaims();
+}
+
+// Authenticate user and generate JWT
+$credentials = ['email' => 'user@example.com', 'password' => 'secret'];
+if ($jwtGuard->attempt($credentials)) {
+    $token = $jwtGuard->getToken(); // Get generated JWT token
+}
+
+// Manual login with JWT generation
+$user = User::find(1);
+$jwtGuard->login($user);
+$token = $jwtGuard->getToken();
+
+// Generate token for user with custom claims
+$token = $jwtGuard->generateTokenForUser($user, [
+    'role' => 'admin',
+    'permissions' => ['read', 'write']
+]);
+
+// Logout (clears current state)
+$jwtGuard->logout();
+```
+
+#### JWT Token Extraction
+
+The JwtGuard automatically extracts JWT tokens from multiple sources:
+
+```php
+// 1. Authorization header (preferred)
+// Authorization: Bearer eyJ0eXAiOiJKV1Q...
+
+// 2. Cookie
+// Cookie: jwt_token=eyJ0eXAiOiJKV1Q...
+
+// 3. Query parameter
+// ?token=eyJ0eXAiOiJKV1Q...
+
+// Configure token extraction sources
+$jwtGuard->setTokenSources(['header', 'cookie', 'query']);
+```
+
+### JwtUserProvider
+
+The [`JwtUserProvider`](JwtUserProvider.php:42) provides stateless user resolution from JWT tokens:
+
+```php
+// Stateless mode (user data from JWT claims only)
+$provider = new JwtUserProvider($jwtConfig, $hash, [
+    'mode' => 'stateless',
+    'user_claim' => 'user_data',
+    'required_user_fields' => ['id', 'email'],
+]);
+
+// Hybrid mode (JWT + database lookup)
+$provider = new JwtUserProvider($jwtConfig, $hash, [
+    'mode' => 'hybrid',
+    'fallback_provider' => $databaseProvider,
+]);
+
+// User resolution from JWT
+$user = $provider->retrieveByCredentials(['token' => $jwtToken]);
+
+// Validate JWT token
+$isValid = $provider->validateCredentials($user, ['token' => $jwtToken]);
+
+// Create user from JWT claims
+$claims = new ClaimsManager(['sub' => '123', 'email' => 'user@example.com']);
+$user = $provider->createUserFromClaims($claims);
 ```
 
 ### UserProvider Interface
@@ -259,8 +351,12 @@ $config = [
             'provider' => 'users',
         ],
         'api' => [
-            'driver' => 'token',
+            'driver' => 'jwt',
             'provider' => 'users',
+        ],
+        'mobile' => [
+            'driver' => 'jwt',
+            'provider' => 'jwt_users',
         ],
     ],
     'providers' => [
@@ -268,6 +364,24 @@ $config = [
             'driver' => 'database',
             'table' => 'users',
         ],
+        'jwt_users' => [
+            'driver' => 'jwt',
+            'mode' => 'stateless',
+            'user_claim' => 'user_data',
+            'required_user_fields' => ['id', 'email'],
+        ],
+    ],
+    'jwt' => [
+        'secret' => env('JWT_SECRET', 'your-secret-key'),
+        'algorithm' => 'HS256',
+        'ttl' => 900, // 15 minutes
+        'refresh_ttl' => 1209600, // 2 weeks
+        'issuer' => 'your-app',
+        'audience' => 'your-users',
+        'blacklist_enabled' => true,
+        'blacklist_grace_period' => 300,
+        'leeway' => 0,
+        'required_claims' => ['iss', 'aud', 'sub', 'exp'],
     ],
 ];
 
@@ -285,6 +399,86 @@ if ($request->method() === 'POST') {
     } else {
         return back()->withErrors(['Invalid credentials']);
     }
+}
+```
+
+### JWT Authentication Examples
+
+```php
+// JWT API Authentication
+if ($authManager->guard('api')->check()) {
+    $user = $authManager->guard('api')->user();
+    $token = $authManager->guard('api')->getToken(); // Current JWT token
+    $claims = $authManager->guard('api')->getClaims(); // JWT claims
+}
+
+// JWT Login (generates new token)
+$credentials = ['email' => 'user@example.com', 'password' => 'secret'];
+if ($authManager->attempt($credentials, false, 'api')) {
+    $token = $authManager->guard('api')->getToken();
+    
+    // Return token to client
+    return response()->json([
+        'token' => $token,
+        'user' => $authManager->guard('api')->user(),
+        'expires_in' => 900 // TTL in seconds
+    ]);
+}
+
+// Generate JWT token for existing user
+$user = User::find(1);
+$token = $authManager->guard('api')->generateTokenForUser($user, [
+    'role' => $user->getRole(),
+    'permissions' => $user->getPermissions()
+]);
+
+// Validate JWT token only
+$isValid = $authManager->guard('api')->validate(['token' => $providedToken]);
+
+// JWT Logout (clears current state)
+$authManager->logout('api');
+```
+
+### Stateless JWT Usage
+
+```php
+// Pure stateless JWT (no database lookup)
+$config['providers']['jwt_stateless'] = [
+    'driver' => 'jwt',
+    'mode' => 'stateless',
+    'user_claim' => 'user_data',
+    'embed_user_data' => true,
+];
+
+// Generate token with embedded user data
+$user = User::find(1);
+$token = $authManager->guard('mobile')->generateTokenForUser($user, [
+    'user_data' => [
+        'id' => $user->id,
+        'email' => $user->email,
+        'name' => $user->name,
+        'role' => $user->role,
+    ]
+]);
+
+// User data will be available from JWT claims without database lookup
+```
+
+### Hybrid JWT Usage
+
+```php
+// Hybrid mode (JWT + database lookup for additional data)
+$config['providers']['jwt_hybrid'] = [
+    'driver' => 'jwt',
+    'mode' => 'hybrid',
+    'fallback_provider' => 'users', // Database provider for additional data
+];
+
+// JWT contains user ID, additional data from database
+$guard = $authManager->guard('api');
+if ($guard->check()) {
+    $user = $guard->user(); // Full user object from database
+    $jwtClaims = $guard->getClaims(); // JWT-specific claims
 }
 ```
 
@@ -410,9 +604,12 @@ $rememberConfig = [
         'provider' => 'users',
     ],
     'api' => [
-        'driver' => 'token',
+        'driver' => 'jwt',
         'provider' => 'users',
-        'hash' => false,
+    ],
+    'mobile' => [
+        'driver' => 'jwt',
+        'provider' => 'jwt_users',
     ],
     'admin' => [
         'driver' => 'session',
@@ -430,10 +627,40 @@ $rememberConfig = [
         'table' => 'users',
         'connection' => $dbConnection,
     ],
+    'jwt_users' => [
+        'driver' => 'jwt',
+        'mode' => 'stateless', // or 'hybrid'
+        'user_claim' => 'user_data',
+        'embed_user_data' => true,
+        'required_user_fields' => ['id', 'email'],
+        'fallback_provider' => 'users', // for hybrid mode
+    ],
     'admins' => [
         'driver' => 'database',
         'table' => 'admin_users',
         'model' => AdminUser::class,
+    ],
+],
+```
+
+### JWT Configuration
+
+```php
+'jwt' => [
+    'secret' => env('JWT_SECRET', 'your-secret-key'),
+    'algorithm' => 'HS256', // HS256, HS384, HS512, RS256, RS384, RS512, ES256, ES384, ES512
+    'ttl' => 900, // Access token TTL in seconds (15 minutes)
+    'refresh_ttl' => 1209600, // Refresh token TTL in seconds (2 weeks)
+    'issuer' => env('APP_NAME', 'TreeHouse'),
+    'audience' => env('APP_URL', 'http://localhost'),
+    'blacklist_enabled' => true,
+    'blacklist_grace_period' => 300, // Grace period in seconds
+    'leeway' => 0, // Clock skew tolerance in seconds
+    'required_claims' => [
+        'iss', // Issuer
+        'aud', // Audience
+        'sub', // Subject (user ID)
+        'exp', // Expiration time
     ],
 ],
 ```
@@ -507,20 +734,59 @@ $this->assertTrue($user->can('posts.create'));
 ## Integration with Middleware
 
 ```php
-// Route protection with auth middleware
+// Session-based route protection
 $router->group(['middleware' => 'auth'], function($router) {
     $router->get('/dashboard', 'DashboardController@index');
     $router->get('/profile', 'ProfileController@show');
 });
 
-// Role-based protection
-$router->group(['middleware' => ['auth', 'role:admin']], function($router) {
-    $router->get('/admin', 'AdminController@index');
+// JWT-based API route protection
+$router->group(['middleware' => 'auth:api'], function($router) {
+    $router->get('/api/user', 'Api\UserController@show');
+    $router->post('/api/posts', 'Api\PostController@store');
 });
 
-// Permission-based protection
-$router->get('/posts/create', 'PostController@create')
-    ->middleware(['auth', 'permission:posts.create']);
+// Multiple guard protection
+$router->group(['middleware' => 'auth:web,api'], function($router) {
+    $router->get('/hybrid', 'HybridController@index');
+});
+
+// Role-based protection (works with both session and JWT)
+$router->group(['middleware' => ['auth:api', 'role:admin']], function($router) {
+    $router->get('/api/admin', 'Api\AdminController@index');
+});
+
+// Permission-based protection (works with both session and JWT)
+$router->get('/api/posts/create', 'Api\PostController@create')
+    ->middleware(['auth:api', 'permission:posts.create']);
+
+// JWT-specific middleware for mobile app
+$router->group([
+    'prefix' => 'mobile',
+    'middleware' => 'auth:mobile'
+], function($router) {
+    $router->get('/dashboard', 'Mobile\DashboardController@index');
+    $router->post('/upload', 'Mobile\UploadController@store');
+});
+```
+
+### JWT Token Header Examples
+
+```php
+// Client-side usage (JavaScript)
+// Set Authorization header for API requests
+fetch('/api/user', {
+    headers: {
+        'Authorization': 'Bearer ' + jwtToken,
+        'Accept': 'application/json',
+    }
+});
+
+// Alternative: Use cookie for browser-based apps
+document.cookie = `jwt_token=${jwtToken}; path=/; httpOnly; secure`;
+
+// Alternative: Use query parameter (less secure, for special cases)
+fetch(`/api/user?token=${jwtToken}`);
 ```
 
 ## Authorization System

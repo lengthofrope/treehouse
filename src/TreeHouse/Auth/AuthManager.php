@@ -6,7 +6,9 @@ namespace LengthOfRope\TreeHouse\Auth;
 
 use LengthOfRope\TreeHouse\Http\Session;
 use LengthOfRope\TreeHouse\Http\Cookie;
+use LengthOfRope\TreeHouse\Http\Request;
 use LengthOfRope\TreeHouse\Security\Hash;
+use LengthOfRope\TreeHouse\Auth\Jwt\JwtConfig;
 use LengthOfRope\TreeHouse\Errors\Exceptions\AuthenticationException;
 use InvalidArgumentException;
 use RuntimeException;
@@ -52,6 +54,11 @@ class AuthManager
     protected Hash $hash;
 
     /**
+     * The current HTTP request
+     */
+    protected ?Request $request = null;
+
+    /**
      * The array of created guards
      */
     protected array $guards = [];
@@ -78,12 +85,14 @@ class AuthManager
         array $config,
         Session $session,
         Cookie $cookie,
-        Hash $hash
+        Hash $hash,
+        ?Request $request = null
     ) {
         $this->config = $config;
         $this->session = $session;
         $this->cookie = $cookie;
         $this->hash = $hash;
+        $this->request = $request;
         $this->defaultGuard = $config['default'] ?? 'web';
     }
 
@@ -125,6 +134,8 @@ class AuthManager
         switch ($driver) {
             case 'database':
                 return $this->providers[$name] = $this->createDatabaseProvider($config);
+            case 'jwt':
+                return $this->providers[$name] = $this->createJwtProvider($config);
             default:
                 throw new AuthenticationException("Authentication user provider [{$driver}] is not defined.", 'AUTH_INVALID_PROVIDER');
         }
@@ -336,6 +347,8 @@ class AuthManager
         switch ($driver) {
             case 'session':
                 return $this->createSessionDriver($name, $config);
+            case 'jwt':
+                return $this->createJwtDriver($name, $config);
             default:
                 throw new AuthenticationException("Auth driver [{$driver}] for guard [{$name}] is not defined.", 'AUTH_INVALID_DRIVER');
         }
@@ -369,6 +382,85 @@ class AuthManager
     protected function createDatabaseProvider(array $config): DatabaseUserProvider
     {
         return new DatabaseUserProvider($this->hash, $config);
+    }
+
+    /**
+     * Create a JWT based authentication guard
+     *
+     * @param string $name Guard name
+     * @param array $config Guard configuration
+     * @return JwtGuard
+     */
+    protected function createJwtDriver(string $name, array $config): JwtGuard
+    {
+        $provider = $this->createUserProvider($config['provider'] ?? null);
+        $jwtConfig = $this->createJwtConfig();
+        
+        return new JwtGuard($provider, $jwtConfig, $this->request);
+    }
+
+    /**
+     * Create a JWT user provider
+     *
+     * @param array $config Provider configuration
+     * @return JwtUserProvider
+     */
+    protected function createJwtProvider(array $config): JwtUserProvider
+    {
+        $jwtConfig = $this->createJwtConfig();
+        
+        // Create fallback provider if specified
+        $fallbackProvider = null;
+        if (isset($config['fallback_provider'])) {
+            $fallbackProvider = $this->createUserProvider($config['fallback_provider']);
+        }
+        
+        return new JwtUserProvider($jwtConfig, $this->hash, $config, $fallbackProvider);
+    }
+
+    /**
+     * Create JWT configuration instance
+     *
+     * @return JwtConfig
+     * @throws AuthenticationException If JWT configuration is missing
+     */
+    protected function createJwtConfig(): JwtConfig
+    {
+        $jwtConfig = $this->config['jwt'] ?? null;
+        
+        if ($jwtConfig === null) {
+            throw new AuthenticationException('JWT configuration is not defined.', 'JWT_CONFIG_MISSING');
+        }
+        
+        return new JwtConfig($jwtConfig);
+    }
+
+    /**
+     * Set the current HTTP request
+     *
+     * @param Request $request HTTP request instance
+     * @return void
+     */
+    public function setRequest(Request $request): void
+    {
+        $this->request = $request;
+        
+        // Update request for existing JWT guards
+        foreach ($this->guards as $guard) {
+            if ($guard instanceof JwtGuard) {
+                $guard->setRequest($request);
+            }
+        }
+    }
+
+    /**
+     * Get the current HTTP request
+     *
+     * @return Request|null
+     */
+    public function getRequest(): ?Request
+    {
+        return $this->request;
     }
 
     /**
