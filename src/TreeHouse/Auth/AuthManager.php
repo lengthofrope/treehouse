@@ -409,13 +409,8 @@ class AuthManager
     {
         $jwtConfig = $this->createJwtConfig();
         
-        // Create fallback provider if specified
-        $fallbackProvider = null;
-        if (isset($config['fallback_provider'])) {
-            $fallbackProvider = $this->createUserProvider($config['fallback_provider']);
-        }
-        
-        return new JwtUserProvider($jwtConfig, $this->hash, $config, $fallbackProvider);
+        // Remove fallback provider support as JWT provider is now pure stateless
+        return new JwtUserProvider($jwtConfig, $config);
     }
 
     /**

@@ -65,11 +65,9 @@ return [
 
         'jwt_users' => [
             'driver' => 'jwt',
-            'mode' => env('JWT_PROVIDER_MODE', 'stateless'),
-            'user_claim' => 'user_data',
-            'embed_user_data' => env('JWT_EMBED_USER_DATA', true),
+            'user_claim' => 'user',
+            'embed_user_data' => true,
             'required_user_fields' => ['id', 'email'],
-            'fallback_provider' => 'users', // Used in hybrid mode
         ],
     ],
 
@@ -132,14 +130,19 @@ return [
         'refresh_ttl' => env('JWT_REFRESH_TTL', 1209600), // 2 weeks
         'issuer' => env('JWT_ISSUER', env('APP_NAME', 'TreeHouse')),
         'audience' => env('JWT_AUDIENCE', env('APP_URL', 'http://localhost')),
-        'blacklist_enabled' => env('JWT_BLACKLIST_ENABLED', true),
-        'blacklist_grace_period' => env('JWT_BLACKLIST_GRACE_PERIOD', 300),
         'leeway' => env('JWT_LEEWAY', 0),
         'required_claims' => [
             'iss', // Issuer
             'aud', // Audience
             'sub', // Subject (user ID)
             'exp', // Expiration time
+        ],
+        // Phase 4: Refresh token configuration
+        'refresh' => [
+            'rotation_enabled' => env('JWT_REFRESH_ROTATION', true),
+            'family_tracking' => env('JWT_FAMILY_TRACKING', true),
+            'max_refresh_count' => env('JWT_MAX_REFRESH_COUNT', 50),
+            'grace_period' => env('JWT_REFRESH_GRACE_PERIOD', 300), // 5 minutes
         ],
     ],
 

@@ -172,30 +172,36 @@ class AuthManagerJwtTest extends TestCase
         $this->assertInstanceOf(JwtGuard::class, $guard);
     }
 
-    public function testJwtProviderWithFallbackProvider(): void
+    public function testJwtProviderWithCustomConfig(): void
     {
-        // Update config to include fallback provider
-        $configWithFallback = $this->config;
-        $configWithFallback['providers']['jwt_hybrid'] = [
+        // Update config to include custom JWT provider settings
+        $configWithCustom = $this->config;
+        $configWithCustom['providers']['jwt_custom'] = [
             'driver' => 'jwt',
-            'mode' => 'hybrid',
-            'fallback_provider' => 'users',
+            'user_claim' => 'custom_user',
+            'embed_user_data' => false,
+            'required_user_fields' => ['id', 'email', 'name'],
         ];
 
         $authManager = new AuthManager(
-            $configWithFallback,
+            $configWithCustom,
             $this->mockSession,
             $this->mockCookie,
             $this->mockHash,
             $this->mockRequest
         );
 
-        $provider = $authManager->createUserProvider('jwt_hybrid');
+        $provider = $authManager->createUserProvider('jwt_custom');
         
         $this->assertInstanceOf(JwtUserProvider::class, $provider);
         /** @var JwtUserProvider $provider */
-        $this->assertTrue($provider->isHybridMode());
-        $this->assertInstanceOf(DatabaseUserProvider::class, $provider->getFallbackProvider());
+        $this->assertTrue($provider->isStatelessMode());
+        
+        // Verify custom configuration is applied
+        $config = $provider->getConfig();
+        $this->assertEquals('custom_user', $config['user_claim']);
+        $this->assertFalse($config['embed_user_data']);
+        $this->assertEquals(['id', 'email', 'name'], $config['required_user_fields']);
     }
 
     public function testThrowsExceptionWhenJwtConfigMissing(): void

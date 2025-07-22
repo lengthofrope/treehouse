@@ -7,23 +7,21 @@ namespace LengthOfRope\TreeHouse\Auth;
 use LengthOfRope\TreeHouse\Auth\Jwt\JwtConfig;
 use LengthOfRope\TreeHouse\Auth\Jwt\TokenValidator;
 use LengthOfRope\TreeHouse\Auth\Jwt\ClaimsManager;
-use LengthOfRope\TreeHouse\Security\Hash;
-use InvalidArgumentException;
+use LengthOfRope\TreeHouse\Errors\Exceptions\InvalidArgumentException;
 
 /**
  * JWT User Provider
  *
- * Provides stateless user resolution from JWT tokens. This provider
- * can work in two modes:
- * 1. Pure stateless mode: User data embedded in JWT claims
- * 2. Hybrid mode: User ID in JWT, additional data from database
+ * Provides pure stateless user resolution from JWT tokens.
+ * This provider operates in stateless mode only, with user data
+ * embedded in JWT claims.
  *
  * Features:
- * - Stateless user resolution from JWT payload
- * - Support for embedded user data in JWT claims
- * - Fallback to database provider for hybrid scenarios
+ * - Pure stateless user resolution from JWT payload
+ * - User data embedded in JWT claims
  * - Integration with existing UserProvider interface
- * - Configurable user data inclusion in tokens
+ * - Enhanced error handling and validation
+ * - Simplified configuration
  *
  * @package LengthOfRope\TreeHouse\Auth
  * @author  Bas de Kort <bdekort@proton.me>
@@ -42,16 +40,6 @@ class JwtUserProvider implements UserProvider
     protected TokenValidator $tokenValidator;
 
     /**
-     * The hash instance for password validation
-     */
-    protected Hash $hash;
-
-    /**
-     * The fallback user provider for hybrid mode
-     */
-    protected ?UserProvider $fallbackProvider = null;
-
-    /**
      * Configuration for this provider
      */
     protected array $config;
@@ -60,89 +48,60 @@ class JwtUserProvider implements UserProvider
      * Create a new JwtUserProvider instance
      *
      * @param JwtConfig $jwtConfig JWT configuration
-     * @param Hash $hash Hash instance for password validation
      * @param array $config Provider configuration
-     * @param UserProvider|null $fallbackProvider Fallback provider for hybrid mode
      */
-    public function __construct(
-        JwtConfig $jwtConfig,
-        Hash $hash,
-        array $config = [],
-        ?UserProvider $fallbackProvider = null
-    ) {
+    public function __construct(JwtConfig $jwtConfig, array $config = [])
+    {
         $this->jwtConfig = $jwtConfig;
         $this->tokenValidator = new TokenValidator($jwtConfig);
-        $this->hash = $hash;
         $this->config = array_merge([
-            'mode' => 'stateless', // 'stateless' or 'hybrid'
-            'user_claim' => 'user_data',
-            'embed_user_data' => false,
+            'user_claim' => 'user',
+            'embed_user_data' => true,
             'required_user_fields' => ['id', 'email'],
         ], $config);
-        $this->fallbackProvider = $fallbackProvider;
     }
 
     /**
      * Retrieve a user by their unique identifier
      *
-     * For JWT provider, this expects the identifier to be a JWT token
-     * or uses fallback provider in hybrid mode
+     * For JWT provider, this expects the identifier to be a JWT token.
+     * In pure stateless mode, we cannot retrieve by user ID without a token.
      *
-     * @param mixed $identifier User identifier (JWT token or user ID)
+     * @param mixed $identifier User identifier (JWT token expected)
      * @return mixed User instance or null if not found
      */
     public function retrieveById(mixed $identifier): mixed
     {
-        // In hybrid mode, delegate to fallback provider for user ID lookups
-        if ($this->config['mode'] === 'hybrid' && $this->fallbackProvider) {
-            if (!$this->isJwtToken($identifier)) {
-                return $this->fallbackProvider->retrieveById($identifier);
-            }
-        }
-
         // Handle JWT token identifier
         if ($this->isJwtToken($identifier)) {
             return $this->retrieveFromJwt($identifier);
         }
 
-        // In pure stateless mode, we can't retrieve by ID without fallback
-        if ($this->config['mode'] === 'stateless') {
-            return null;
-        }
-
-        // Use fallback provider if available
-        if ($this->fallbackProvider) {
-            return $this->fallbackProvider->retrieveById($identifier);
-        }
-
+        // In pure stateless mode, we can't retrieve by ID without a token
         return null;
     }
 
     /**
      * Retrieve a user by their unique identifier and "remember me" token
      *
-     * JWT authentication doesn't use remember tokens in the traditional sense
-     * This delegates to fallback provider if available
+     * JWT authentication doesn't use remember tokens in the traditional sense.
+     * Always returns null in stateless mode.
      *
      * @param mixed $identifier User identifier
      * @param string $token Remember me token
-     * @return mixed User instance or null if not found
+     * @return mixed Always returns null for stateless JWT
      */
     public function retrieveByToken(mixed $identifier, string $token): mixed
     {
-        // JWT doesn't use remember tokens, delegate to fallback
-        if ($this->fallbackProvider) {
-            return $this->fallbackProvider->retrieveByToken($identifier, $token);
-        }
-
+        // JWT doesn't use remember tokens in stateless mode
         return null;
     }
 
     /**
      * Update the "remember me" token for the given user in storage
      *
-     * JWT authentication doesn't use remember tokens in the traditional sense
-     * This delegates to fallback provider if available
+     * JWT authentication doesn't use remember tokens in the traditional sense.
+     * No-op in stateless mode.
      *
      * @param mixed $user User instance
      * @param string $token New remember me token
@@ -150,19 +109,17 @@ class JwtUserProvider implements UserProvider
      */
     public function updateRememberToken(mixed $user, string $token): void
     {
-        // JWT doesn't use remember tokens, delegate to fallback
-        if ($this->fallbackProvider) {
-            $this->fallbackProvider->updateRememberToken($user, $token);
-        }
+        // JWT doesn't use remember tokens in stateless mode
+        // No operation needed
     }
 
     /**
      * Retrieve a user by the given credentials
      *
-     * This method validates credentials against JWT tokens or
-     * delegates to fallback provider for traditional login
+     * This method validates credentials against JWT tokens only.
+     * For stateless JWT, only token-based authentication is supported.
      *
-     * @param array $credentials User credentials (email/password or JWT token)
+     * @param array $credentials User credentials (JWT token expected)
      * @return mixed User instance or null if not found
      */
     public function retrieveByCredentials(array $credentials): mixed
@@ -172,19 +129,15 @@ class JwtUserProvider implements UserProvider
             return $this->retrieveFromJwt($credentials['token']);
         }
 
-        // For traditional email/password credentials, use fallback provider
-        if ($this->fallbackProvider && (isset($credentials['email']) || isset($credentials['username']))) {
-            return $this->fallbackProvider->retrieveByCredentials($credentials);
-        }
-
+        // Stateless JWT provider only supports token-based authentication
         return null;
     }
 
     /**
      * Validate a user against the given credentials
      *
-     * For JWT provider, this validates the JWT token signature and claims
-     * For traditional credentials, delegates to fallback provider
+     * For JWT provider, this validates the JWT token signature and claims.
+     * Only JWT token validation is supported in stateless mode.
      *
      * @param mixed $user User instance
      * @param array $credentials User credentials
@@ -205,28 +158,15 @@ class JwtUserProvider implements UserProvider
             }
         }
 
-        // For password validation, use fallback provider or hash directly
-        if (isset($credentials['password'])) {
-            if ($this->fallbackProvider) {
-                return $this->fallbackProvider->validateCredentials($user, $credentials);
-            }
-
-            // Direct password validation
-            $userPassword = $this->getUserPassword($user);
-            if ($userPassword === null) {
-                return false;
-            }
-
-            return $this->hash->check($credentials['password'], $userPassword);
-        }
-
+        // Stateless JWT provider only supports token validation
         return false;
     }
 
     /**
      * Rehash the user's password if required
      *
-     * Delegates to fallback provider if available
+     * JWT authentication doesn't use passwords in stateless mode.
+     * No-op for stateless JWT.
      *
      * @param mixed $user User instance
      * @param array $credentials User credentials
@@ -235,50 +175,18 @@ class JwtUserProvider implements UserProvider
      */
     public function rehashPasswordIfRequired(mixed $user, array $credentials, bool $force = false): void
     {
-        if ($this->fallbackProvider) {
-            $this->fallbackProvider->rehashPasswordIfRequired($user, $credentials, $force);
-        }
-    }
-
-    /**
-     * Set the fallback user provider for hybrid mode
-     *
-     * @param UserProvider $provider Fallback user provider
-     * @return void
-     */
-    public function setFallbackProvider(UserProvider $provider): void
-    {
-        $this->fallbackProvider = $provider;
-    }
-
-    /**
-     * Get the fallback user provider
-     *
-     * @return UserProvider|null
-     */
-    public function getFallbackProvider(): ?UserProvider
-    {
-        return $this->fallbackProvider;
-    }
-
-    /**
-     * Check if the provider is in hybrid mode
-     *
-     * @return bool
-     */
-    public function isHybridMode(): bool
-    {
-        return $this->config['mode'] === 'hybrid';
+        // JWT doesn't use passwords in stateless mode
+        // No operation needed
     }
 
     /**
      * Check if the provider is in stateless mode
      *
-     * @return bool
+     * @return bool Always true for this implementation
      */
     public function isStatelessMode(): bool
     {
-        return $this->config['mode'] === 'stateless';
+        return true;
     }
 
     /**
@@ -318,6 +226,26 @@ class JwtUserProvider implements UserProvider
     }
 
     /**
+     * Get the JWT configuration
+     *
+     * @return JwtConfig
+     */
+    public function getJwtConfig(): JwtConfig
+    {
+        return $this->jwtConfig;
+    }
+
+    /**
+     * Get the provider configuration
+     *
+     * @return array
+     */
+    public function getConfig(): array
+    {
+        return $this->config;
+    }
+
+    /**
      * Check if a string appears to be a JWT token
      *
      * @param mixed $token Potential JWT token
@@ -348,23 +276,6 @@ class JwtUserProvider implements UserProvider
         try {
             $claims = $this->tokenValidator->validateAuthToken($token);
             
-            // In hybrid mode, get additional user data from database
-            if ($this->config['mode'] === 'hybrid' && $this->fallbackProvider) {
-                $userId = $claims->getSubject();
-                $user = $this->fallbackProvider->retrieveById($userId);
-                
-                if ($user) {
-                    // Add JWT claims to user data
-                    if (is_array($user)) {
-                        $user['jwt_claims'] = $claims->getAllClaims();
-                    } elseif (is_object($user)) {
-                        $user->jwt_claims = $claims->getAllClaims();
-                    }
-                }
-                
-                return $user;
-            }
-
             // In stateless mode, create user from claims
             return $this->createUserFromClaims($claims);
             
@@ -377,7 +288,7 @@ class JwtUserProvider implements UserProvider
      * Create user instance from user data array
      *
      * @param array $userData User data
-     * @return mixed User instance
+     * @return mixed User instance or null if validation fails
      */
     protected function createUserFromData(array $userData): mixed
     {
@@ -409,29 +320,6 @@ class JwtUserProvider implements UserProvider
 
         if (is_array($user)) {
             return $user['id'] ?? null;
-        }
-
-        return null;
-    }
-
-    /**
-     * Get user password from user instance
-     *
-     * @param mixed $user User instance
-     * @return string|null User password hash
-     */
-    protected function getUserPassword(mixed $user): ?string
-    {
-        if (is_object($user)) {
-            if (method_exists($user, 'getAuthPassword')) {
-                return $user->getAuthPassword();
-            }
-            
-            return $user->password ?? null;
-        }
-
-        if (is_array($user)) {
-            return $user['password'] ?? null;
         }
 
         return null;
