@@ -22,6 +22,7 @@ graph TB
     B --> M[Support Layer]
     B --> N[Http Layer]
     B --> O[Error Layer]
+    B --> P[Mail Layer]
 ```
 
 ## Source Code Paths
@@ -46,9 +47,16 @@ graph TB
     - [`Strategies/`](src/TreeHouse/Router/Middleware/RateLimit/Strategies/) - Rate limiting algorithms (Fixed Window, Sliding Window, Token Bucket)
     - [`KeyResolvers/`](src/TreeHouse/Router/Middleware/RateLimit/KeyResolvers/) - Client identification methods (IP, User, Header, Composite)
 - **Auth/**: Authentication and authorization
-  - [`AuthManager.php`](src/TreeHouse/Auth/AuthManager.php) - Auth service orchestrator
+  - [`AuthManager.php`](src/TreeHouse/Auth/AuthManager.php) - Auth service orchestrator with JWT support
   - [`SessionGuard.php`](src/TreeHouse/Auth/SessionGuard.php) - Session-based authentication
+  - [`JwtGuard.php`](src/TreeHouse/Auth/JwtGuard.php) - **JWT stateless authentication guard (558 lines)**
+  - [`JwtUserProvider.php`](src/TreeHouse/Auth/JwtUserProvider.php) - **JWT user provider with stateless/hybrid modes (321 lines)**
   - [`Gate.php`](src/TreeHouse/Auth/Gate.php) - Authorization gate for permissions
+  - [`Jwt/`](src/TreeHouse/Auth/Jwt/) - **JWT infrastructure components**
+    - [`JwtConfig.php`](src/TreeHouse/Auth/Jwt/JwtConfig.php) - JWT configuration management
+    - [`TokenGenerator.php`](src/TreeHouse/Auth/Jwt/TokenGenerator.php) - JWT token generation
+    - [`TokenValidator.php`](src/TreeHouse/Auth/Jwt/TokenValidator.php) - JWT token validation
+    - [`ClaimsManager.php`](src/TreeHouse/Auth/Jwt/ClaimsManager.php) - JWT claims management
 - **View/**: Template engine and rendering
   - [`ViewFactory.php`](src/TreeHouse/View/ViewFactory.php) - View factory and management
   - [`ViewEngine.php`](src/TreeHouse/View/ViewEngine.php) - Template compilation
@@ -74,6 +82,13 @@ graph TB
   - [`Concerns/HasEvents.php`](src/TreeHouse/Events/Concerns/HasEvents.php) - ActiveRecord trait for automatic event firing
   - [`Events/`](src/TreeHouse/Events/Events/) - Model lifecycle events (creating, created, updating, updated, deleting, deleted, saving, saved)
   - [`Exceptions/`](src/TreeHouse/Events/Exceptions/) - Event-specific exception hierarchy
+- **Mail/**: Email system (Phase 1 & 2 Complete)
+  - [`MailManager.php`](src/TreeHouse/Mail/MailManager.php) - Mail service orchestrator
+  - [`Message.php`](src/TreeHouse/Mail/Message.php) - Email message composition
+  - [`Address.php`](src/TreeHouse/Mail/Address.php) - Email address handling with RFC validation
+  - [`AddressList.php`](src/TreeHouse/Mail/AddressList.php) - Address collection management
+  - [`Drivers/`](src/TreeHouse/Mail/Drivers/) - Mail delivery drivers (SMTP, Sendmail, Log)
+  - [`Models/QueuedMail.php`](src/TreeHouse/Mail/Models/QueuedMail.php) - Database model for mail queue
 - **Security/**: Security features
   - [`Hash.php`](src/TreeHouse/Security/Hash.php) - Password hashing
   - [`Csrf.php`](src/TreeHouse/Security/Csrf.php) - CSRF protection
@@ -85,6 +100,7 @@ graph TB
   - [`Collection.php`](src/TreeHouse/Support/Collection.php) - Array collection helper
   - [`Carbon.php`](src/TreeHouse/Support/Carbon.php) - Date/time manipulation
   - [`Str.php`](src/TreeHouse/Support/Str.php) - String utilities
+  - [`Env.php`](src/TreeHouse/Support/Env.php) - Environment variable handling with .env file loading
 - **Errors/**: Error handling and logging
   - [`ErrorHandler.php`](src/TreeHouse/Errors/ErrorHandler.php) - Main error handler with PSR-3 logging
   - [`Exceptions/`](src/TreeHouse/Errors/Exceptions/) - Hierarchical exception system
@@ -100,10 +116,11 @@ graph TB
 ### Configuration (`config/`)
 - [`app.php`](config/app.php) - Application settings
 - [`database.php`](config/database.php) - Database connections
-- [`auth.php`](config/auth.php) - Authentication configuration
+- [`auth.php`](config/auth.php) - **Authentication configuration with complete JWT integration**
 - [`view.php`](config/view.php) - Template engine settings
 - [`cron.php`](config/cron.php) - Cron system configuration
 - [`events.php`](config/events.php) - Event system configuration
+- [`mail.php`](config/mail.php) - Mail system configuration
 - [`routes/`](config/routes/) - Route definitions
 
 ### Entry Points
@@ -140,6 +157,13 @@ graph TB
 - Auth integration and conditional rendering
 - Component-based architecture
 
+### 6. **Enterprise-Grade JWT Authentication**
+- **RFC 7519 compliant** JWT implementation with zero external dependencies
+- **Multi-algorithm support**: HS256, HS384, HS512, RS256, RS384, RS512, ES256, ES384, ES512
+- **Stateless and hybrid modes** for flexible deployment scenarios
+- **Multi-source token extraction** from Authorization header, cookies, and query parameters
+- **Environment-driven configuration** with complete .env integration
+
 ## Design Patterns in Use
 
 ### 1. **MVC (Model-View-Controller)**
@@ -168,6 +192,11 @@ graph TB
 - Global helper functions provide easy access to framework features
 - Examples: `auth()`, `cache()`, `view()`
 
+### 6. **Strategy Pattern** (JWT Authentication)
+- **JwtGuard**: Implements Guard interface for stateless authentication
+- **JwtUserProvider**: Implements UserProvider interface with configurable modes
+- **TokenExtraction**: Multiple extraction strategies with configurable priority
+
 ## Component Relationships
 
 ### Request Lifecycle
@@ -186,9 +215,16 @@ graph TB
 
 ### Authentication Flow
 1. **Auth Request** → Auth/AuthManager.php
-2. **Guard Selection** → Auth/SessionGuard.php
-3. **User Provider** → Auth/DatabaseUserProvider.php
+2. **Guard Selection** → Auth/SessionGuard.php or **Auth/JwtGuard.php**
+3. **User Provider** → Auth/DatabaseUserProvider.php or **Auth/JwtUserProvider.php**
 4. **Authorization** → Auth/Gate.php
+
+### JWT Authentication Flow
+1. **JWT Request** → Auth/JwtGuard.php
+2. **Token Extraction** → Multi-source extraction (header/cookie/query)
+3. **Token Validation** → Auth/Jwt/TokenValidator.php
+4. **Claims Processing** → Auth/Jwt/ClaimsManager.php
+5. **User Resolution** → Auth/JwtUserProvider.php (stateless/hybrid modes)
 
 ### Cron Execution Flow
 1. **Cron Trigger** → Console/Commands/CronCommands/CronRunCommand.php
@@ -278,6 +314,16 @@ ErrorHandler::handle(Exception)
 └── HTTP response generation
 ```
 
+### 6. **JWT Authentication**
+```
+JwtGuard::check()
+├── Token extraction (header/cookie/query)
+├── Token validation (signature, claims, expiration)
+├── Claims processing and validation
+├── User resolution (stateless/hybrid)
+└── Authentication state management
+```
+
 ## Security Architecture
 
 ### 1. **Input Sanitization**
@@ -289,6 +335,7 @@ ErrorHandler::handle(Exception)
 - Secure password hashing (PHP password_hash)
 - Session management with security headers
 - CSRF protection for state-changing operations
+- **JWT stateless authentication** with enterprise-grade security
 
 ### 3. **Data Protection**
 - AES-256-CBC encryption for sensitive data
@@ -301,6 +348,13 @@ ErrorHandler::handle(Exception)
 - Flexible client identification: IP, User, Header, Composite
 - Configurable limits per endpoint and user type
 - Standard rate limit headers and error responses
+
+### 5. **JWT Security Features**
+- **RFC 7519 compliance** with comprehensive validation
+- **Multi-algorithm support** for different security requirements
+- **Timing-safe operations** to prevent timing attacks
+- **Claims validation** with configurable required claims
+- **Token expiration** with configurable TTL and refresh TTL
 
 ## Performance Considerations
 
@@ -318,3 +372,9 @@ ErrorHandler::handle(Exception)
 - Efficient collection handling
 - Connection pooling (single connection reuse)
 - Minimal object creation overhead
+
+### 4. **JWT Performance**
+- **Stateless authentication** eliminates session overhead
+- **Token caching** for repeated validations
+- **Efficient claim extraction** with minimal processing
+- **Multi-source token extraction** with priority-based short-circuiting

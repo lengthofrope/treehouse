@@ -8,6 +8,8 @@ use LengthOfRope\TreeHouse\Http\Request;
 use LengthOfRope\TreeHouse\Http\Response;
 use LengthOfRope\TreeHouse\Auth\PermissionChecker;
 use LengthOfRope\TreeHouse\Auth\Contracts\Authorizable;
+use LengthOfRope\TreeHouse\Auth\AuthManager;
+use LengthOfRope\TreeHouse\Auth\JwtGuard;
 use Closure;
 
 /**
@@ -37,23 +39,52 @@ class RoleMiddleware implements MiddlewareInterface
     private array $config;
 
     /**
+     * Authentication manager instance
+     */
+    private AuthManager $authManager;
+
+    /**
+     * Guards to try for authentication
+     */
+    private array $guards;
+
+    /**
      * Create a new role middleware instance
      *
      * @param array $config Auth configuration
      */
     public function __construct(...$args)
     {
-        // Handle both old array config and new parameter-based config
-        if (count($args) === 1 && is_array($args[0])) {
-            // Old style: config array
-            $this->config = $args[0];
-        } else {
-            // New style: roles as parameters (e.g., 'admin', 'editor')
-            $this->config = [];
-            if (!empty($args)) {
-                $this->config['required_roles'] = $args;
+        // Parse arguments - can be roles, guards, or both
+        $this->config = [];
+        $this->guards = ['web']; // Default guard
+        
+        foreach ($args as $arg) {
+            if (is_array($arg)) {
+                // Config array (old style)
+                $this->config = array_merge($this->config, $arg);
+            } elseif (str_contains($arg, ':')) {
+                // Guard specification (e.g., "auth:api,web")
+                if (str_starts_with($arg, 'auth:')) {
+                    $this->guards = explode(',', substr($arg, 5));
+                } else {
+                    // Role with guard (e.g., "admin:api")
+                    [$role, $guard] = explode(':', $arg, 2);
+                    $this->config['required_roles'][] = $role;
+                    $this->guards = [$guard];
+                }
+            } else {
+                // Simple role string
+                $this->config['required_roles'][] = $arg;
             }
         }
+        
+        // Get AuthManager instance
+        $app = $GLOBALS['app'] ?? null;
+        if (!$app) {
+            throw new \RuntimeException('Application instance not available');
+        }
+        $this->authManager = $app->make('auth');
         
         $this->checker = new PermissionChecker($this->config);
     }
@@ -107,104 +138,32 @@ class RoleMiddleware implements MiddlewareInterface
      */
     private function getCurrentUser(Request $request): ?Authorizable
     {
-        // Try to get user from global auth helper
-        if (function_exists('auth')) {
-            $authManager = auth();
-            if ($authManager) {
-                $user = $authManager->user();
-                if ($user instanceof Authorizable) {
-                    return $user;
-                }
-            }
-        }
-
-        // Try to get user ID from session cookie
-        $sessionId = $request->cookie('session_id');
-        if ($sessionId) {
-            $userId = $this->getUserIdFromSession($sessionId);
-            if ($userId) {
-                return $this->findUserById($userId);
-            }
-        }
-
-        // Try to get user ID from Authorization header (Bearer token)
-        $authHeader = $request->header('authorization');
-        if ($authHeader && str_starts_with($authHeader, 'Bearer ')) {
-            $token = substr($authHeader, 7);
-            $userId = $this->getUserIdFromToken($token);
-            if ($userId) {
-                return $this->findUserById($userId);
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Get user ID from session
-     *
-     * @param string $sessionId Session ID
-     * @return mixed|null
-     */
-    private function getUserIdFromSession(string $sessionId): mixed
-    {
-        // This is a simplified implementation
-        // In a real application, you'd look up the session in a session store
-        // For now, just return null - this would need integration with session system
-        return null;
-    }
-
-    /**
-     * Get user ID from token
-     *
-     * @param string $token Bearer token
-     * @return mixed|null
-     */
-    private function getUserIdFromToken(string $token): mixed
-    {
-        // This is a simplified implementation
-        // In a real application, you'd validate and decode a JWT or API token
-        // For now, just return null - this would need integration with token system
-        return null;
-    }
-
-    /**
-     * Find user by ID
-     *
-     * @param mixed $userId User ID
-     * @return Authorizable|null
-     */
-    private function findUserById(mixed $userId): ?Authorizable
-    {
-        // Try to get user provider from auth config
-        $userProvider = $this->config['user_provider'] ?? null;
-        
-        if ($userProvider && class_exists($userProvider)) {
+        // Try each configured guard for authentication
+        foreach ($this->guards as $guardName) {
             try {
-                $user = $userProvider::find($userId);
-                if ($user instanceof Authorizable) {
-                    return $user;
+                $guard = $this->authManager->guard($guardName);
+                
+                // Set request for JWT guards
+                if ($guard instanceof JwtGuard) {
+                    $guard->setRequest($request);
+                }
+                
+                if ($guard->check()) {
+                    $user = $guard->user();
+                    if ($user instanceof Authorizable) {
+                        return $user;
+                    }
                 }
             } catch (\Exception $e) {
-                // Ignore errors and continue to fallback
-            }
-        }
-        
-        // Fallback: Try to use User model if available and no provider configured
-        if (!$userProvider && class_exists('\LengthOfRope\TreeHouse\Models\User')) {
-            try {
-                $userClass = '\LengthOfRope\TreeHouse\Models\User';
-                $user = $userClass::find($userId);
-                if ($user instanceof Authorizable) {
-                    return $user;
-                }
-            } catch (\Exception $e) {
-                // Ignore errors and return null
+                // Continue trying other guards
+                continue;
             }
         }
 
         return null;
     }
+
+    // Removed old session/token methods - now using AuthManager properly
 
     /**
      * Parse roles string into array
@@ -231,22 +190,30 @@ class RoleMiddleware implements MiddlewareInterface
     {
         $response = new Response('Unauthorized', 401);
         
-        // For AJAX requests, return JSON
+        // For AJAX/JSON requests, return JSON
         if ($this->isAjaxRequest($request)) {
             $response->setContent(json_encode([
                 'error' => 'Unauthorized',
-                'message' => 'Authentication required'
+                'message' => 'Authentication required to access this resource',
+                'guards_tried' => $this->guards,
+                'code' => 'AUTH_REQUIRED'
             ]));
             $response->setHeader('Content-Type', 'application/json');
+            
+            // Add JWT authentication challenge if JWT guards are being used
+            if ($this->hasJwtGuard()) {
+                $response->setHeader('WWW-Authenticate', 'Bearer realm="API"');
+            }
         } else {
-            // For regular requests, you might want to redirect to login
-            // For now, just return a simple response
+            // For regular requests, return HTML
+            $guardsList = implode(', ', $this->guards);
             $response->setContent('<!DOCTYPE html>
 <html>
 <head><title>Unauthorized</title></head>
 <body>
     <h1>401 - Unauthorized</h1>
-    <p>You must be logged in to access this resource.</p>
+    <p>You must be authenticated to access this resource.</p>
+    <p><small>Guards tried: ' . htmlspecialchars($guardsList) . '</small></p>
 </body>
 </html>');
             $response->setHeader('Content-Type', 'text/html');
@@ -266,24 +233,28 @@ class RoleMiddleware implements MiddlewareInterface
     {
         $response = new Response('Forbidden', 403);
         
-        // For AJAX requests, return JSON
+        // For AJAX/JSON requests, return JSON
         if ($this->isAjaxRequest($request)) {
             $response->setContent(json_encode([
                 'error' => 'Forbidden',
-                'message' => 'Insufficient privileges',
-                'required_roles' => $requiredRoles
+                'message' => 'Insufficient role privileges to access this resource',
+                'required_roles' => $requiredRoles,
+                'guards_used' => $this->guards,
+                'code' => 'INSUFFICIENT_ROLE'
             ]));
             $response->setHeader('Content-Type', 'application/json');
         } else {
             // For regular requests, return HTML
             $roleList = implode(', ', $requiredRoles);
+            $guardsList = implode(', ', $this->guards);
             $response->setContent('<!DOCTYPE html>
 <html>
 <head><title>Forbidden</title></head>
 <body>
     <h1>403 - Forbidden</h1>
-    <p>You do not have permission to access this resource.</p>
-    <p>Required role(s): ' . htmlspecialchars($roleList) . '</p>
+    <p>You do not have the required role to access this resource.</p>
+    <p><strong>Required role(s):</strong> ' . htmlspecialchars($roleList) . '</p>
+    <p><small>Authentication guards: ' . htmlspecialchars($guardsList) . '</small></p>
 </body>
 </html>');
             $response->setHeader('Content-Type', 'text/html');
@@ -315,5 +286,46 @@ class RoleMiddleware implements MiddlewareInterface
     {
         $this->config = $config;
         $this->checker->setConfig($config);
+    }
+
+    /**
+     * Check if any of the guards is a JWT guard
+     *
+     * @return bool
+     */
+    private function hasJwtGuard(): bool
+    {
+        foreach ($this->guards as $guardName) {
+            try {
+                $guard = $this->authManager->guard($guardName);
+                if ($guard instanceof JwtGuard) {
+                    return true;
+                }
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get the guards being used by this middleware
+     *
+     * @return array
+     */
+    public function getGuards(): array
+    {
+        return $this->guards;
+    }
+
+    /**
+     * Set the guards to use for authentication
+     *
+     * @param array $guards Guard names
+     * @return void
+     */
+    public function setGuards(array $guards): void
+    {
+        $this->guards = $guards;
     }
 }

@@ -13,6 +13,7 @@ TreeHouse is a modern, lightweight PHP web framework built entirely from scratch
 - **Multi-Layer Architecture**: Foundation, Database, Router, Auth, Console, Cache, Http, Security, Support, Validation, View, Errors
 - **ActiveRecord ORM**: Eloquent-style models with relationships and query building
 - **Role-Based Access Control**: Comprehensive RBAC system with permissions and policies
+- **JWT Authentication**: Enterprise-grade stateless authentication with RFC 7519 compliance, multi-algorithm support, and production-ready configuration
 - **Template Engine**: HTML-valid templating with auth integration and error views
 - **CLI Framework**: Comprehensive console application with user management and development tools
 - **Error Handling**: PSR-3 compliant logging, hierarchical exceptions, multi-format rendering
@@ -20,6 +21,8 @@ TreeHouse is a modern, lightweight PHP web framework built entirely from scratch
 - **Rate Limiting**: Enterprise-grade middleware with multiple strategies (Fixed Window, Sliding Window, Token Bucket) and key resolvers
 - **Validation**: 25+ built-in validation rules with custom rule support
 - **Caching**: File-based caching with pattern matching and performance optimization
+- **Events System**: Synchronous event dispatching with model lifecycle events and listener registration
+- **Mail System**: Comprehensive email system with multiple drivers and queue support
 
 ## Technologies
 - **Core**: Pure PHP 8.4+ (zero external dependencies)
@@ -35,7 +38,7 @@ TreeHouse is a modern, lightweight PHP web framework built entirely from scratch
 - **The templating engine IS NOT Thymeleaf, nor was it inspired on it** Thymeleaf concepts do not apply, since the TreeHouse templating engine uses its own concepts.
 
 ## Project Status
-Work in progress - framework is functional but not yet production-ready. Active development focusing on feature completion and stability.
+Work in progress - framework is functional and nearing production-ready status. Active development focused on feature completion and stability. **JWT Authentication System Phase 2 completed** - enterprise-grade stateless authentication now available.
 
 ## Significance
-TreeHouse addresses the complexity and dependency bloat common in modern PHP frameworks by providing a self-contained, comprehensive solution. It offers developers the power of full-featured frameworks like Laravel while maintaining complete control over dependencies and reducing security surface area through its zero-dependency approach.
+TreeHouse addresses the complexity and dependency bloat common in modern PHP frameworks by providing a self-contained, comprehensive solution. It offers developers the power of full-featured frameworks like Laravel while maintaining complete control over dependencies and reducing security surface area through its zero-dependency approach. The addition of enterprise-grade JWT authentication makes it ideal for modern API-first applications and microservices architecture.

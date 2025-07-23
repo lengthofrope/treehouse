@@ -684,6 +684,8 @@ class Application
     {
         // Register built-in middleware aliases
         $aliases = [
+            'auth' => 'LengthOfRope\TreeHouse\Router\Middleware\AuthMiddleware',
+            'jwt' => 'LengthOfRope\TreeHouse\Router\Middleware\JwtMiddleware',
             'role' => 'LengthOfRope\TreeHouse\Router\Middleware\RoleMiddleware',
             'permission' => 'LengthOfRope\TreeHouse\Router\Middleware\PermissionMiddleware',
             'throttle' => 'LengthOfRope\TreeHouse\Router\Middleware\RateLimit\RateLimitMiddleware',

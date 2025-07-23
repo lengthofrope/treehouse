@@ -149,17 +149,17 @@ class RolePermissionIntegrationTest extends DatabaseTestCase
 
         $user->assignRole($adminRole);
 
-        // Test middleware configuration
-        $config = [
-            'roles' => [
-                'admin' => ['*'],
-                'editor' => ['edit-posts', 'view-posts'],
-                'viewer' => ['view-posts'],
-            ],
-            'default_role' => 'viewer',
-        ];
+        // Set up proper AuthManager mock
+        $authManager = $this->createMock(\LengthOfRope\TreeHouse\Auth\AuthManager::class);
+        $guard = $this->createMock(\LengthOfRope\TreeHouse\Auth\SessionGuard::class);
+        $guard->method('check')->willReturn(false); // Simulate unauthenticated user
+        $authManager->method('guard')->willReturn($guard);
 
-        $middleware = new RoleMiddleware($config);
+        // Set up global app instance with proper AuthManager
+        $GLOBALS['app'] = $this->createMockApp(['auth' => $authManager]);
+
+        // Create middleware with role requirement
+        $middleware = new RoleMiddleware('admin');
 
         // Test unauthenticated request
         $request = $this->createRequestWithRoles('admin');
@@ -169,6 +169,9 @@ class RolePermissionIntegrationTest extends DatabaseTestCase
 
         $response = $middleware->handle($request, $next);
         $this->assertEquals(401, $response->getStatusCode());
+
+        // Clean up
+        unset($GLOBALS['app']);
     }
 
     public function testPermissionCategorization(): void
@@ -311,6 +314,17 @@ class RolePermissionIntegrationTest extends DatabaseTestCase
         return new Request($query, [], [], [], $serverVars);
     }
 
+    private function createMockApp(array $services = []): object
+    {
+        return new class($services) {
+            public function __construct(private array $services) {}
+            
+            public function make(string $abstract): mixed
+            {
+                return $this->services[$abstract] ?? null;
+            }
+        };
+    }
 
     private function setupTestData(): void
     {

@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Router\Middleware;
 
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 use LengthOfRope\TreeHouse\Router\Middleware\RoleMiddleware;
+use LengthOfRope\TreeHouse\Auth\AuthManager;
+use LengthOfRope\TreeHouse\Auth\SessionGuard;
 use LengthOfRope\TreeHouse\Http\Request;
 use LengthOfRope\TreeHouse\Http\Response;
 use LengthOfRope\TreeHouse\Auth\Contracts\Authorizable;
-use LengthOfRope\TreeHouse\Auth\AuthorizableUser;
 
 /**
  * Role Middleware Tests
@@ -20,6 +21,7 @@ use LengthOfRope\TreeHouse\Auth\AuthorizableUser;
 class RoleMiddlewareTest extends TestCase
 {
     protected RoleMiddleware $middleware;
+    protected AuthManager $authManager;
     protected array $authConfig;
 
     protected function setUp(): void
@@ -41,11 +43,37 @@ class RoleMiddlewareTest extends TestCase
             'default_role' => 'viewer',
         ];
 
+        // Create mock AuthManager
+        $this->authManager = $this->createMock(AuthManager::class);
+
+        // Set up global app instance
+        $GLOBALS['app'] = $this->createMockApp([
+            'auth' => $this->authManager
+        ]);
+
+        // Create middleware with old-style config array
         $this->middleware = new RoleMiddleware($this->authConfig);
+    }
+
+    protected function tearDown(): void
+    {
+        unset($GLOBALS['app']);
+        parent::tearDown();
     }
 
     public function testUnauthenticatedUserReturnsUnauthorized(): void
     {
+        // Mock guard that fails authentication
+        $guard = $this->createMock(SessionGuard::class);
+        $guard->expects($this->once())
+              ->method('check')
+              ->willReturn(false);
+
+        $this->authManager->expects($this->once())
+                         ->method('guard')
+                         ->with('web')
+                         ->willReturn($guard);
+
         $request = $this->createRequestWithRoles('admin');
 
         $next = function ($req) {
@@ -60,6 +88,19 @@ class RoleMiddlewareTest extends TestCase
 
     public function testJsonRequestReturnsJsonErrorResponse(): void
     {
+        // Mock guard that fails authentication
+        $guard = $this->createMock(SessionGuard::class);
+        $guard->expects($this->once())
+              ->method('check')
+              ->willReturn(false);
+
+        // The guard method will be called 2 times:
+        // 1 time in getCurrentUser() + 1 time in hasJwtGuard()
+        $this->authManager->expects($this->exactly(2))
+                         ->method('guard')
+                         ->with('web')
+                         ->willReturn($guard);
+
         $request = $this->createRequestWithRoles('admin', ['Accept' => 'application/json']);
 
         $next = function ($req) {
@@ -73,17 +114,18 @@ class RoleMiddlewareTest extends TestCase
 
         $responseData = json_decode($response->getContent(), true);
         $this->assertEquals('Unauthorized', $responseData['error']);
-        $this->assertEquals('Authentication required', $responseData['message']);
+        $this->assertEquals('Authentication required to access this resource', $responseData['message']);
     }
 
     public function testEmptyRoleParameterWithUnauthenticatedUserStillRequiresAuth(): void
     {
+        // Mock guard that fails authentication
+        $guard = $this->createMock(SessionGuard::class);
+        $guard->expects($this->once())->method('check')->willReturn(false);
+        $this->authManager->expects($this->once())->method('guard')->willReturn($guard);
+
         $request = $this->createRequestWithRoles('');
-
-        $next = function ($req) {
-            return new Response('Success', 200);
-        };
-
+        $next = function ($req) { return new Response('Success', 200); };
         $response = $this->middleware->handle($request, $next);
 
         // Empty roles still require authentication first
@@ -108,13 +150,14 @@ class RoleMiddlewareTest extends TestCase
 
     public function testRoleParsing(): void
     {
+        // Mock guard that fails authentication
+        $guard = $this->createMock(SessionGuard::class);
+        $guard->expects($this->once())->method('check')->willReturn(false);
+        $this->authManager->expects($this->once())->method('guard')->willReturn($guard);
+
         // Test that roles are parsed correctly from query string
         $request = $this->createRequestWithRoles('admin,editor,viewer');
-
-        $next = function ($req) {
-            return new Response('Success', 200);
-        };
-
+        $next = function ($req) { return new Response('Success', 200); };
         $response = $this->middleware->handle($request, $next);
 
         // Should be unauthorized since no user is authenticated
@@ -123,13 +166,14 @@ class RoleMiddlewareTest extends TestCase
 
     public function testMiddlewareInterfaceCompliance(): void
     {
+        // Mock guard that fails authentication
+        $guard = $this->createMock(SessionGuard::class);
+        $guard->expects($this->once())->method('check')->willReturn(false);
+        $this->authManager->expects($this->once())->method('guard')->willReturn($guard);
+
         // Test that the middleware implements the interface correctly
         $request = $this->createRequestWithRoles('admin');
-        
-        $next = function ($req) {
-            return new Response('Success', 200);
-        };
-
+        $next = function ($req) { return new Response('Success', 200); };
         $response = $this->middleware->handle($request, $next);
         
         $this->assertInstanceOf(Response::class, $response);
@@ -139,12 +183,13 @@ class RoleMiddlewareTest extends TestCase
 
     public function testHtmlResponseForNonJsonRequest(): void
     {
+        // Mock guard that fails authentication
+        $guard = $this->createMock(SessionGuard::class);
+        $guard->expects($this->once())->method('check')->willReturn(false);
+        $this->authManager->expects($this->once())->method('guard')->willReturn($guard);
+
         $request = $this->createRequestWithRoles('admin');
-
-        $next = function ($req) {
-            return new Response('Success', 200);
-        };
-
+        $next = function ($req) { return new Response('Success', 200); };
         $response = $this->middleware->handle($request, $next);
 
         $this->assertEquals(401, $response->getStatusCode());
@@ -167,5 +212,17 @@ class RoleMiddlewareTest extends TestCase
         }
 
         return new Request($query, [], [], [], $serverVars);
+    }
+
+    private function createMockApp(array $services = []): object
+    {
+        return new class($services) {
+            public function __construct(private array $services) {}
+            
+            public function make(string $abstract): mixed
+            {
+                return $this->services[$abstract] ?? null;
+            }
+        };
     }
 }

@@ -213,6 +213,8 @@ class MiddlewareStack
     protected function resolveBuiltInMiddleware(string $middleware): string
     {
         $builtInMiddleware = [
+            'auth' => 'LengthOfRope\TreeHouse\Router\Middleware\AuthMiddleware',
+            'jwt' => 'LengthOfRope\TreeHouse\Router\Middleware\JwtMiddleware',
             'role' => 'LengthOfRope\TreeHouse\Router\Middleware\RoleMiddleware',
             'permission' => 'LengthOfRope\TreeHouse\Router\Middleware\PermissionMiddleware',
             'throttle' => 'LengthOfRope\TreeHouse\Router\Middleware\RateLimit\RateLimitMiddleware',

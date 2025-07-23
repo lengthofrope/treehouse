@@ -16,12 +16,13 @@ The Security Layer provides comprehensive security utilities for the TreeHouse F
 
 ## Overview
 
-The Security Layer consists of four main components:
+The Security Layer consists of five main components:
 
 - **CSRF Protection**: Token-based Cross-Site Request Forgery protection
 - **Encryption**: AES-256-CBC encryption with secure payload handling
 - **Password Hashing**: Secure password hashing using PHP's built-in functions
 - **Input Sanitization**: XSS prevention and input cleaning utilities
+- **Security Headers Management**: Comprehensive HTTP security headers (Phase 5)
 
 ### Key Features
 
@@ -49,7 +50,96 @@ LengthOfRope\TreeHouse\Security\Hash
 
 // Input Sanitization
 LengthOfRope\TreeHouse\Security\Sanitizer
+
+// Security Headers Management (Phase 5)
+LengthOfRope\TreeHouse\Security\SecurityHeadersManager
 ```
+
+## Security Headers Management (Phase 5)
+
+The [`SecurityHeadersManager`](src/TreeHouse/Security/SecurityHeadersManager.php:1) class provides comprehensive HTTP security headers management for enhanced application security.
+
+### Features
+
+- **CORS Headers**: Cross-Origin Resource Sharing configuration
+- **Content Security Policy (CSP)**: XSS and injection attack prevention
+- **Security Headers**: HSTS, X-Frame-Options, X-Content-Type-Options, etc.
+- **Rate Limiting Headers**: API rate limiting information
+- **Custom Headers**: Flexible custom header injection
+- **Environment-aware Configuration**: Development vs. production settings
+
+### Basic Usage
+
+```php
+use LengthOfRope\TreeHouse\Security\SecurityHeadersManager;
+use LengthOfRope\TreeHouse\Http\{Request, Response};
+
+$headerManager = new SecurityHeadersManager();
+$response = new Response('Content');
+$request = new Request();
+
+// Apply security headers to response
+$secureResponse = $headerManager->applyHeaders($response, $request);
+```
+
+### Configuration
+
+```php
+$config = [
+    'cors' => [
+        'enabled' => true,
+        'allowed_origins' => ['https://example.com', '*.trusted.com'],
+        'allowed_methods' => ['GET', 'POST', 'PUT', 'DELETE'],
+        'allowed_headers' => ['Authorization', 'Content-Type'],
+        'allow_credentials' => false,
+        'max_age' => 86400
+    ],
+    'csp' => [
+        'enabled' => true,
+        'default_src' => ["'self'"],
+        'script_src' => ["'self'", "'unsafe-inline'"],
+        'style_src' => ["'self'", "'unsafe-inline'"]
+    ],
+    'security' => [
+        'hsts' => [
+            'enabled' => true,
+            'max_age' => 31536000,
+            'include_subdomains' => true
+        ],
+        'content_type_options' => 'nosniff',
+        'frame_options' => 'DENY'
+    ]
+];
+
+$headerManager = new SecurityHeadersManager($config);
+```
+
+### CORS Support
+
+```php
+// Handle preflight requests
+if ($request->getMethod() === 'OPTIONS') {
+    $response = $headerManager->createPreflightResponse($request);
+    return $response;
+}
+
+// Apply CORS headers with origin validation
+$response = $headerManager->applyHeaders($response, $request);
+```
+
+### Key Methods
+
+- [`applyHeaders(Response $response, ?Request $request, array $context): Response`] - Apply security headers
+- [`createPreflightResponse(Request $request): Response`] - Create CORS preflight response
+- [`updateConfig(array $config): self`] - Update configuration
+- [`getHeadersSummary(): array`] - Get security headers status
+
+### Phase 5 Improvements
+
+- **Fixed Configuration Merging**: Resolved `array_merge_recursive` issues that created invalid configurations
+- **Enhanced CORS Validation**: Improved wildcard subdomain matching for origin validation
+- **Proper Header Management**: Fixed header replacement logic to prevent stale values
+- **Type-safe Configuration**: Ensures boolean and scalar values are properly handled
 
 ## CSRF Protection
 
