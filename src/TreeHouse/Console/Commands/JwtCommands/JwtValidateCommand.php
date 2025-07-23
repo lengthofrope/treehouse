@@ -11,6 +11,7 @@ use LengthOfRope\TreeHouse\Console\Input\InputInterface;
 use LengthOfRope\TreeHouse\Console\Output\OutputInterface;
 use LengthOfRope\TreeHouse\Auth\Jwt\JwtConfig;
 use LengthOfRope\TreeHouse\Auth\Jwt\TokenValidator;
+use LengthOfRope\TreeHouse\Support\Env;
 
 /**
  * JWT Validate Command
@@ -35,7 +36,10 @@ class JwtValidateCommand extends Command
             ->addArgument('token', InputArgument::REQUIRED, 'JWT token to validate')
             ->addOption('secret', 's', InputOption::VALUE_OPTIONAL, 'JWT secret key')
             ->addOption('algorithm', 'a', InputOption::VALUE_OPTIONAL, 'JWT algorithm (HS256, RS256, ES256)')
-            ->addOption('format', 'f', InputOption::VALUE_OPTIONAL, 'Output format (json|table|plain)', 'plain');
+            ->addOption('format', 'f', InputOption::VALUE_OPTIONAL, 'Output format (json|table|plain)', 'plain')
+            ->addOption('no-issuer', null, InputOption::VALUE_NONE, 'Skip issuer validation (remove iss from required claims)')
+            ->addOption('no-audience', null, InputOption::VALUE_NONE, 'Skip audience validation')
+            ->addOption('skip-claims', null, InputOption::VALUE_OPTIONAL, 'Skip specific required claims (comma-separated)', '');
     }
 
     /**
@@ -81,7 +85,7 @@ class JwtValidateCommand extends Command
         
         if ($secret = $input->getOption('secret')) {
             $config['secret'] = $secret;
-        } elseif ($envSecret = $_ENV['JWT_SECRET'] ?? null) {
+        } elseif ($envSecret = Env::get('JWT_SECRET')) {
             $config['secret'] = $envSecret;
         } else {
             $config['secret'] = 'cli-default-secret-key-change-in-production';
@@ -89,7 +93,43 @@ class JwtValidateCommand extends Command
         
         if ($algorithm = $input->getOption('algorithm')) {
             $config['algorithm'] = $algorithm;
+        } elseif ($envAlgorithm = Env::get('JWT_ALGORITHM')) {
+            $config['algorithm'] = $envAlgorithm;
         }
+
+        // Handle required claims configuration
+        $requiredClaims = ['iss', 'iat', 'exp', 'nbf', 'sub']; // Default required claims
+        $skipClaims = [];
+        
+        if ($input->getOption('no-issuer')) {
+            $requiredClaims = array_diff($requiredClaims, ['iss']);
+            $skipClaims[] = 'iss';
+        }
+        
+        if ($skipClaimsOption = $input->getOption('skip-claims')) {
+            $claimsToSkip = array_map('trim', explode(',', $skipClaimsOption));
+            $requiredClaims = array_diff($requiredClaims, $claimsToSkip);
+            $skipClaims = array_merge($skipClaims, $claimsToSkip);
+        }
+        
+        // Load additional JWT configuration from environment
+        if (!in_array('iss', $skipClaims) && ($issuer = Env::get('JWT_ISSUER'))) {
+            $config['issuer'] = $issuer;
+        }
+        
+        if (!$input->getOption('no-audience') && ($audience = Env::get('JWT_AUDIENCE'))) {
+            $config['audience'] = $audience;
+        }
+        
+        if ($ttl = Env::get('JWT_TTL')) {
+            $config['ttl'] = (int) $ttl;
+        }
+        
+        if ($leeway = Env::get('JWT_LEEWAY')) {
+            $config['leeway'] = (int) $leeway;
+        }
+
+        $config['required_claims'] = array_values($requiredClaims);
 
         return new JwtConfig($config);
     }

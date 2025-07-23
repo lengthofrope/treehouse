@@ -12,6 +12,7 @@ use LengthOfRope\TreeHouse\Console\Output\OutputInterface;
 use LengthOfRope\TreeHouse\Auth\Jwt\JwtConfig;
 use LengthOfRope\TreeHouse\Auth\Jwt\TokenGenerator;
 use LengthOfRope\TreeHouse\Support\Carbon;
+use LengthOfRope\TreeHouse\Support\Env;
 
 /**
  * JWT Generate Command
@@ -94,7 +95,7 @@ class JwtGenerateCommand extends Command
         
         if ($secret = $input->getOption('secret')) {
             $config['secret'] = $secret;
-        } elseif ($envSecret = $_ENV['JWT_SECRET'] ?? null) {
+        } elseif ($envSecret = Env::get('JWT_SECRET')) {
             $config['secret'] = $envSecret;
         } else {
             $config['secret'] = 'cli-default-secret-key-change-in-production';
@@ -102,10 +103,31 @@ class JwtGenerateCommand extends Command
         
         if ($algorithm = $input->getOption('algorithm')) {
             $config['algorithm'] = $algorithm;
+        } elseif ($envAlgorithm = Env::get('JWT_ALGORITHM')) {
+            $config['algorithm'] = $envAlgorithm;
         }
         
         if ($ttl = $input->getOption('ttl')) {
             $config['ttl'] = (int) $ttl;
+        } elseif ($envTtl = Env::get('JWT_TTL')) {
+            $config['ttl'] = (int) $envTtl;
+        }
+
+        // Load additional JWT configuration from environment
+        if ($issuer = Env::get('JWT_ISSUER')) {
+            $config['issuer'] = $issuer;
+        }
+        
+        if ($audience = Env::get('JWT_AUDIENCE')) {
+            $config['audience'] = $audience;
+        }
+        
+        if ($refreshTtl = Env::get('JWT_REFRESH_TTL')) {
+            $config['refresh_ttl'] = (int) $refreshTtl;
+        }
+        
+        if ($leeway = Env::get('JWT_LEEWAY')) {
+            $config['leeway'] = (int) $leeway;
         }
 
         return new JwtConfig($config);
