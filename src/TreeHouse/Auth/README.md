@@ -52,6 +52,41 @@ The authentication system is built on a modular architecture with clear separati
 - **Pure stateless**: All user data comes from JWT claims
 - **39% code reduction**: From 439 to 267 lines
 
+## Phase 5: Advanced Security & Tools
+
+Phase 5 completes the TreeHouse Authentication system with enterprise-grade security features and developer tools.
+
+### Advanced Security Components
+
+1. **Key Rotation System** - Automatic JWT signing key rotation
+2. **Breach Detection** - Real-time threat monitoring and automated responses
+3. **CSRF Protection** - Stateless CSRF protection using JWT tokens
+4. **Security Headers** - Comprehensive security headers management
+5. **Enhanced Debugging** - Advanced JWT debugging and analysis tools
+6. **Testing Framework** - Comprehensive JWT testing utilities
+7. **Configuration Validation** - Startup security validation
+8. **CLI Management** - Complete JWT operations via command line
+
+### Key Rotation & Security
+- **Automatic key rotation** with configurable intervals (30 days default)
+- **Grace period support** for seamless key transitions (7 days default)
+- **Multi-algorithm support** (HS256, RS256, ES256)
+- **Encrypted key storage** using the cache system
+- **Key versioning** and rotation statistics
+
+### Threat Detection & Response
+- **Failed authentication monitoring** with configurable thresholds
+- **Token replay attack detection** and prevention
+- **IP-based threat blocking** with automatic responses
+- **User behavior analysis** and anomaly detection
+- **Comprehensive security reporting** and audit logs
+
+### Enterprise Features
+- **Production-ready security** with industry standards compliance
+- **High availability design** with stateless architecture
+- **Operational monitoring** with real-time metrics
+- **Developer productivity tools** for debugging and testing
+
 ### Configuration Simplification
 ```php
 // Old configuration (hybrid mode)

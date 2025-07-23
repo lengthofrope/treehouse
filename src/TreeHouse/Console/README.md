@@ -82,6 +82,28 @@ th user:role <email> <action> <role>
 # Actions: assign, remove, list
 ```
 
+### JWT Management Commands (Phase 5)
+
+```bash
+# Generate JWT tokens
+th jwt:generate <user-id> [--claims='{"role":"admin"}'] [--ttl=3600] [--format=json]
+
+# Validate JWT tokens
+th jwt:validate <token> [--format=table]
+
+# Decode JWT tokens (without validation)
+th jwt:decode <token> [--format=json]
+
+# Manage key rotation
+th jwt:rotate-keys [--algorithm=HS256] [--force]
+
+# Check security status
+th jwt:security [--hours=24] [--format=table]
+
+# Validate JWT configuration
+th jwt:config [--validate] [--format=table]
+```
+
 ## Global Options
 
 All commands support these global options:
@@ -118,6 +140,7 @@ Commands are organized into logical groups:
 3. **Database Operations**: `migrate:run`, `migrate:status`
 4. **Development Tools**: `serve`, `test:run`
 5. **User Management**: `user:create`, `users:list`, `user:update`, `user:delete`, `user:role`
+6. **JWT Management (Phase 5)**: `jwt:generate`, `jwt:validate`, `jwt:decode`, `jwt:rotate-keys`, `jwt:security`, `jwt:config`
 
 ### Input/Output System
 
@@ -400,6 +423,66 @@ th test:run --filter=UserTest
 # Output: Running filtered tests matching 'UserTest'...
 ```
 
+### JWT Management (Phase 5)
+
+```bash
+# Generate JWT token for user
+th jwt:generate 123 --claims='{"role":"admin","department":"IT"}'
+# Output:
+# JWT Token Generated Successfully:
+# Token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+# User ID: 123
+# Claims: {"role":"admin","department":"IT"}
+# Expires: 2024-01-01 13:00:00
+
+# Validate JWT token
+th jwt:validate eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+# Output:
+# Token Validation Result:
+# ✓ Token is valid
+# ✓ Signature verified
+# ✓ Not expired
+# User ID: 123
+# Claims: {"role":"admin"}
+
+# Decode token structure
+th jwt:decode eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9... --format=json
+# Output: {"header":{"typ":"JWT","alg":"HS256"},"payload":{"user_id":123},"signature":"..."}
+
+# Rotate JWT signing keys
+th jwt:rotate-keys --algorithm=HS256
+# Output:
+# Key Rotation Completed:
+# ✓ New key generated for HS256
+# ✓ Old key marked for grace period
+# ✓ Key rotation logged
+# Total keys: 2 (1 active, 1 in grace period)
+
+# Check security status
+th jwt:security --hours=24 --format=table
+# Output:
+# JWT Security Status (Last 24 Hours):
+# | Metric                | Value  |
+# |-----------------------|--------|
+# | Failed Auth Attempts  | 12     |
+# | Blocked IPs           | 2      |
+# | Token Validations     | 1,847  |
+# | Key Rotations         | 0      |
+# | Threat Level          | Low    |
+
+# Validate JWT configuration
+th jwt:config --validate
+# Output:
+# JWT Configuration Validation:
+# ✓ Secret key length adequate (64 chars)
+# ✓ Algorithm is secure (HS256)
+# ✓ TTL is reasonable (900 seconds)
+# ✓ Refresh TTL configured (1209600 seconds)
+# ⚠ Key rotation not enabled
+# ✓ CSRF protection configured
+# Overall Status: Good (1 warning)
+```
+
 ## Error Handling
 
 The CLI provides comprehensive error handling:
@@ -487,7 +570,24 @@ The Console layer integrates with all other framework layers:
 
 - **Foundation Layer**: Uses application container and configuration system
 - **Database Layer**: Provides migration and user management commands
-- **Auth Layer**: Integrates with RBAC system for user management
-- **Cache Layer**: Provides cache management commands
+- **Auth Layer**: Integrates with RBAC system for user management and JWT operations
+- **Security Layer**: Provides security monitoring and key rotation management
+- **Cache Layer**: Provides cache management commands and JWT key storage
 - **Router Layer**: Can generate route lists and debugging information
 - **View Layer**: Can clear view caches and compile templates
+
+## Phase 5 Enhancements
+
+The Console layer has been enhanced with comprehensive JWT management capabilities:
+
+### Enterprise JWT Operations
+- **Token Lifecycle Management**: Generate, validate, and decode tokens
+- **Security Operations**: Key rotation, threat monitoring, configuration validation
+- **Operational Monitoring**: Real-time security status and performance metrics
+- **Developer Tools**: Debug-friendly token analysis and testing utilities
+
+### Production-Ready Features
+- **Multiple Output Formats**: JSON, table, and plain text for automation
+- **Comprehensive Validation**: Configuration security checks and recommendations
+- **Real-time Monitoring**: Security alerts and threat level assessment
+- **Operational Excellence**: Automated key rotation and security compliance

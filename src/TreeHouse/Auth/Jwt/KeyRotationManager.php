@@ -34,6 +34,7 @@ class KeyRotationManager
     private const KEY_PREFIX = 'jwt_key_';
     private const CURRENT_KEY_ID = 'jwt_current_key_id';
     private const KEY_HISTORY = 'jwt_key_history';
+    private const ROTATION_COUNT = 'jwt_rotation_count';
     
     /**
      * Default rotation settings
@@ -78,14 +79,16 @@ class KeyRotationManager
         
         if (!$keyId) {
             // No current key, generate one
-            return $this->generateNewKey($algorithm);
+            $newKey = $this->generateNewKey($algorithm);
+            return $newKey;
         }
         
         $keyData = $this->getKeyById($keyId);
         
         if (!$keyData) {
             // Key missing, generate new one
-            return $this->generateNewKey($algorithm);
+            $newKey = $this->generateNewKey($algorithm);
+            return $newKey;
         }
         
         // Check if rotation is needed
@@ -113,6 +116,14 @@ class KeyRotationManager
         
         try {
             $keyData = $this->encryption->decryptPayload($encryptedData);
+            
+            // Check if key data is wrapped (when expires_at was provided to encryptPayload)
+            if (isset($keyData['data']) && isset($keyData['expires_at'])) {
+                // Unwrap the actual key data
+                $actualKeyData = $keyData['data'];
+                $actualKeyData['grace_expires_at'] = $keyData['expires_at'];
+                $keyData = $actualKeyData;
+            }
             
             // Check if key is within grace period
             if ($this->isKeyExpired($keyData)) {
@@ -144,6 +155,9 @@ class KeyRotationManager
             $this->addToHistory($oldKeyId);
         }
         
+        // Increment rotation count
+        $this->incrementRotationCount();
+        
         return $newKey;
     }
 
@@ -173,6 +187,7 @@ class KeyRotationManager
             case 'HS384':
             case 'HS512':
                 $keyData['secret'] = $this->generateSymmetricKey();
+                $keyData['key'] = $keyData['secret']; // For backward compatibility
                 break;
                 
             case 'RS256':
@@ -181,6 +196,7 @@ class KeyRotationManager
                 $keys = $this->generateRsaKeyPair();
                 $keyData['private_key'] = $keys['private'];
                 $keyData['public_key'] = $keys['public'];
+                $keyData['key'] = $keys['private']; // For backward compatibility
                 break;
                 
             case 'ES256':
@@ -189,6 +205,7 @@ class KeyRotationManager
                 $keys = $this->generateEcdsaKeyPair();
                 $keyData['private_key'] = $keys['private'];
                 $keyData['public_key'] = $keys['public'];
+                $keyData['key'] = $keys['private']; // For backward compatibility
                 break;
                 
             default:
@@ -256,7 +273,9 @@ class KeyRotationManager
      */
     public function isKeyExpired(array $keyData): bool
     {
-        return Carbon::now()->getTimestamp() >= $keyData['grace_expires_at'];
+        // Handle case where grace_expires_at might not be set
+        $graceExpiresAt = $keyData['grace_expires_at'] ?? $keyData['expires_at'] ?? 0;
+        return Carbon::now()->getTimestamp() >= $graceExpiresAt;
     }
 
     /**
@@ -277,6 +296,7 @@ class KeyRotationManager
             'time_until_rotation' => $currentKey ? max(0, $currentKey['expires_at'] - Carbon::now()->getTimestamp()) : 0,
             'valid_keys_count' => count($validKeys),
             'total_keys_in_history' => count($history),
+            'total_rotations' => $this->getRotationCount(),
             'auto_rotation_enabled' => $this->config['auto_rotation'],
             'rotation_interval' => $this->config['rotation_interval'],
             'grace_period' => $this->config['grace_period'],
@@ -363,7 +383,7 @@ class KeyRotationManager
      */
     private function generateEcdsaKeyPair(): array
     {
-        $curve = $this->config['key_strength'] >= 384 ? 'secp384r1' : 'secp256r1';
+        $curve = $this->config['key_strength'] >= 384 ? 'prime384v1' : 'prime256v1';
         
         $config = [
             'private_key_type' => OPENSSL_KEYTYPE_EC,
@@ -372,7 +392,14 @@ class KeyRotationManager
         
         $resource = openssl_pkey_new($config);
         if (!$resource) {
-            throw new SystemException('Failed to generate ECDSA key pair', 'ECDSA_GENERATION_FAILED');
+            // Fallback to alternative curve names
+            $fallbackCurve = $this->config['key_strength'] >= 384 ? 'secp384r1' : 'secp256r1';
+            $config['curve_name'] = $fallbackCurve;
+            $resource = openssl_pkey_new($config);
+            
+            if (!$resource) {
+                throw new SystemException('Failed to generate ECDSA key pair', 'ECDSA_GENERATION_FAILED');
+            }
         }
         
         openssl_pkey_export($resource, $privateKey);
@@ -534,5 +561,24 @@ class KeyRotationManager
         if ($this->config['key_strength'] < 128) {
             throw new InvalidArgumentException('Key strength must be at least 128 bits', 'INVALID_KEY_STRENGTH');
         }
+    }
+
+    /**
+     * Increment rotation count
+     */
+    private function incrementRotationCount(): void
+    {
+        $count = $this->cache->get(self::ROTATION_COUNT, 0);
+        $this->cache->forever(self::ROTATION_COUNT, $count + 1);
+    }
+
+    /**
+     * Get rotation count
+     *
+     * @return int Current rotation count
+     */
+    private function getRotationCount(): int
+    {
+        return $this->cache->get(self::ROTATION_COUNT, 0);
     }
 }

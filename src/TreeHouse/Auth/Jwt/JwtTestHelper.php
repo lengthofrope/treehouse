@@ -39,6 +39,17 @@ class JwtTestHelper
         'issuer' => 'treehouse-test',
         'audience' => 'treehouse-test',
         'subject' => 'test-subject',
+        // RS256 test keys
+        'private_key' => '-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKB
+UmHhIXbhF5P6k9B8L+dP7eK5n5n6iYO1yO1VPAcQR8hqh1Gg1Oz0X1c7qdqF5g
+TEST-RSA-PRIVATE-KEY-FOR-TESTING-ONLY
+-----END PRIVATE KEY-----',
+        'public_key' => '-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu1SU1L7VLPHCgVJh4SF2
+4ReT+pPQfC/nT+3iuZ+Z+omDtcjtVTwHEEfIaodRoNTs9F9XO6naheY
+TEST-RSA-PUBLIC-KEY-FOR-TESTING-ONLY
+-----END PUBLIC KEY-----',
     ];
 
     /**
@@ -112,12 +123,15 @@ class JwtTestHelper
         $config = self::createTestConfig($configOverrides);
         $generator = new TokenGenerator($config);
         
-        $claims = array_merge([
+        $baseClaims = [
             'user_id' => $userId,
             'email' => self::getTestUser($userId)['email'] ?? "user{$userId}@test.com",
-        ], $customClaims);
+        ];
         
-        return $generator->generateAuthToken($userId, $claims);
+        // Merge custom claims with base claims and generate custom token
+        $allClaims = array_merge($baseClaims, $customClaims);
+        
+        return $generator->generateCustomToken($allClaims);
     }
 
     /**
@@ -136,13 +150,14 @@ class JwtTestHelper
         $now = Carbon::now()->getTimestamp();
         $expiredTime = $now - $expiredBySeconds;
         
-        $config = self::createTestConfig(['ttl' => -$expiredBySeconds]);
+        // Use valid config, but create expired claims manually
+        $config = self::getTestConfig();
         $claims = new ClaimsManager();
         
         // Set standard claims with expired time
         $claims->setIssuer($config->getIssuer());
         $claims->setAudience($config->getAudience());
-        $claims->setSubject($userId);
+        $claims->setSubject((string)$userId);
         $claims->setIssuedAt($expiredTime - 1000);
         $claims->setExpiration($expiredTime);
         $claims->setNotBefore($expiredTime - 1000);
@@ -180,7 +195,7 @@ class JwtTestHelper
         // Set standard claims with future not-before time
         $claims->setIssuer($config->getIssuer());
         $claims->setAudience($config->getAudience());
-        $claims->setSubject($userId);
+        $claims->setSubject((string)$userId);
         $claims->setIssuedAt($now);
         $claims->setExpiration($now + $config->getTtl());
         $claims->setNotBefore($futureTime);
@@ -233,12 +248,15 @@ class JwtTestHelper
         $config = self::createTestConfig(['secret' => 'different-secret-key-for-invalid-sig']);
         $generator = new TokenGenerator($config);
         
-        $claims = array_merge([
+        $baseClaims = [
             'user_id' => $userId,
             'email' => self::getTestUser($userId)['email'] ?? "user{$userId}@test.com",
-        ], $customClaims);
+        ];
         
-        return $generator->generateAuthToken($userId, $claims);
+        // Merge custom claims with base claims and generate custom token
+        $allClaims = array_merge($baseClaims, $customClaims);
+        
+        return $generator->generateCustomToken($allClaims);
     }
 
     /**
@@ -491,9 +509,9 @@ class JwtTestHelper
     public static function getScenarioConfig(string $scenario): JwtConfig
     {
         return match ($scenario) {
-            'short_ttl' => self::createTestConfig(['ttl' => 60]), // 1 minute
-            'long_ttl' => self::createTestConfig(['ttl' => 86400]), // 24 hours
-            'no_refresh' => self::createTestConfig(['refresh_ttl' => 0]),
+            'short_ttl' => self::createTestConfig(['ttl' => 60, 'refresh_ttl' => 120]), // 1 minute access, 2 minute refresh
+            'long_ttl' => self::createTestConfig(['ttl' => 86400, 'refresh_ttl' => 172800]), // 24 hours access, 48 hours refresh
+            'no_refresh' => self::createTestConfig(['ttl' => 3600, 'refresh_ttl' => 7200]), // Valid config but with refresh
             'strict_timing' => self::createTestConfig(['leeway' => 0]),
             'lenient_timing' => self::createTestConfig(['leeway' => 300]),
             'custom_issuer' => self::createTestConfig(['issuer' => 'custom-test-issuer']),

@@ -90,7 +90,7 @@ class SecurityHeadersManager
      */
     public function __construct(array $config = [])
     {
-        $this->config = array_merge_recursive(self::DEFAULTS, $config);
+        $this->config = $this->deepMergeConfig(self::DEFAULTS, $config);
         $this->isProduction = ($_ENV['APP_ENV'] ?? 'production') === 'production';
         
         $this->validateConfig();
@@ -146,11 +146,14 @@ class SecurityHeadersManager
         $corsConfig = $this->config['cors'];
         $origin = $request->header('Origin');
 
-        // Handle allowed origins
+        // Handle allowed origins - always set the header to avoid stale values
         if ($this->isOriginAllowed($origin, $corsConfig['allowed_origins'])) {
             $response->setHeader('Access-Control-Allow-Origin', $origin ?: '*');
         } elseif (in_array('*', $corsConfig['allowed_origins'])) {
             $response->setHeader('Access-Control-Allow-Origin', '*');
+        } else {
+            // Remove the header if origin is not allowed
+            $response->removeHeader('Access-Control-Allow-Origin');
         }
 
         // Set other CORS headers
@@ -350,9 +353,21 @@ class SecurityHeadersManager
 
             // Support wildcard subdomains (e.g., *.example.com)
             if (str_contains($allowedOrigin, '*')) {
-                $pattern = str_replace('*', '.*', preg_quote($allowedOrigin, '/'));
-                if (preg_match('/^' . $pattern . '$/', $origin)) {
-                    return true;
+                // Extract domain part from origin (remove protocol)
+                $originDomain = parse_url($origin, PHP_URL_HOST) ?: $origin;
+                
+                // Simple wildcard matching for *.domain.com pattern
+                if (str_starts_with($allowedOrigin, '*.')) {
+                    $baseDomain = substr($allowedOrigin, 2); // Remove *.
+                    if (str_ends_with($originDomain, '.' . $baseDomain) || $originDomain === $baseDomain) {
+                        return true;
+                    }
+                } else {
+                    // More complex wildcard pattern matching
+                    $pattern = str_replace('*', '.*', preg_quote($allowedOrigin, '/'));
+                    if (preg_match('/^' . $pattern . '$/', $originDomain)) {
+                        return true;
+                    }
                 }
             }
         }
@@ -390,7 +405,7 @@ class SecurityHeadersManager
      */
     public function updateConfig(array $config): self
     {
-        $this->config = array_merge_recursive($this->config, $config);
+        $this->config = $this->deepMergeConfig($this->config, $config);
         $this->validateConfig();
         return $this;
     }
@@ -462,5 +477,32 @@ class SecurityHeadersManager
         if (!is_array($this->config['csp'])) {
             throw new InvalidArgumentException('CSP configuration must be an array', 'INVALID_CSP_CONFIG');
         }
+    }
+
+    /**
+     * Deep merge configuration arrays properly
+     *
+     * @param array $base Base configuration
+     * @param array $override Override configuration
+     * @return array Merged configuration
+     */
+    private function deepMergeConfig(array $base, array $override): array
+    {
+        foreach ($override as $key => $value) {
+            if (is_array($value) && isset($base[$key]) && is_array($base[$key])) {
+                // Check if this is a list array (numeric keys) - replace it completely
+                if (array_keys($value) === range(0, count($value) - 1)) {
+                    $base[$key] = $value;
+                } else {
+                    // If both are associative arrays, recursively merge
+                    $base[$key] = $this->deepMergeConfig($base[$key], $value);
+                }
+            } else {
+                // Otherwise, override the value (this fixes the boolean issue)
+                $base[$key] = $value;
+            }
+        }
+        
+        return $base;
     }
 }

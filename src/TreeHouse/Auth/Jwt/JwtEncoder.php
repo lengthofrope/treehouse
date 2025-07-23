@@ -9,6 +9,7 @@ use LengthOfRope\TreeHouse\Auth\Jwt\Algorithms\HmacSha256;
 use LengthOfRope\TreeHouse\Auth\Jwt\Algorithms\RsaSha256;
 use LengthOfRope\TreeHouse\Auth\Jwt\Algorithms\EcdsaSha256;
 use LengthOfRope\TreeHouse\Errors\Exceptions\InvalidArgumentException;
+use LengthOfRope\TreeHouse\Support\Carbon;
 
 /**
  * JWT Token Encoder
@@ -92,7 +93,7 @@ class JwtEncoder
      */
     public function encodeWithDefaults(array $customClaims = [], array $header = []): string
     {
-        $now = time();
+        $now = Carbon::now()->getTimestamp();
         
         $claims = new ClaimsManager();
 

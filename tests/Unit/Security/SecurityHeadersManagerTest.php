@@ -185,17 +185,18 @@ class SecurityHeadersManagerTest extends TestCase
         ];
         
         $manager = new SecurityHeadersManager($config);
-        $response = new Response('test content');
         
         // Test exact match
+        $response1 = new Response('test content');
         $request1 = $this->createMockRequest(['Origin' => 'https://trusted.com']);
-        $response1 = $manager->applyHeaders($response, $request1);
+        $response1 = $manager->applyHeaders($response1, $request1);
         $headers1 = $response1->getHeaders();
         $this->assertEquals('https://trusted.com', $headers1['Access-Control-Allow-Origin']);
         
-        // Test wildcard match
+        // Test wildcard match - use a fresh response object
+        $response2 = new Response('test content');
         $request2 = $this->createMockRequest(['Origin' => 'https://subdomain.example.com']);
-        $response2 = $manager->applyHeaders($response, $request2);
+        $response2 = $manager->applyHeaders($response2, $request2);
         $headers2 = $response2->getHeaders();
         $this->assertEquals('https://subdomain.example.com', $headers2['Access-Control-Allow-Origin']);
     }

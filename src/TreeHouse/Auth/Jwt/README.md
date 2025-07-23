@@ -19,8 +19,7 @@ This directory contains the core JWT authentication components for the TreeHouse
 ### Phase 5: Advanced Security & Tools
 
 10. **KeyRotationManager** - Automatic JWT signing key rotation
-11. **SecurityHeadersManager** - Security headers for JWT responses
-12. **BreachDetectionManager** - Suspicious activity monitoring
+11. **BreachDetectionManager** - Suspicious activity monitoring
 13. **JwtCsrfManager** - JWT-based CSRF protection
 14. **JwtDebugger** - Enhanced JWT debugging tools
 15. **JwtTestHelper** - Testing utilities for JWT functionality
@@ -126,7 +125,7 @@ if ($comparison['same_user']) {
 use LengthOfRope\TreeHouse\Auth\Jwt\KeyRotationManager;
 use LengthOfRope\TreeHouse\Auth\Jwt\BreachDetectionManager;
 use LengthOfRope\TreeHouse\Auth\Jwt\JwtCsrfManager;
-use LengthOfRope\TreeHouse\Auth\Jwt\SecurityHeadersManager;
+use LengthOfRope\TreeHouse\Security\SecurityHeadersManager;
 
 // Key rotation management
 $keyManager = new KeyRotationManager($cache);
@@ -280,7 +279,6 @@ All JWT components have comprehensive test coverage:
 
 ### Phase 5: Advanced Security Tests
 - **KeyRotationManagerTest**: Key rotation functionality
-- **SecurityHeadersManagerTest**: Security headers management
 - **BreachDetectionManagerTest**: Threat detection and monitoring
 - **JwtCsrfManagerTest**: CSRF protection
 - **JwtDebuggerTest**: Debug tools and analysis

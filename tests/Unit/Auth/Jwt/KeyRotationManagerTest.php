@@ -46,12 +46,15 @@ class KeyRotationManagerTest extends TestCase
     public function testCanGetCurrentKey(): void
     {
         // Generate a key first
-        $this->keyManager->generateNewKey('HS256');
+        $generatedKey = $this->keyManager->generateNewKey('HS256');
+        
+        // Check what was generated
+        $this->assertArrayHasKey('id', $generatedKey, 'Generated key missing id. Keys: ' . implode(', ', array_keys($generatedKey)));
         
         $currentKey = $this->keyManager->getCurrentKey('HS256');
         
         $this->assertIsArray($currentKey);
-        $this->assertArrayHasKey('id', $currentKey);
+        $this->assertArrayHasKey('id', $currentKey, 'Current key missing id. Keys: ' . implode(', ', array_keys($currentKey)));
         $this->assertArrayHasKey('key', $currentKey);
         $this->assertEquals('HS256', $currentKey['algorithm']);
     }
@@ -76,7 +79,7 @@ class KeyRotationManagerTest extends TestCase
         $this->keyManager->generateNewKey('HS256');
         $this->keyManager->rotateKey('HS256');
         
-        $validKeys = $this->keyManager->getValidKeys('HS256');
+        $validKeys = $this->keyManager->getValidKeys();
         
         $this->assertIsArray($validKeys);
         $this->assertGreaterThanOrEqual(1, count($validKeys));
@@ -121,7 +124,7 @@ class KeyRotationManagerTest extends TestCase
         $this->assertNotEquals($key1['key'], $key2['key']);
         
         // Verify we still have valid keys
-        $validKeys = $this->keyManager->getValidKeys('HS256');
+        $validKeys = $this->keyManager->getValidKeys();
         $this->assertGreaterThanOrEqual(1, count($validKeys));
     }
 
