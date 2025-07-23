@@ -4,7 +4,9 @@ A modern, lightweight PHP framework built from scratch with zero external depend
 
 ## WORK IN PROGRESS
 
-Please note that this framework is in WIP state. It is nowhere near production ready.
+Please note that this framework is in active development state. While many features are implemented and extensively tested, it is not yet production ready. Use for development, learning, and experimentation purposes.
+
+**Current Status**: Major features including JWT authentication, ORM, templating, events system, mail system, and rate limiting are completed with extensive test coverage (1900+ tests).
 
 ## Architecture Overview
 
@@ -31,13 +33,16 @@ TreeHouse Framework is built with a clean layered architecture consisting of 16 
    - RESTful routing patterns and route caching
 
 4. **[Auth Layer](src/TreeHouse/Auth/README.md)**
-   - Multi-guard authentication system
-   - Role-Based Access Control (RBAC) with permissions
-   - User providers and authentication guards
-   - Authorization policies and gate system
+   - **Enterprise JWT Authentication** - RFC 7519 compliant stateless authentication
+   - **Multi-Guard System** - Session and JWT guards with flexible switching
+   - **Role-Based Access Control (RBAC)** - Complete permission system
+   - **Multi-Algorithm JWT** - HS256/384/512, RS256/384/512, ES256/384/512 support
+   - **Stateless Authentication** - Pure stateless JWT authentication for APIs
+   - **Multi-Source Token Extraction** - Header, cookie, query parameter support
 
 5. **[Console Layer](src/TreeHouse/Console/README.md)**
    - Comprehensive CLI application framework
+   - **JWT Management Commands** - Generate, validate, decode, security audit
    - Built-in commands for user and cache management
    - Database migration and development tools
    - Interactive command system with argument parsing
@@ -50,18 +55,17 @@ TreeHouse Framework is built with a clean layered architecture consisting of 16 
 
 7. **[Errors Layer](src/TreeHouse/Errors/README.md)**
    - Comprehensive error handling and exception management
-   - Custom exception classes and error pages
-   - Error logging and debugging utilities
+   - PSR-3 compliant logging with structured data
+   - Multi-format error rendering (JSON, HTML, CLI)
    - Production-ready error handling
 
 8. **[Mail Layer](src/TreeHouse/Mail/README.md)**
-   - Comprehensive email system with multiple transport drivers (SMTP, Sendmail, Log)
-   - Database-powered queue system with automated processing and retry logic
-   - Laravel-style Mailable classes with TreeHouse template integration
-   - File attachments with security validation and MIME type detection
-   - Full event system integration for monitoring and control
-   - Advanced email validation with anti-spam features
-   - CLI commands for queue management and email generation
+   - **Complete Email System** - SMTP, Sendmail, Log drivers
+   - **Database Queue System** - Automated processing with retry logic
+   - **Laravel-style Mailables** - TreeHouse template integration
+   - **File Attachments** - Security validation and MIME detection
+   - **Event Integration** - Monitoring and control
+   - **CLI Management** - Queue commands and email generation
 
 9. **[Models Layer](src/TreeHouse/Models/README.md)**
    - Base model classes and utilities
@@ -106,10 +110,10 @@ TreeHouse Framework is built with a clean layered architecture consisting of 16 
     - Authentication and authorization integration
 
 16. **[Events Layer](src/TreeHouse/Events/README.md)**
-    - Comprehensive event system for loose coupling
-    - Model lifecycle events with cancellation support
-    - Synchronous event dispatching with priority
-    - Event listeners with dependency injection
+    - **Comprehensive Event System** - Loose coupling architecture
+    - **Model Lifecycle Events** - Automatic events with cancellation support
+    - **Synchronous Dispatching** - Priority-based event processing
+    - **Container Integration** - Automatic dependency injection for listeners
 
 ### Advanced Middleware Systems
 
@@ -130,16 +134,33 @@ TreeHouse Framework is built with a clean layered architecture consisting of 16 
        - Comprehensive test coverage (94 tests, 100% passing)
        - Production-ready performance optimization
 
-> **📖 Detailed Documentation**: Each layer includes comprehensive documentation with examples, API references, and implementation details. Click the layer links above to explore specific functionality.
+> **Detailed Documentation**: Each layer includes comprehensive documentation with examples, API references, and implementation details. Click the layer links above to explore specific functionality.
 
 ## Features
 
 ### Core Framework
 - **Zero Dependencies**: Pure PHP implementation with no external libraries
 - **Modern PHP 8.4+**: Built for the latest PHP features and type declarations
-- **Layered Architecture**: Clean separation of concerns across 15 specialized layers
+- **Layered Architecture**: Clean separation of concerns across 16 specialized layers
 - **Dependency Injection**: Advanced container with automatic resolution and service registration
 - **Configuration Management**: Environment-based configuration with type conversion
+- **Extensive Testing**: 1900+ tests with comprehensive coverage
+
+### Authentication & Authorization
+- **Multi-Guard Authentication**: Session-based and custom authentication guards
+- **Role-Based Access Control (RBAC)**: Complete permission system with roles, permissions, and policies
+- **User Providers**: Database and custom user providers with flexible user management
+- **Authorization Middleware**: Route-level protection with role and permission checking
+- **Template Integration**: Authentication and authorization directives in templates
+
+### JWT Authentication & Authorization (Enterprise-Grade)
+- **RFC 7519 Compliance**: Complete JWT standard implementation with zero dependencies
+- **Multi-Algorithm Support**: HS256, HS384, HS512, RS256, RS384, RS512, ES256, ES384, ES512
+- **Stateless Authentication**: Perfect for APIs and microservices architecture
+- **Multi-Source Token Extraction**: Authorization header (Bearer), cookies, query parameters
+- **Claims Management**: Comprehensive JWT claims validation and processing
+- **Environment Integration**: Complete .env configuration with production security
+- **CLI Tools**: Generate, validate, decode, rotate keys, security audit commands
 
 ### HTTP & Routing
 - **Flexible Routing**: HTTP routing with middleware support, parameter binding, and route groups
@@ -149,13 +170,6 @@ TreeHouse Framework is built with a clean layered architecture consisting of 16 
 - **Response Management**: Flexible response building with headers, cookies, and redirects
 - **Enterprise Rate Limiting**: Multiple strategies (Fixed Window, Sliding Window, Token Bucket) with flexible key resolution
 
-### Authentication & Authorization
-- **Multi-Guard Authentication**: Session-based and custom authentication guards
-- **Role-Based Access Control (RBAC)**: Complete permission system with roles, permissions, and policies
-- **User Providers**: Database and custom user providers with flexible user management
-- **Authorization Middleware**: Route-level protection with role and permission checking
-- **Template Integration**: Authentication and authorization directives in templates
-
 ### Database & ORM
 - **ActiveRecord ORM**: Eloquent-style models with relationships and query building
 - **Query Builder**: Fluent SQL query construction with method chaining
@@ -164,11 +178,20 @@ TreeHouse Framework is built with a clean layered architecture consisting of 16 
 - **Connection Management**: Multiple database connections with automatic management
 
 ### Template Engine
-- **HTML-Valid Syntax**: ThymeLeaf-inspired template engine with `th:` attributes
+- **HTML-Valid Syntax**: Custom template engine with `th:` attributes
 - **Component System**: Reusable template components with parameter passing
 - **Layout Inheritance**: Master layouts with sections and content injection
 - **Template Compilation**: Optimized template compilation with caching
 - **Authorization Integration**: Built-in auth, role, and permission directives
+
+### Mail System (Complete Implementation)
+- **Multiple Transport Drivers**: SMTP with authentication, Sendmail, Log driver for testing
+- **Database Queue System**: Automated email processing with retry logic and performance tracking
+- **Laravel-style Mailables**: Easy email composition with TreeHouse template integration
+- **File Attachments**: Security validation, MIME type detection, and size limits
+- **Event Integration**: Email lifecycle events for monitoring and control
+- **Advanced Validation**: Anti-spam features and email address validation
+- **CLI Management**: Queue processing, status monitoring, and email generation commands
 
 ### Security & Validation
 - **CSRF Protection**: Token-based CSRF protection with automatic validation
@@ -176,6 +199,7 @@ TreeHouse Framework is built with a clean layered architecture consisting of 16 
 - **Password Hashing**: Secure password hashing with configurable algorithms
 - **Input Sanitization**: XSS protection and data sanitization utilities
 - **Comprehensive Validation**: 25+ built-in validation rules with custom rule support
+- **JWT Security**: Timing-safe operations, multi-algorithm support, enterprise-grade validation
 
 ### Utilities & Support
 - **Array Utilities**: Dot notation support, fluent operations, and data manipulation
@@ -211,7 +235,9 @@ TreeHouse Framework is built with a clean layered architecture consisting of 16 
 
 ### Console & CLI
 - **CLI Application**: Comprehensive command-line interface for development
+- **JWT Commands**: Complete JWT management (generate, validate, decode, security audit)
 - **User Management**: Create, update, delete users with role assignment
+- **Mail Commands**: Queue management, status monitoring, mailable generation
 - **Cache Operations**: Cache clearing, statistics, and management
 - **Database Operations**: Migration running and database management
 - **Development Server**: Built-in development server with hot reloading
@@ -247,13 +273,13 @@ TreeHouse provides a single intelligent CLI command that adapts to your context:
 
 - **`treehouse`** - **Context-Aware CLI Tool**:
   - **Outside TreeHouse projects**: Shows "TreeHouse Project Creator" with only the `new` command for scaffolding projects
-  - **Inside TreeHouse projects**: Shows "TreeHouse Project Manager" with all development commands (user management, cache operations, migrations, etc.)
+  - **Inside TreeHouse projects**: Shows "TreeHouse Project Manager" with all development commands (user management, cache operations, migrations, JWT tools, etc.)
 
 **Note**: The `treehouse` command automatically detects whether you're inside a TreeHouse project directory and shows the appropriate commands. When installed globally, the command is available system-wide. You can also use the local `./bin/treehouse` within projects.
 
 ## Quick Start
 
-### 1. Create a Controller
+### 1. Create a Controller with JWT Authentication
 
 ```php
 <?php
@@ -262,6 +288,35 @@ namespace App\Controllers;
 
 use LengthOfRope\TreeHouse\Http\Request;
 use LengthOfRope\TreeHouse\Http\Response;
+
+class ApiController
+{
+    public function dashboard(): array
+    {
+        // JWT authentication automatically handled by middleware
+        $user = auth()->user(); // Resolved from JWT token
+        
+        return [
+            'message' => 'Welcome to your dashboard',
+            'user' => $user->toArray(),
+            'permissions' => $user->permissions->pluck('slug'),
+            'timestamp' => now()->toISOString()
+        ];
+    }
+    
+    public function profile(): array
+    {
+        // Authorization check with JWT user
+        if (!auth()->user()->can('view-profile')) {
+            abort(403, 'Access denied');
+        }
+        
+        return [
+            'profile' => auth()->user()->profile,
+            'settings' => auth()->user()->settings
+        ];
+    }
+}
 
 class HomeController
 {
@@ -273,23 +328,10 @@ class HomeController
             'posts' => Post::query()->published()->latest()->get()
         ]);
     }
-    
-    public function dashboard(): string
-    {
-        // Authorization check
-        if (!auth()->user()->can('access-dashboard')) {
-            abort(403, 'Access denied');
-        }
-        
-        return view('dashboard', [
-            'user' => auth()->user(),
-            'stats' => $this->getDashboardStats()
-        ]);
-    }
 }
 ```
 
-### 2. Define Routes with Authorization
+### 2. Define Routes with JWT and Authorization
 
 In `config/routes/web.php`:
 
@@ -297,7 +339,7 @@ In `config/routes/web.php`:
 <?php
 
 use App\Controllers\HomeController;
-use App\Controllers\AdminController;
+use App\Controllers\ApiController;
 use App\Controllers\PostController;
 
 // Public routes
@@ -306,13 +348,22 @@ $router->get('/posts/{id}', [PostController::class, 'show'])
        ->where('id', '\d+')
        ->name('posts.show');
 
-// Authentication required
+// JWT API routes (stateless authentication)
+$router->group(['prefix' => 'api', 'middleware' => 'auth:jwt'], function($router) {
+    $router->get('/dashboard', [ApiController::class, 'dashboard']);
+    $router->get('/profile', [ApiController::class, 'profile']);
+    $router->get('/user', function() {
+        return ['user' => auth()->user()];
+    });
+});
+
+// Session-based authentication (traditional web)
 $router->group(['middleware' => 'auth'], function($router) {
     $router->get('/dashboard', [HomeController::class, 'dashboard'])->name('dashboard');
     $router->get('/profile', [UserController::class, 'profile'])->name('profile');
 });
 
-// Role-based authorization
+// Role-based authorization (works with both JWT and session)
 $router->group(['middleware' => 'role:admin'], function($router) {
     $router->get('/admin/users', [AdminController::class, 'users'])->name('admin.users');
     $router->post('/admin/users', [AdminController::class, 'createUser']);
@@ -322,12 +373,6 @@ $router->group(['middleware' => 'role:admin'], function($router) {
 $router->get('/posts/create', [PostController::class, 'create'])
        ->middleware('permission:create-posts')
        ->name('posts.create');
-
-// Multiple permissions (OR logic)
-$router->group(['middleware' => 'permission:edit-posts,manage-content'], function($router) {
-    $router->get('/posts/{id}/edit', [PostController::class, 'edit']);
-    $router->put('/posts/{id}', [PostController::class, 'update']);
-});
 
 // Rate limiting with different strategies
 $router->get('/api/search', [SearchController::class, 'search'])
@@ -339,7 +384,7 @@ $router->post('/api/upload', [FileController::class, 'upload'])
 $router->get('/api/burst-endpoint', [ApiController::class, 'burstData'])
        ->middleware('throttle:50,60,token_bucket'); // Token bucket for burst traffic
 
-// User-based rate limiting
+// User-based rate limiting (perfect for JWT APIs)
 $router->get('/api/user-data', [ApiController::class, 'userData'])
        ->middleware('throttle:200,60,fixed,user'); // 200 requests per user per hour
 
@@ -348,7 +393,58 @@ $router->get('/api/premium', [ApiController::class, 'premium'])
        ->middleware('throttle:1000,60,fixed,header'); // 1000 requests per API key per hour
 ```
 
-### 3. Create Models with Events and Relationships
+### 3. JWT Configuration
+
+Configure JWT authentication in your `.env` file:
+
+```env
+# JWT Configuration
+JWT_SECRET=your-256-bit-secret-key-here
+JWT_ALGORITHM=HS256
+JWT_TTL=3600
+JWT_REFRESH_TTL=1209600
+JWT_ISSUER=treehouse-app
+JWT_AUDIENCE=treehouse-users
+
+# JWT Provider Mode (stateless only)
+JWT_PROVIDER_MODE=stateless
+JWT_PROVIDER_EMBED_USER=true
+
+# JWT Token Sources (priority order)
+JWT_EXTRACT_HEADER=true
+JWT_EXTRACT_COOKIE=true
+JWT_EXTRACT_QUERY=false
+```
+
+And in your `config/auth.php`:
+
+```php
+'guards' => [
+    'web' => [
+        'driver' => 'session',
+        'provider' => 'users',
+    ],
+    'jwt' => [
+        'driver' => 'jwt',
+        'provider' => 'jwt_users',
+    ],
+],
+
+'providers' => [
+    'users' => [
+        'driver' => 'database',
+        'model' => \App\Models\User::class,
+    ],
+    'jwt_users' => [
+        'driver' => 'jwt',
+        'model' => \App\Models\User::class,
+        'mode' => env('JWT_PROVIDER_MODE', 'stateless'),
+        'embed_user' => env('JWT_PROVIDER_EMBED_USER', true),
+    ],
+],
+```
+
+### 4. Create Models with Events and Relationships
 
 ```php
 <?php
@@ -366,6 +462,18 @@ class User extends ActiveRecord implements Authorizable
     
     protected array $fillable = ['name', 'email', 'password'];
     protected array $hidden = ['password', 'remember_token'];
+    
+    // JWT serialization - include what should be embedded in tokens
+    public function toJwtArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'email' => $this->email,
+            'name' => $this->name,
+            'roles' => $this->roles->pluck('slug')->toArray(),
+            'permissions' => $this->permissions->pluck('slug')->toArray(),
+        ];
+    }
     
     public function posts()
     {
@@ -415,7 +523,7 @@ Post::creating(function($event) {
 });
 ```
 
-### 4. Advanced Database Usage
+### 5. Advanced Database Usage
 
 ```php
 // Complex queries with relationships
@@ -453,6 +561,7 @@ my-app/
 │   │   ├── Models/            # Database models
 │   │   ├── Services/          # Business logic
 │   │   ├── Middleware/        # HTTP middleware
+│   │   ├── Mail/              # Mailable classes
 │   │   └── Policies/          # Authorization policies
 │   └── TreeHouse/             # Framework core (16+ components)
 │       ├── Foundation/        # Application bootstrap & DI
@@ -460,11 +569,14 @@ my-app/
 │       ├── Router/            # HTTP routing & middleware
 │       │   └── Middleware/    # Advanced middleware systems
 │       │       └── RateLimit/ # Enterprise rate limiting
-│       ├── Auth/              # Authentication & RBAC
+│       ├── Auth/              # Authentication & RBAC & JWT
+│       │   └── Jwt/           # JWT infrastructure
 │       ├── Console/           # CLI commands & application
+│       │   └── Commands/      # Built-in commands including JWT
 │       ├── Cron/              # Task scheduling & background jobs
 │       ├── Errors/            # Error handling & exceptions
 │       ├── Events/            # Event system & listeners
+│       ├── Mail/              # Email system & drivers
 │       ├── Models/            # Base model classes & patterns
 │       ├── Cache/             # Caching system
 │       ├── Http/              # Request/response handling
@@ -475,20 +587,22 @@ my-app/
 ├── config/                    # Configuration files
 │   ├── app.php               # Application settings
 │   ├── database.php          # Database connections
+│   ├── auth.php              # Authentication & JWT config
 │   ├── cache.php             # Cache configuration
+│   ├── mail.php              # Mail system configuration
 │   ├── events.php            # Event system configuration
 │   └── routes/               # Route definitions
 ├── public/                   # Web root
 ├── resources/views/          # Templates
 ├── storage/                  # Cache, logs, compiled views
-├── tests/                    # Test files
+├── tests/                    # Test files (1900+ tests)
 ├── database/migrations/      # Database migrations
 └── bin/treehouse            # CLI command
 ```
 
 ## CLI Commands
 
-TreeHouse includes a single context-aware CLI tool:
+TreeHouse includes a single context-aware CLI tool with comprehensive command support:
 
 ### Project Creation (Outside TreeHouse Projects)
 ```bash
@@ -497,6 +611,29 @@ treehouse new my-app
 
 # Show help for project creation (when outside a TreeHouse project)
 treehouse --help
+```
+
+### JWT Management Commands
+```bash
+# Generate JWT tokens for testing and development
+treehouse jwt:generate 123 --claims='{"email":"user@example.com","role":"admin"}'
+treehouse jwt:generate 456 --ttl=7200 --claims='{"department":"IT"}'
+
+# Validate JWT tokens with comprehensive checks
+treehouse jwt:validate eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9... --format=table
+treehouse jwt:validate $TOKEN --no-issuer --no-audience # Flexible validation
+
+# Decode JWT tokens for inspection
+treehouse jwt:decode eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9... --format=json
+
+# Display current JWT configuration
+treehouse jwt:config --show-all --check-security
+
+# Security audit and recommendations
+treehouse jwt:security --audit --recommendations
+
+# Key rotation for production environments
+treehouse jwt:rotate-keys --backup --confirm
 ```
 
 ### Project Management (Inside TreeHouse Projects)
@@ -509,9 +646,10 @@ treehouse serve --port=8000 --host=localhost
 # Show all available commands (when inside a TreeHouse project)
 treehouse --help
 
-# Show commands by group (e.g., user commands, mail commands)
+# Show commands by group (e.g., user commands, mail commands, jwt commands)
 treehouse user
 treehouse mail
+treehouse jwt
 
 # Both global and local commands work identically
 treehouse cache:clear    # Global command
@@ -601,7 +739,7 @@ treehouse cron:run --dry-run
 
 ### Testing
 ```bash
-# Run tests
+# Run tests (1900+ tests with comprehensive coverage)
 treehouse test:run
 
 # Run specific test suite
@@ -610,7 +748,7 @@ treehouse test:run --suite=unit
 
 ## Template Engine
 
-TreeHouse includes a powerful ThymeLeaf-inspired template engine with HTML-valid syntax:
+TreeHouse includes a powerful custom template engine with HTML-valid syntax:
 
 **Layout Template (`layouts/app.th.html`):**
 ```html
@@ -629,6 +767,7 @@ TreeHouse includes a powerful ThymeLeaf-inspired template engine with HTML-valid
         <a th:permission="manage-posts" href="/posts/manage">Manage Posts</a>
         
         <form action="/logout" method="POST">
+            <input type="hidden" th:csrf>
             <button type="submit">Logout</button>
         </form>
     </nav>
@@ -699,11 +838,12 @@ TreeHouse includes a powerful ThymeLeaf-inspired template engine with HTML-valid
 - `th:extends` - Layout inheritance
 - `th:fragment` - Define and include reusable fragments
 - `th:href` / `@{...}` - URL generation with parameters
+- `th:csrf` - CSRF token insertion
 - `${variable}` - Variable interpolation with Support class integration
 
 ## Authorization System
 
-TreeHouse includes a comprehensive RBAC (Role-Based Access Control) system:
+TreeHouse includes a comprehensive RBAC (Role-Based Access Control) system that works seamlessly with both session and JWT authentication:
 
 ### Database Schema
 ```sql
@@ -742,9 +882,9 @@ CREATE TABLE role_permissions (
 );
 ```
 
-### User Authorization Methods
+### User Authorization Methods (Works with JWT)
 ```php
-// Role checking
+// Role checking (works with JWT stateless authentication)
 if ($user->hasRole('admin')) {
     // Admin functionality
 }
@@ -757,7 +897,7 @@ if ($user->hasAllRoles(['editor', 'verified'])) {
     // Multiple role check (AND logic)
 }
 
-// Permission checking
+// Permission checking (permissions embedded in JWT token)
 if ($user->can('manage-users')) {
     // User management functionality
 }
@@ -776,25 +916,28 @@ $user->removeRole('admin');
 $user->syncRoles(['editor', 'author']);
 ```
 
-### Route Protection
+### Route Protection (JWT & Session Compatible)
 ```php
-// Role-based middleware
+// Role-based middleware (works with any guard)
 $router->group(['middleware' => 'role:admin'], function($router) {
     $router->get('/admin/dashboard', [AdminController::class, 'dashboard']);
 });
 
-// Permission-based middleware
-$router->get('/posts/create', [PostController::class, 'create'])
-       ->middleware('permission:create-posts');
+// Permission-based middleware (perfect for JWT APIs)
+$router->get('/api/posts/create', [PostController::class, 'create'])
+       ->middleware('auth:jwt,permission:create-posts');
 
 // Multiple roles/permissions (OR logic)
 $router->group(['middleware' => 'role:admin,editor'], function($router) {
     $router->get('/content/manage', [ContentController::class, 'manage']);
 });
 
-// Multiple permissions (OR logic)
-$router->group(['middleware' => 'permission:edit-posts,manage-content'], function($router) {
-    $router->get('/posts/bulk-edit', [PostController::class, 'bulkEdit']);
+// JWT-specific API routes with permissions
+$router->group(['prefix' => 'api', 'middleware' => 'auth:jwt'], function($router) {
+    $router->get('/admin/users', [AdminController::class, 'users'])
+           ->middleware('permission:manage-users');
+    $router->delete('/admin/users/{id}', [AdminController::class, 'deleteUser'])
+           ->middleware('permission:delete-users');
 });
 ```
 
@@ -1028,7 +1171,10 @@ Configuration files are stored in the `config/` directory:
 
 - `app.php` - Application settings, timezone, locale
 - `database.php` - Database connections and settings
+- `auth.php` - Authentication guards, providers, and JWT configuration
 - `cache.php` - Cache configuration and drivers
+- `mail.php` - Mail system configuration
+- `events.php` - Event system configuration
 - `routes/web.php` - Web route definitions
 - `routes/api.php` - API route definitions
 
@@ -1050,6 +1196,14 @@ SESSION_LIFETIME=120
 SESSION_ENCRYPT=true
 
 ENCRYPTION_KEY=base64:your-32-character-secret-key
+
+# JWT Configuration
+JWT_SECRET=your-256-bit-secret-key-here
+JWT_ALGORITHM=HS256
+JWT_TTL=3600
+JWT_REFRESH_TTL=1209600
+JWT_ISSUER=treehouse-app
+JWT_AUDIENCE=treehouse-users
 ```
 
 ## Contributing
@@ -1093,7 +1247,7 @@ For detailed information about each framework layer, see the individual README f
 - [Foundation Layer](src/TreeHouse/Foundation/README.md) - Application bootstrap and dependency injection
 - [Database Layer](src/TreeHouse/Database/README.md) - ORM, QueryBuilder, and database management
 - [Router Layer](src/TreeHouse/Router/README.md) - HTTP routing and middleware system
-- [Auth Layer](src/TreeHouse/Auth/README.md) - Authentication and authorization (RBAC)
+- [Auth Layer](src/TreeHouse/Auth/README.md) - Authentication and authorization (RBAC) with JWT support
 - [Console Layer](src/TreeHouse/Console/README.md) - CLI commands and console application
 - [Cron Layer](src/TreeHouse/Cron/README.md) - Task scheduling and background job processing
 - [Errors Layer](src/TreeHouse/Errors/README.md) - Error handling and exception management
