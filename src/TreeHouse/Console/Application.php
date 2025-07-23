@@ -27,6 +27,12 @@ use LengthOfRope\TreeHouse\Console\Commands\MailCommands\MailQueueStatusCommand;
 use LengthOfRope\TreeHouse\Console\Commands\MailCommands\MailQueueClearCommand;
 use LengthOfRope\TreeHouse\Console\Commands\MailCommands\MailQueueRetryCommand;
 use LengthOfRope\TreeHouse\Console\Commands\MailCommands\MakeMailableCommand;
+use LengthOfRope\TreeHouse\Console\Commands\JwtCommands\JwtGenerateCommand;
+use LengthOfRope\TreeHouse\Console\Commands\JwtCommands\JwtValidateCommand;
+use LengthOfRope\TreeHouse\Console\Commands\JwtCommands\JwtDecodeCommand;
+use LengthOfRope\TreeHouse\Console\Commands\JwtCommands\JwtSecurityCommand;
+use LengthOfRope\TreeHouse\Console\Commands\JwtCommands\JwtRotateKeysCommand;
+use LengthOfRope\TreeHouse\Console\Commands\JwtCommands\JwtConfigCommand;
 use LengthOfRope\TreeHouse\Console\Helpers\ConfigLoader;
 use Throwable;
 
@@ -145,6 +151,14 @@ class Application
             
             // Mail generation commands
             $this->register(new MakeMailableCommand());
+            
+            // JWT management commands
+            $this->register(new JwtGenerateCommand());
+            $this->register(new JwtValidateCommand());
+            $this->register(new JwtDecodeCommand());
+            $this->register(new JwtSecurityCommand());
+            $this->register(new JwtRotateKeysCommand());
+            $this->register(new JwtConfigCommand());
         } else {
             // Outside a TreeHouse project - only register the new project command
             $this->register(new NewProjectCommand());
