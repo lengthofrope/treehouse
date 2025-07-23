@@ -144,6 +144,36 @@ return [
             'max_refresh_count' => env('JWT_MAX_REFRESH_COUNT', 50),
             'grace_period' => env('JWT_REFRESH_GRACE_PERIOD', 300), // 5 minutes
         ],
+        
+        // Phase 5: Advanced Security Configuration
+        'security' => [
+            'key_rotation' => [
+                'enabled' => env('JWT_KEY_ROTATION_ENABLED', true),
+                'interval' => env('JWT_KEY_ROTATION_INTERVAL', 2592000), // 30 days
+                'grace_period' => env('JWT_KEY_GRACE_PERIOD', 604800), // 7 days
+                'max_keys' => env('JWT_MAX_KEYS', 10),
+            ],
+            
+            'breach_detection' => [
+                'enabled' => env('JWT_BREACH_DETECTION_ENABLED', true),
+                'failed_auth_threshold' => env('JWT_FAILED_AUTH_THRESHOLD', 5),
+                'auto_block_enabled' => env('JWT_AUTO_BLOCK_ENABLED', true),
+                'block_duration' => env('JWT_BLOCK_DURATION', 3600), // 1 hour
+                'monitoring_window' => env('JWT_MONITORING_WINDOW', 3600), // 1 hour
+            ],
+            
+            'csrf' => [
+                'enabled' => env('JWT_CSRF_ENABLED', false),
+                'ttl' => env('JWT_CSRF_TTL', 3600), // 1 hour
+                'include_fingerprint' => env('JWT_CSRF_FINGERPRINT', true),
+            ],
+            
+            'debugging' => [
+                'enabled' => env('JWT_DEBUG_ENABLED', false),
+                'trace_validation' => env('JWT_TRACE_VALIDATION', false),
+                'performance_profiling' => env('JWT_PERFORMANCE_PROFILING', false),
+            ],
+        ],
     ],
 
 ];
