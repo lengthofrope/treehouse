@@ -387,12 +387,12 @@ if (!function_exists('getDefaultJwtConfig')) {
             
             // Fallback to environment variables
             $config = [
-                'secret' => $_ENV['JWT_SECRET'] ?? 'default-secret-key-change-in-production',
-                'algorithm' => $_ENV['JWT_ALGORITHM'] ?? 'HS256',
-                'ttl' => (int) ($_ENV['JWT_TTL'] ?? 900),
-                'refresh_ttl' => (int) ($_ENV['JWT_REFRESH_TTL'] ?? 604800),
-                'issuer' => $_ENV['JWT_ISSUER'] ?? $_ENV['APP_NAME'] ?? 'TreeHouse',
-                'audience' => $_ENV['JWT_AUDIENCE'] ?? $_ENV['APP_URL'] ?? 'http://localhost',
+                'secret' => \LengthOfRope\TreeHouse\Support\Env::get('JWT_SECRET', 'default-secret-key-change-in-production'),
+                'algorithm' => \LengthOfRope\TreeHouse\Support\Env::get('JWT_ALGORITHM', 'HS256'),
+                'ttl' => (int) \LengthOfRope\TreeHouse\Support\Env::get('JWT_TTL', 900),
+                'refresh_ttl' => (int) \LengthOfRope\TreeHouse\Support\Env::get('JWT_REFRESH_TTL', 604800),
+                'issuer' => \LengthOfRope\TreeHouse\Support\Env::get('JWT_ISSUER') ?? \LengthOfRope\TreeHouse\Support\Env::get('APP_NAME', 'TreeHouse'),
+                'audience' => \LengthOfRope\TreeHouse\Support\Env::get('JWT_AUDIENCE') ?? \LengthOfRope\TreeHouse\Support\Env::get('APP_URL', 'http://localhost'),
             ];
             
             $defaultConfig = new JwtConfig($config);

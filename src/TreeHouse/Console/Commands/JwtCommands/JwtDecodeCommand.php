@@ -74,7 +74,7 @@ class JwtDecodeCommand extends Command
         
         if ($secret = $input->getOption('secret')) {
             $config['secret'] = $secret;
-        } elseif ($envSecret = $_ENV['JWT_SECRET'] ?? null) {
+        } elseif ($envSecret = Env::get('JWT_SECRET')) {
             $config['secret'] = $envSecret;
         } else {
             $config['secret'] = 'cli-default-secret-key-change-in-production';

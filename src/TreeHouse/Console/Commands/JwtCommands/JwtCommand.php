@@ -251,7 +251,7 @@ class JwtCommand extends Command
         
         if ($secret = $input->getOption('secret')) {
             $config['secret'] = $secret;
-        } elseif ($envSecret = $_ENV['JWT_SECRET'] ?? null) {
+        } elseif ($envSecret = Env::get('JWT_SECRET')) {
             $config['secret'] = $envSecret;
         } else {
             // Use a default for CLI operations
